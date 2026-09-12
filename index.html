@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drum Sheet Editor</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.5.2/abcjs-basic-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+  :root {
+    --bg: #e9edf1;
+    --paper: #ffffff;
+    --ink: #111111;
+    --border: #d6dde3;
+    --muted: #5a6978;
+    --hover: #f0f4f8;
+    --faint: #f7fafd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1d21;
+      --paper: #23272d;
+      --ink: #f0f2f5;
+      --border: #363c44;
+      --muted: #8a97a6;
+      --hover: #2a2f36;
+      --faint: #282d34;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1d21;
+    --paper: #23272d;
+    --ink: #f0f2f5;
+    --border: #363c44;
+    --muted: #8a97a6;
+    --hover: #2a2f36;
+    --faint: #282d34;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useContext, createContext } = React;
+
+/* ---- Lucide-style SVG icons ---- */
+function SvgIcon({ size = 16, fill = "none", strokeWidth = 2, children }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}
+      stroke="currentColor" strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round" style={{ display: "block", flexShrink: 0 }}>
+      {children}
+    </svg>
+  );
+}
+const Plus        = ({ size = 16 }) => <SvgIcon size={size}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>;
+const Music       = ({ size = 16 }) => <SvgIcon size={size}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></SvgIcon>;
+const Type        = ({ size = 16 }) => <SvgIcon size={size}><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></SvgIcon>;
+const Trash2      = ({ size = 16 }) => <SvgIcon size={size}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></SvgIcon>;
+const AlertCircle = ({ size = 16 }) => <SvgIcon size={size}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></SvgIcon>;
+const Upload      = ({ size = 16 }) => <SvgIcon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></SvgIcon>;
+const Volume2     = ({ size = 16 }) => <SvgIcon size={size}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></SvgIcon>;
+const Play        = ({ size = 16, fill = "none" }) => <SvgIcon size={size} fill={fill}><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>;
+const Pause       = ({ size = 16, fill = "none" }) => <SvgIcon size={size} fill={fill}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></SvgIcon>;
+const Repeat      = ({ size = 16 }) => <SvgIcon size={size}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></SvgIcon>;
+const ChevronLeft  = ({ size = 16 }) => <SvgIcon size={size}><polyline points="15 18 9 12 15 6"/></SvgIcon>;
+const ChevronRight = ({ size = 16 }) => <SvgIcon size={size}><polyline points="9 18 15 12 9 6"/></SvgIcon>;
+const ChevronUp    = ({ size = 16 }) => <SvgIcon size={size}><polyline points="18 15 12 9 6 15"/></SvgIcon>;
+const ChevronDown  = ({ size = 16 }) => <SvgIcon size={size}><polyline points="6 9 12 15 18 9"/></SvgIcon>;
+
+/* ---- Data ---- */
+const TRACKS = [
+  { key: "hh", label: "HH",    abc: "^g", percmap: "%%percmap ^g closed-hi-hat x" },
+  { key: "t1", label: "Tom 1", abc: "e",  percmap: "%%percmap e  hi-tom" },
+  { key: "sn", label: "Snare", abc: "c",  percmap: "%%percmap c  acoustic-snare" },
+  { key: "t3", label: "Tom 3", abc: "A",  percmap: "%%percmap A  low-floor-tom" },
+  { key: "kk", label: "Kick",  abc: "F",  percmap: "%%percmap F  acoustic-bass-drum" },
+];
+
+function makeEmptyGrid(div = 8, measures = 1) {
+  const g = { measures, div };
+  TRACKS.forEach(t => { g[t.key] = Array(measures * div).fill(0); });
+  return g;
+}
+function makeDefaultGroove() {
+  const g = makeEmptyGrid(8, 1);
+  for (let i = 0; i < 8; i++) g.hh[i] = 1;
+  g.kk[0] = 1; g.kk[4] = 1; g.sn[2] = 1; g.sn[6] = 1;
+  return g;
+}
+
+function resampleGrid(g, newDiv, newMeasures = g.measures) {
+  const oldDiv = g.div;
+  const newCells = newMeasures * newDiv;
+  const next = { measures: newMeasures, div: newDiv };
+  for (const t of TRACKS) {
+    const oldArr = g[t.key];
+    const out = Array(newCells).fill(0);
+    if (newDiv === oldDiv) {
+      for (let i = 0; i < Math.min(oldArr.length, newCells); i++) out[i] = oldArr[i];
+    } else if (newDiv > oldDiv) {
+      const ratio = newDiv / oldDiv;
+      for (let i = 0; i < oldArr.length; i++) { const idx = Math.round(i * ratio); if (idx < newCells) out[idx] = oldArr[i]; }
+    } else {
+      const ratio = oldDiv / newDiv;
+      for (let i = 0; i < newCells; i++) { const idx = Math.round(i * ratio); if (idx < oldArr.length) out[i] = oldArr[idx]; }
+    }
+    next[t.key] = out;
+  }
+  return next;
+}
+
+function buildAbcBody(grid) {
+  const slotsPerBeat = grid.div / 4;
+  const L = grid.div === 16 ? "1/16" : "1/8";
+  const measureStrings = [];
+  for (let m = 0; m < grid.measures; m++) {
+    const beatStrings = [];
+    for (let b = 0; b < 4; b++) {
+      const events = [];
+      for (let i = 0; i < slotsPerBeat; i++) {
+        const absIdx = m * grid.div + b * slotsPerBeat + i;
+        const notes = TRACKS.filter(t => grid[t.key][absIdx]).map(t => t.abc);
+        if (notes.length > 0) {
+          const token = notes.length === 1 ? notes[0] : "[" + notes.join("") + "]";
+          events.push({ slot: i, token });
+        }
+      }
+      if (events.length === 0) { beatStrings.push("z" + slotsPerBeat); }
+      else {
+        const parts = []; let cursor = 0;
+        for (let i = 0; i < events.length; i++) {
+          const ev = events[i];
+          if (ev.slot > cursor) parts.push("z" + (ev.slot - cursor));
+          const nextSlot = (i + 1 < events.length) ? events[i + 1].slot : slotsPerBeat;
+          parts.push(ev.token + (nextSlot - ev.slot));
+          cursor = nextSlot;
+        }
+        beatStrings.push(parts.join(""));
+      }
+    }
+    measureStrings.push(beatStrings.join(" "));
+  }
+  return { body: measureStrings.join(" | "), L };
+}
+
+function gridToABC(grid) {
+  const { body, L } = buildAbcBody(grid);
+  const percmaps = TRACKS.map(t => t.percmap).join("\n");
+  return "X:1\nM:4/4\nL:" + L + "\n%%stretchlast 0\nK:C clef=perc stafflines=0\n" + percmaps + "\nV:1 stem=up\n" + body + "\n";
+}
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function newSection(label = "") { return { id: uid(), label, tokens: [] }; }
+function newTextToken() { return { id: uid(), type: "text", value: "" }; }
+function newGrooveToken() { return { id: uid(), type: "groove", value: makeDefaultGroove() }; }
+
+function autoFormatTokenValue(input, isFirst = false) {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return input;
+  if (/^x$/i.test(trimmed)) return isFirst ? "| - ▬ - |" : "- ▬ - |";
+  if (/^["„]$/.test(trimmed)) return isFirst ? '| - " - |' : '- " - |';
+  if (/^\d+$/.test(trimmed)) return isFirst ? "| - " + trimmed + " - |" : "- " + trimmed + " - |";
+  return input;
+}
+
+let _abcjsPromise = null;
+function loadAbcjs() {
+  if (window.ABCJS) return Promise.resolve();
+  if (_abcjsPromise) return _abcjsPromise;
+  _abcjsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.5.2/abcjs-basic-min.js";
+    s.async = true;
+    s.onload = () => window.ABCJS ? resolve() : reject(new Error("ABCJS not found"));
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return _abcjsPromise;
+}
+
+const AudioCtx = createContext(null);
+function useAudioEngine() { return useContext(AudioCtx); }
+
+/* ---- Audio Engine ---- */
+class DrumAudioEngine {
+  constructor() {
+    this.ctx = null; this.samples = {};
+    this.scheduler = { timerId: null, nextSlotTime: 0, currentSlot: 0 };
+    this.bpm = 100; this.loop = true; this.grid = null;
+    this.onSlotChange = null; this.onStop = null; this.isPlaying = false;
+  }
+  async ensureContext() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error("AudioContext not supported");
+      this.ctx = new AC();
+    }
+    if (this.ctx.state === "suspended") await this.ctx.resume();
+    return this.ctx;
+  }
+  async loadSample(key, file) {
+    const ctx = await this.ensureContext();
+    const buf = await ctx.decodeAudioData((await file.arrayBuffer()).slice(0));
+    this.samples[key] = { buffer: buf, name: file.name };
+    return this.samples[key];
+  }
+  removeSample(key) { delete this.samples[key]; }
+  getSamples() { return this.samples; }
+  playOne(key, t) {
+    const ctx = this.ctx; if (!ctx) return;
+    const s = this.samples[key];
+    if (s) { try { const src = ctx.createBufferSource(); src.buffer = s.buffer; src.connect(ctx.destination); src.start(t); } catch(e){} return; }
+    if (key === "kk") {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+0.12);
+      g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+0.3);
+    } else if (key === "sn") {
+      const nb = ctx.createBuffer(1, ctx.sampleRate*0.2, ctx.sampleRate);
+      const d = nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = nb;
+      const f = ctx.createBiquadFilter(); f.type="highpass"; f.frequency.value=1000;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.6,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+      n.connect(f).connect(ng).connect(ctx.destination); n.start(t); n.stop(t+0.2);
+      const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value=200;
+      og.gain.setValueAtTime(0.5,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+      o.connect(og).connect(ctx.destination); o.start(t); o.stop(t+0.15);
+    } else if (key === "hh") {
+      const nb = ctx.createBuffer(1, ctx.sampleRate*0.05, ctx.sampleRate);
+      const d = nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = nb;
+      const f = ctx.createBiquadFilter(); f.type="highpass"; f.frequency.value=7000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.25,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+      n.connect(f).connect(g).connect(ctx.destination); n.start(t); n.stop(t+0.06);
+    } else if (key === "t1") {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(120,t+0.15);
+      g.gain.setValueAtTime(0.7,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+0.35);
+    } else if (key === "t3") {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(60,t+0.18);
+      g.gain.setValueAtTime(0.8,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+0.45);
+    }
+  }
+  async previewOne(key) { await this.ensureContext(); this.playOne(key, this.ctx.currentTime); }
+  tick() {
+    const ctx = this.ctx; if (!ctx || !this.grid) return;
+    const sch = this.scheduler;
+    while (sch.nextSlotTime < ctx.currentTime + 0.1) {
+      const g = this.grid, total = g.measures * g.div, slot = sch.currentSlot % total;
+      for (const t of TRACKS) if (g[t.key][slot]) this.playOne(t.key, sch.nextSlotTime);
+      if (this.onSlotChange) this.onSlotChange(slot);
+      sch.currentSlot++;
+      sch.nextSlotTime += (1 / (this.bpm / 60)) / (g.div / 4);
+      if (sch.currentSlot >= total) {
+        if (this.loop) sch.currentSlot = 0; else { this.stop(); return; }
+      }
+    }
+  }
+  async start(grid, bpm, loop) {
+    if (this.isPlaying) this.stop();
+    this.grid = grid; this.bpm = bpm; this.loop = loop;
+    const ctx = await this.ensureContext();
+    this.scheduler.currentSlot = 0; this.scheduler.nextSlotTime = ctx.currentTime + 0.08;
+    this.isPlaying = true;
+    const tick = () => { this.tick(); this.scheduler.timerId = setTimeout(tick, 25); };
+    tick();
+  }
+  updateLive({ grid, bpm, loop }) {
+    if (grid !== undefined) this.grid = grid;
+    if (bpm !== undefined) this.bpm = bpm;
+    if (loop !== undefined) this.loop = loop;
+  }
+  stop() {
+    if (this.scheduler.timerId) { clearTimeout(this.scheduler.timerId); this.scheduler.timerId = null; }
+    this.isPlaying = false;
+    if (this.onStop) this.onStop();
+  }
+}
+
+/* ---- A4 Wrapper ---- */
+const A4W = 794, A4H = 1123;
+function A4Wrapper({ children }) {
+  const outerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    let raf;
+    function update() {
+      if (!outerRef.current) return;
+      const t = Math.max(outerRef.current.clientWidth - 16, 100);
+      setScale(t >= A4W ? 1 : t / A4W);
+    }
+    raf = requestAnimationFrame(update);
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", update); window.removeEventListener("orientationchange", update); };
+  }, []);
+  return (
+    <div ref={outerRef} style={{ width: "100%" }}>
+      <div style={{ width: A4W * scale + "px", height: A4H * scale + "px", margin: "0 auto", position: "relative" }}>
+        <div style={{ transform: "scale(" + scale + ")", transformOrigin: "top left", width: A4W + "px", height: A4H + "px", position: "absolute", top: 0, left: 0 }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- ABC Preview ---- */
+function AbcPreview({ abc, small }) {
+  const ref = useRef(null);
+  const [status, setStatus] = useState("loading");
+  useEffect(() => { loadAbcjs().then(() => setStatus("ready")).catch(() => setStatus("error")); }, []);
+  useEffect(() => {
+    if (status !== "ready" || !ref.current || !window.ABCJS) return;
+    try {
+      ref.current.innerHTML = "";
+      window.ABCJS.renderAbc(ref.current, abc, {
+        staffwidth: small ? 200 : 320, scale: small ? 0.75 : 0.85,
+        paddingleft: 0, paddingright: 0, paddingtop: 0, paddingbottom: 0, add_classes: true,
+      });
+      if (small) {
+        const svg = ref.current.querySelector("svg");
+        if (svg) {
+          const parent = ref.current.closest(".groove-preview");
+          if (parent) {
+            try {
+              let maxRight = 0;
+              svg.querySelectorAll("path,line,rect,text,ellipse,circle,polygon").forEach(el => {
+                try { const bb = el.getBBox(); const r = bb.x + bb.width; if (r > maxRight) maxRight = r; } catch(e) {}
+              });
+              if (maxRight > 0) parent.style.width = Math.max(maxRight - 34 - 60, 100) + "px";
+              else throw new Error("x");
+            } catch(e) {
+              const w = parseFloat(svg.getAttribute("width"));
+              if (isFinite(w) && w > 0) parent.style.width = Math.max(w - 34, 100) + "px";
+            }
+          }
+        }
+      }
+    } catch(e) {}
+  }, [abc, status, small]);
+  if (status === "loading") return <span style={{ fontSize: "10px", color: "var(--muted)" }}>…</span>;
+  if (status === "error") return <span style={{ fontSize: "10px", color: "#d00" }}>!</span>;
+  return <div ref={ref} style={{ display: "inline-block" }} />;
+}
+
+/* ---- Groove Token ---- */
+function GrooveToken({ grid, isFirst, onUpdate, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [loopOn, setLoopOn] = useState(true);
+  const [highlightSlot, setHighlightSlot] = useState(-1);
+  const wrapperRef = useRef(null);
+  const audioCtx = useAudioEngine();
+  const engine = audioCtx && audioCtx.engine;
+  const bpm = (audioCtx && audioCtx.bpm) || 100;
+
+  useEffect(() => {
+    if (!expanded) return;
+    function onClick(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setExpanded(false);
+        if (engine && engine.isPlaying) engine.stop();
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [expanded, engine]);
+
+  useEffect(() => {
+    if (!engine || !isPlaying) return;
+    engine.updateLive({ grid, bpm });
+  }, [grid, bpm, engine, isPlaying]);
+
+  const abc = useMemo(() => gridToABC(grid), [grid]);
+  const toggleCell = (key, idx) => { const a = [...grid[key]]; a[idx] = a[idx] ? 0 : 1; onUpdate({ ...grid, [key]: a }); };
+  const setDiv = (d) => onUpdate(resampleGrid(grid, d, grid.measures));
+
+  async function handlePlay(e) {
+    e.stopPropagation(); if (!engine) return;
+    if (engine.isPlaying) { engine.stop(); setIsPlaying(false); setHighlightSlot(-1); return; }
+    engine.onSlotChange = (s) => setHighlightSlot(s);
+    engine.onStop = () => { setIsPlaying(false); setHighlightSlot(-1); };
+    setIsPlaying(true);
+    await engine.start(grid, bpm, loopOn);
+  }
+  function handleLoopToggle(e) {
+    e.stopPropagation(); const next = !loopOn; setLoopOn(next);
+    if (engine && engine.isPlaying) engine.updateLive({ loop: next });
+  }
+
+  const leftSym = grid.repeatStart ? "‖:" : (isFirst ? "|" : null);
+  const rightSym = grid.repeatEnd ? ":‖" : "|";
+  const L8 = ["1","&","2","&","3","&","4","&"], L16 = ["1","e","&","a","2","e","&","a","3","e","&","a","4","e","&","a"];
+
+  return (
+    <div className="groove-expanded-wrapper" ref={wrapperRef}>
+      <div className="groove-with-repeats">
+        {leftSym && <span className={grid.repeatStart ? "groove-repeat-bar left" : "groove-side-bar left"}>{leftSym}</span>}
+        <div className={"groove-token" + (expanded ? " active" : "")} onClick={() => setExpanded(!expanded)}>
+          <div className="groove-preview"><AbcPreview abc={abc} small /></div>
+          <button className="remove-tiny" onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Entfernen"><Trash2 size={10} /></button>
+        </div>
+        <span className={grid.repeatEnd ? "groove-repeat-bar right" : "groove-side-bar right"}>{rightSym}</span>
+      </div>
+      {expanded && (
+        <div className="groove-expanded" onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "8px", marginBottom: "8px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
+            <button onClick={handlePlay} className="player-btn primary" style={{ width: 32, height: 32 }} title={isPlaying ? "Stop" : "Play"}>
+              {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+            </button>
+            <button onClick={handleLoopToggle} className={"player-btn" + (loopOn ? " active" : "")} style={{ width: 32, height: 32 }} title="Loop"><Repeat size={12} /></button>
+            <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 4px" }} />
+            <span style={{ fontSize: 11, color: "var(--muted)", marginRight: 4 }}>Subdivision:</span>
+            {[8, 16].map(d => (
+              <button key={d} onClick={() => setDiv(d)} className={"gs-btn" + (grid.div === d ? " active" : "")}>{d}tel</button>
+            ))}
+            <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 4px" }} />
+            <button onClick={() => onUpdate({ ...grid, repeatStart: !grid.repeatStart })} className={"gs-btn" + (grid.repeatStart ? " active" : "")} style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, fontSize: 13 }}>‖:</button>
+            <button onClick={() => onUpdate({ ...grid, repeatEnd: !grid.repeatEnd })} className={"gs-btn" + (grid.repeatEnd ? " active" : "")} style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, fontSize: 13 }}>:‖</button>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--muted)" }}>{bpm} BPM</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ display: "inline-block", minWidth: "max-content" }}>
+              <div style={{ display: "flex" }}>
+                <div style={{ width: 60, flexShrink: 0 }} />
+                {Array.from({ length: grid.measures * grid.div }).map((_, i) => {
+                  const sub = grid.div === 16 ? 4 : 2, isBeat = i % sub === 0;
+                  const l = grid.div === 16 ? L16[i % 16] : L8[i % 8];
+                  return <div key={i} style={{ width: 32, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: isBeat ? "var(--ink)" : "var(--border)", fontWeight: isBeat ? 600 : 400, fontFamily: "JetBrains Mono, monospace" }}>{l}</div>;
+                })}
+              </div>
+              {TRACKS.map(track => (
+                <div key={track.key} style={{ display: "flex", alignItems: "center" }}>
+                  <div style={{ width: 60, flexShrink: 0, fontSize: 13, color: "var(--ink)", fontWeight: 500, paddingRight: 8, textAlign: "right" }}>{track.label}</div>
+                  {grid[track.key].map((v, i) => {
+                    const isMeasure = i % grid.div === 0, sub = grid.div === 16 ? 4 : 2, isBeat = i % sub === 0, isHl = i === highlightSlot;
+                    const cls = "cell-edit" + (isMeasure ? " measure-start" : isBeat ? " beat-start" : "") + (v ? " active" : "") + (isHl ? " highlight" : "");
+                    return <div key={i} className={cls} onClick={() => toggleCell(track.key, i)}>{v ? <div className="dot" /> : null}</div>;
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- Note Overlay ---- */
+function NoteOverlay({ note, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
+  useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+  useEffect(() => {
+    if (!showAdd && !editing) return;
+    function onClick(e) { if (wrapperRef.current && !wrapperRef.current.contains(e.target)) { setShowAdd(false); setEditing(false); } }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [showAdd, editing]);
+
+  if (note) {
+    return (
+      <div className="note-row" ref={wrapperRef}>
+        {editing ? (
+          <div className={"note-edit note-" + note.color}>
+            <input ref={inputRef} type="text" value={note.text}
+              onChange={(e) => onChange({ ...note, text: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditing(false); }}
+              placeholder={note.color === "yellow" ? "Hinweis..." : "Achtung..."} />
+            <button onClick={() => { onChange(undefined); setEditing(false); }} title="Löschen"
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 4px", color: "var(--muted)", display: "flex" }}>
+              <Trash2 size={11} />
+            </button>
+          </div>
+        ) : (
+          <button className={"note-display note-" + note.color} onClick={() => setEditing(true)}>
+            {note.text || (note.color === "yellow" ? "Hinweis..." : "Achtung...")}
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="note-row note-row-empty" ref={wrapperRef}>
+      {showAdd ? (
+        <div className="note-add-menu">
+          <button onClick={() => { onChange({ text: "", color: "yellow" }); setShowAdd(false); setEditing(true); }} className="note-add-btn note-yellow">
+            <span style={{ width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", display: "inline-block", marginRight: 4 }} />Hinweis
+          </button>
+          <button onClick={() => { onChange({ text: "", color: "red" }); setShowAdd(false); setEditing(true); }} className="note-add-btn note-red">
+            <span style={{ width: 8, height: 8, background: "#dc2626", borderRadius: "50%", display: "inline-block", marginRight: 4 }} />Wichtig
+          </button>
+          <button onClick={() => setShowAdd(false)} className="note-add-btn" style={{ borderStyle: "solid" }}>×</button>
+        </div>
+      ) : (
+        <button className="note-add-trigger" onClick={() => setShowAdd(true)} title="Notiz hinzufügen">+ Notiz</button>
+      )}
+    </div>
+  );
+}
+
+/* ---- Token View ---- */
+function TokenView({ token, isFirst, onUpdate, onRemove }) {
+  useEffect(() => {
+    if (token.type === "text" && token.value && token.value.includes("𝄻"))
+      onUpdate({ value: token.value.replace(/𝄻/g, "▬") });
+  }, [token.value, token.type]);
+
+  return (
+    <div className="token-with-note">
+      <NoteOverlay note={token.note} onChange={(note) => onUpdate({ note })} />
+      {token.type === "text" && (
+        <div className="text-token">
+          <input type="text" value={token.value} autoFocus={token.value === ""}
+            onChange={(e) => onUpdate({ value: e.target.value })}
+            onBlur={(e) => { const f = autoFormatTokenValue(e.target.value, isFirst); if (f !== e.target.value) onUpdate({ value: f }); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { const f = autoFormatTokenValue(e.target.value, isFirst); if (f !== e.target.value) onUpdate({ value: f }); e.target.blur(); } }}
+            placeholder={'z.B. 8, X oder "'}
+            style={{ width: ((token.value.length || 8) * 13 + 8) + "px" }} />
+          <button className="x" onClick={onRemove} title="Entfernen"><Trash2 size={10} /></button>
+        </div>
+      )}
+      {token.type === "groove" && (
+        <GrooveToken grid={token.value} isFirst={isFirst} onUpdate={(g) => onUpdate({ value: g })} onRemove={onRemove} />
+      )}
+    </div>
+  );
+}
+
+/* ---- Section Row ---- */
+function SectionRow({ section, canMoveUp, canMoveDown, onMoveSection, onUpdateLabel, onUpdateToken, onAddToken, onRemoveToken, onMoveToken }) {
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [selectedTokenId, setSelectedTokenId] = useState(null);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (!selectedTokenId) return;
+    function onDocClick(e) { if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setSelectedTokenId(null); }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [selectedTokenId]);
+
+  return (
+    <div className="section-row" ref={wrapperRef}>
+      <div className="section-box-wrapper">
+        <div className="section-move-btns">
+          <button className="section-move-btn" disabled={!canMoveUp} onClick={() => onMoveSection(-1)} title="Nach oben"><ChevronUp size={12} /></button>
+          <button className="section-move-btn" disabled={!canMoveDown} onClick={() => onMoveSection(+1)} title="Nach unten"><ChevronDown size={12} /></button>
+        </div>
+        <div className="section-box">
+          <input type="text" value={section.label} onChange={(e) => onUpdateLabel(e.target.value)} className="section-input" />
+        </div>
+      </div>
+      <div className="tokens-row">
+        {section.tokens.map((token, idx) => {
+          const isSelected = selectedTokenId === token.id;
+          return (
+            <div key={token.id} className="token-with-arrows" onClick={(e) => { if (e.target.closest(".move-arrow")) return; setSelectedTokenId(token.id); }}>
+              {isSelected && (
+                <div className="move-arrows-overlay">
+                  {idx > 0 && <button className="move-arrow" onClick={(e) => { e.stopPropagation(); onMoveToken(token.id, -1); }} title="Links"><ChevronLeft size={14} /></button>}
+                  {idx < section.tokens.length - 1 && <button className="move-arrow" onClick={(e) => { e.stopPropagation(); onMoveToken(token.id, +1); }} title="Rechts"><ChevronRight size={14} /></button>}
+                </div>
+              )}
+              <TokenView token={token} isFirst={idx === 0}
+                onUpdate={(patch) => onUpdateToken(token.id, patch)}
+                onRemove={() => onRemoveToken(token.id)} />
+            </div>
+          );
+        })}
+        {section.label && (
+          <div className="add-btn-wrap">
+            {showAddMenu ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={() => { onAddToken("text"); setShowAddMenu(false); }} className="add-btn"><Type size={13} /> Text</button>
+                <button onClick={() => { onAddToken("groove"); setShowAddMenu(false); }} className="add-btn"><Music size={13} /> Groove</button>
+                <button onClick={() => setShowAddMenu(false)} className="add-btn" style={{ borderStyle: "solid" }}>×</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddMenu(true)} className="add-btn"><Plus size={13} /> Hinzufügen</button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---- Sample Slot ---- */
+function SampleSlot({ track, sample, onUpload, onRemove, onPreview }) {
+  const inputRef = useRef(null);
+  return (
+    <div className="sample-row">
+      <div style={{ width: 42, fontSize: 12, fontWeight: 500, color: "var(--ink)", flexShrink: 0 }}>{track.label}</div>
+      <input ref={inputRef} type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onUpload(f); }} />
+      {sample ? (
+        <>
+          <button onClick={onPreview} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--ink)", padding: 0, display: "flex" }} title="Vorhören"><Volume2 size={14} /></button>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{sample.name}</div>
+          <button onClick={() => { inputRef.current.value = ""; inputRef.current.click(); }} style={{ fontSize: 10, color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer" }}>Ändern</button>
+          <button onClick={onRemove} style={{ fontSize: 14, color: "#c00", background: "transparent", border: "none", cursor: "pointer", lineHeight: 1 }}>×</button>
+        </>
+      ) : (
+        <button onClick={() => { inputRef.current.value = ""; inputRef.current.click(); }}
+          style={{ flex: 1, textAlign: "left", fontSize: 11, color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Upload size={12} /><span>hochladen (.wav, .mp3, …)</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ---- Audio Panel ---- */
+function AudioPanel() {
+  const audioCtx = useAudioEngine();
+  const engine = audioCtx && audioCtx.engine;
+  const samplesVersion = (audioCtx && audioCtx.samplesVersion) || 0;
+  const bumpSamples = audioCtx && audioCtx.bumpSamples;
+  const [errMsg, setErrMsg] = useState("");
+  const samples = engine ? engine.getSamples() : {};
+  const loadedCount = Object.keys(samples).length;
+  void samplesVersion;
+
+  async function handleUpload(key, file) {
+    if (!engine || !file) return;
+    try { setErrMsg(""); await engine.loadSample(key, file); bumpSamples && bumpSamples(); }
+    catch(e) { setErrMsg("Fehler: " + (e.message || e)); }
+  }
+
+  return (
+    <div style={{ background: "var(--paper)", border: "1px solid var(--border)", borderRadius: 8, padding: 20 }}>
+      <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 4 }}>Samples</div>
+      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 12 }}>
+        {loadedCount === 0 ? "Standard-Sounds aktiv." : loadedCount + " eigene Sample" + (loadedCount === 1 ? "" : "s") + " geladen."}{" "}
+        Play findest du im Groove-Editor.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 6 }}>
+        {TRACKS.map(t => (
+          <SampleSlot key={t.key} track={t} sample={samples[t.key]}
+            onUpload={(f) => handleUpload(t.key, f)}
+            onRemove={() => { engine.removeSample(t.key); bumpSamples && bumpSamples(); }}
+            onPreview={() => engine && engine.previewOne(t.key)} />
+        ))}
+      </div>
+      {errMsg && <div style={{ marginTop: 10, fontSize: 12, color: "#c00", display: "flex", gap: 6 }}><AlertCircle size={13} /><span>{errMsg}</span></div>}
+    </div>
+  );
+}
+
+/* ---- Main App ---- */
+function DrumSheetEditor() {
+  const [title, setTitle] = useState("");
+  const [bpm, setBpm] = useState(100);
+  const engineRef = useRef(null);
+  if (!engineRef.current) engineRef.current = new DrumAudioEngine();
+  const [samplesVersion, setSamplesVersion] = useState(0);
+  const bumpSamples = () => setSamplesVersion(v => v + 1);
+
+  const [sections, setSections] = useState(() => [
+    newSection(""), newSection(""), newSection(""), newSection(""),
+    newSection(""), newSection(""), newSection(""), newSection(""),
+  ]);
+
+  function updateSection(id, patch) { setSections(s => s.map(sec => sec.id === id ? { ...sec, ...patch } : sec)); }
+  function updateToken(sId, tId, patch) {
+    setSections(s => s.map(sec => sec.id !== sId ? sec : { ...sec, tokens: sec.tokens.map(t => t.id === tId ? { ...t, ...patch } : t) }));
+  }
+  function addToken(sId, type) {
+    const token = type === "groove" ? newGrooveToken() : newTextToken();
+    setSections(s => s.map(sec => sec.id !== sId ? sec : { ...sec, tokens: [...sec.tokens, token] }));
+  }
+  function reformatByPosition(tokens) {
+    return tokens.map((tok, idx) => {
+      if (tok.type !== "text" || !tok.value) return tok;
+      let v = tok.value.trim().replace(/^\|+\s*/, "");
+      const newVal = idx === 0 ? "| " + v : v;
+      return newVal !== tok.value ? { ...tok, value: newVal } : tok;
+    });
+  }
+  function removeToken(sId, tId) {
+    setSections(s => s.map(sec => sec.id !== sId ? sec : { ...sec, tokens: reformatByPosition(sec.tokens.filter(t => t.id !== tId)) }));
+  }
+  function moveToken(sId, tId, dir) {
+    setSections(s => s.map(sec => {
+      if (sec.id !== sId) return sec;
+      const idx = sec.tokens.findIndex(t => t.id === tId);
+      if (idx === -1) return sec;
+      const nIdx = idx + dir;
+      if (nIdx < 0 || nIdx >= sec.tokens.length) return sec;
+      const tokens = [...sec.tokens];
+      [tokens[idx], tokens[nIdx]] = [tokens[nIdx], tokens[idx]];
+      return { ...sec, tokens: reformatByPosition(tokens) };
+    }));
+  }
+  function moveSection(sId, dir) {
+    setSections(s => {
+      const idx = s.findIndex(sec => sec.id === sId);
+      if (idx === -1) return s;
+      const nIdx = idx + dir;
+      if (nIdx < 0 || nIdx >= s.length) return s;
+      const next = [...s];
+      [next[idx], next[nIdx]] = [next[nIdx], next[idx]];
+      return next;
+    });
+  }
+
+  return (
+    <AudioCtx.Provider value={{ engine: engineRef.current, samplesVersion, bumpSamples, bpm }}>
+      <div style={{ minHeight: "100vh", width: "100%", paddingTop: 24, paddingBottom: 40, paddingInline: 12, background: "var(--bg)", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif" }}>
+        <style>{`
+          .graph-paper { background: var(--paper); }
+          .section-row { display:flex; align-items:center; flex-wrap:nowrap; gap:12px; height:70px; margin-bottom:32px; }
+          .section-box-wrapper { position:relative; flex-shrink:0; width:150px; height:70px; }
+          .section-box { border:2px solid var(--ink); background:var(--paper); width:150px; height:70px; display:flex; align-items:center; justify-content:center; }
+          .section-input { width:100%; height:100%; border:none; outline:none; background:transparent; font-family:'Montserrat','Inter',sans-serif; font-size:24px; font-weight:700; letter-spacing:-0.01em; text-align:center; color:var(--ink); padding:0 6px; }
+          .section-move-btns { position:absolute; top:50%; transform:translateY(-50%); left:-28px; display:flex; flex-direction:column; gap:3px; opacity:0; transition:opacity .12s; z-index:5; }
+          .section-row:hover .section-move-btns { opacity:1; }
+          .section-move-btn { background:var(--paper); border:1px solid var(--ink); border-radius:3px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); padding:0; box-shadow:0 1px 4px rgba(0,0,0,.12); transition:background .1s,color .1s; }
+          .section-move-btn:hover:not(:disabled) { background:var(--ink); color:var(--paper); }
+          .section-move-btn:disabled { opacity:.25; cursor:not-allowed; }
+          .tokens-row { display:flex; align-items:center; flex-wrap:nowrap; gap:0; flex:1; min-width:0; height:70px; overflow:hidden; }
+          .add-btn-wrap { margin-left:10px; flex-shrink:0; padding-top:20px; }
+          .text-token { display:inline-flex; align-items:center; background:transparent; position:relative; }
+          .text-token input { border:none; outline:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--ink); padding:4px 0; width:auto; border-bottom:1px dotted var(--border); }
+          .text-token input:focus { border-bottom-color:var(--ink); }
+          .text-token .x { position:absolute; top:-4px; right:-10px; opacity:0; padding:2px; background:var(--paper); border:1px solid var(--border); border-radius:3px; cursor:pointer; color:var(--muted); display:flex; z-index:5; }
+          .text-token:hover .x { opacity:1; }
+          .text-token .x:hover { color:#d00; }
+          .groove-token { display:inline-flex; align-items:center; background:transparent; border:1px solid transparent; border-radius:4px; padding:0; transition:border-color .1s,background .1s; cursor:pointer; position:relative; }
+          .groove-token:hover { border-color:var(--border); background:var(--faint); }
+          .groove-token.active { border-color:var(--ink); background:var(--faint); }
+          .groove-preview { display:inline-block; overflow:hidden; position:relative; height:90px; }
+          .groove-preview svg { display:block; position:absolute; left:-34px; top:8px; }
+          .groove-preview .abcjs-clef,.groove-preview .abcjs-meter,.groove-preview .abcjs-meter-top,.groove-preview .abcjs-meter-bottom,.groove-preview .abcjs-time-signature,.groove-preview .abcjs-bar { display:none !important; }
+          .remove-tiny { position:absolute; top:2px; right:2px; padding:1px 3px; background:var(--paper); border:1px solid var(--border); border-radius:3px; cursor:pointer; color:var(--muted); display:flex; align-items:center; opacity:0; transition:opacity .1s; z-index:3; }
+          .groove-token:hover .remove-tiny { opacity:.9; }
+          .remove-tiny:hover { color:#d00; opacity:1; }
+          .groove-expanded { position:absolute; top:100%; left:0; background:var(--paper); border:1px solid var(--ink); border-radius:6px; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:50; margin-top:6px; width:max-content; max-width:90vw; overflow-x:auto; }
+          .groove-expanded-wrapper { position:relative; display:inline-block; }
+          .groove-with-repeats { display:inline-flex; align-items:center; gap:4px; }
+          .groove-repeat-bar { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--ink); user-select:none; line-height:1; letter-spacing:-2px; margin-top:-4px; padding:2px 4px; background:rgba(220,38,38,0.5); border-radius:2px; }
+          .groove-repeat-bar.right { margin-right:14px; }
+          .groove-repeat-bar.left { margin-left:2px; }
+          .groove-side-bar { font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--ink); user-select:none; line-height:1; margin-top:-4px; padding:0 2px; }
+          .groove-side-bar.right { margin-right:8px; }
+          .cell-edit { border:1px solid var(--border); background:var(--paper); width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; transition:background-color .08s; }
+          .cell-edit:hover { background:var(--hover); }
+          .cell-edit.beat-start { border-left:2px solid var(--ink); }
+          .cell-edit.measure-start { border-left:2.5px solid var(--ink); }
+          .cell-edit.active { background:var(--ink); }
+          .cell-edit.active .dot { width:10px; height:10px; background:var(--paper); border-radius:50%; }
+          .cell-edit.highlight { box-shadow:inset 0 0 0 2px #f59e0b; }
+          .cell-edit.active.highlight { background:#f59e0b; }
+          .gs-btn { background:var(--paper); border:1px solid var(--border); border-radius:3px; padding:2px 7px; font-size:11px; cursor:pointer; font-family:'Inter',sans-serif; color:var(--muted); transition:all .1s; }
+          .gs-btn:hover { border-color:var(--ink); color:var(--ink); }
+          .gs-btn.active { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+          .add-btn { display:inline-flex; align-items:center; gap:4px; background:transparent; border:1px dashed var(--border); border-radius:4px; padding:5px 10px; font-size:13px; color:var(--muted); cursor:pointer; font-family:'Inter',sans-serif; }
+          .add-btn:hover { border-color:var(--ink); color:var(--ink); background:var(--faint); }
+          .token-with-arrows { display:inline-flex; align-items:center; position:relative; }
+          .move-arrows-overlay { position:absolute; top:-8px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:10; pointer-events:none; }
+          .move-arrows-overlay .move-arrow { pointer-events:auto; }
+          .move-arrow { background:var(--paper); border:1px solid var(--ink); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); padding:0; box-shadow:0 2px 6px rgba(0,0,0,.15); transition:background .12s,color .12s,transform .08s; }
+          .move-arrow:hover { background:var(--ink); color:var(--paper); }
+          .move-arrow:active { transform:scale(.92); }
+          .token-with-note { display:inline-flex; flex-direction:column; align-items:flex-start; position:relative; }
+          .note-row { position:absolute; top:0; left:0; height:18px; display:flex; align-items:center; padding-left:4px; z-index:2; white-space:nowrap; }
+          .note-row-empty .note-add-trigger { opacity:0; font-size:10px; color:var(--muted); background:var(--paper); border:1px dashed transparent; border-radius:3px; padding:0 4px; cursor:pointer; font-family:'Inter',sans-serif; transition:opacity .1s,border-color .1s; }
+          .token-with-note:hover .note-add-trigger { opacity:1; }
+          .note-add-trigger:hover { border-color:var(--muted); }
+          .token-with-note > .text-token, .token-with-note > .groove-expanded-wrapper { margin-top:20px; }
+          .note-add-menu { display:flex; gap:3px; align-items:center; background:var(--paper); border:1px solid var(--ink); border-radius:4px; padding:2px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+          .note-add-btn { font-size:11px; background:transparent; border:1px dashed transparent; border-radius:3px; padding:2px 6px; cursor:pointer; font-family:'Inter',sans-serif; display:inline-flex; align-items:center; color:var(--ink); }
+          .note-add-btn:hover { background:var(--faint); }
+          .note-display { font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 6px; border:none; border-radius:3px; cursor:pointer; line-height:1.3; white-space:nowrap; }
+          .note-edit { display:inline-flex; align-items:center; padding:1px 4px; border-radius:3px; }
+          .note-edit input { font-family:'Inter',sans-serif; font-size:12px; font-weight:600; background:transparent; border:none; outline:none; padding:0 2px; min-width:80px; color:inherit; }
+          .note-yellow { background:#fde68a; color:#92400e; }
+          .note-yellow input::placeholder { color:#b07209; }
+          .note-red { background:#fecaca; color:#991b1b; }
+          .note-red input::placeholder { color:#b04545; }
+          .player-btn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; background:var(--paper); border:1px solid var(--ink); border-radius:6px; cursor:pointer; color:var(--ink); transition:all .1s; }
+          .player-btn:hover:not(:disabled) { background:var(--ink); color:var(--paper); }
+          .player-btn:disabled { opacity:.4; cursor:not-allowed; }
+          .player-btn.primary { background:var(--ink); color:var(--paper); }
+          .player-btn.active { background:var(--ink); color:var(--paper); }
+          .sample-row { display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--paper); border:1px solid var(--border); border-radius:5px; }
+          .sample-row:hover { border-color:var(--ink); }
+          .top-header-input { border:none; outline:none; background:transparent; font-family:'Montserrat','Inter',sans-serif; font-size:38px; font-weight:700; letter-spacing:-0.01em; color:var(--ink); border-bottom:1px solid transparent; padding:2px 8px; text-align:center; min-width:300px; }
+          .top-header-input:hover { border-bottom-color:var(--border); }
+          .top-header-input:focus { border-bottom-color:var(--ink); }
+          .top-header-input::placeholder { color:var(--border); font-weight:600; }
+          .bpm-input { width:60px; border:none; outline:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:500; text-align:right; color:var(--muted); border-bottom:1px solid var(--border); }
+        `}</style>
+
+        <A4Wrapper>
+          <div className="graph-paper shadow-xl" style={{ width: "210mm", height: "297mm", padding: "50px 50px 60px", boxSizing: "border-box", overflow: "visible" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel" className="top-header-input" />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "'JetBrains Mono',monospace", fontSize: 13, color: "var(--muted)", width: 150, marginBottom: 4, justifyContent: "center" }}>
+              <input type="number" value={bpm} onChange={(e) => setBpm(Number(e.target.value))} className="bpm-input" min="20" max="300" />
+              <span>BPM</span>
+            </div>
+            <div>
+              {sections.map((section, idx) => (
+                <SectionRow key={section.id} section={section}
+                  canMoveUp={idx > 0} canMoveDown={idx < sections.length - 1}
+                  onMoveSection={(dir) => moveSection(section.id, dir)}
+                  onUpdateLabel={(label) => updateSection(section.id, { label })}
+                  onUpdateToken={(tId, patch) => updateToken(section.id, tId, patch)}
+                  onAddToken={(type) => addToken(section.id, type)}
+                  onRemoveToken={(tId) => removeToken(section.id, tId)}
+                  onMoveToken={(tId, dir) => moveToken(section.id, tId, dir)}
+                />
+              ))}
+            </div>
+          </div>
+        </A4Wrapper>
+
+        <div style={{ maxWidth: 794, margin: "24px auto 0" }}>
+          <AudioPanel />
+        </div>
+      </div>
+    </AudioCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<DrumSheetEditor />);
+</script>
+
+</body>
+</html>
