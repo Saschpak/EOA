@@ -75,10 +75,9 @@ async function load() {
     bookings: book.data, questions: ques.data, news: news.data, profiles: [], invites: []
   };
   if (S.me.role === "coach") {
-    const [pr, inv] = await Promise.all([q("profiles", "*", [["created_at"]]), q("invites", "*", [["created_at"]])]);
-    if (pr.error) throw pr.error;
-    if (inv.error) throw inv.error;
-    D.profiles = pr.data; D.invites = inv.data;
+    const [pr, inv, wl] = await Promise.all([q("profiles", "*", [["created_at"]]), q("invites", "*", [["created_at"]]), q("waitlist", "*", [["created_at"], ["id"]])]);
+    for (const r of [pr, inv, wl]) if (r.error) throw r.error;
+    D.profiles = pr.data; D.invites = inv.data; D.waitlist = wl.data;
   }
   S.D = D;
 }
@@ -133,6 +132,68 @@ function progressHTML(p) {
 }
 const pctFor = p => { const t = allLessons().length; return t ? Math.round(allLessons().filter(l => progressOf(p.id).has(l.id)).length / t * 100) : 0; };
 
+/* ---------- Startseite mit Warteliste (nicht eingeloggt) ---------- */
+const WL_KEY = "pc-waitlist-token";
+const wlGet = () => { try { return localStorage.getItem(WL_KEY); } catch (e) { return null; } };
+const wlSet = t => { try { localStorage.setItem(WL_KEY, t); } catch (e) { /* egal */ } };
+const placeLink = t => location.origin + location.pathname + "#platz-" + t;
+
+async function loadLanding() {
+  const token = S.ui.wlToken || wlGet();
+  const [st, me] = await Promise.all([
+    sb.rpc("waitlist_stats"),
+    token ? sb.rpc("waitlist_status", { p_token: token }) : Promise.resolve({ data: null })
+  ]);
+  S.wl = { stats: st.data || { waiting: 0, invited: 0 }, me: me.data || null, token: me.data ? token : null };
+}
+
+function spotsMeter() {
+  const n = CONFIG.waitlistSpots, taken = Math.min(n, (S.wl && S.wl.stats.invited) || 0);
+  return `<div class="spots" aria-label="${taken} von ${n} Plätzen vergeben">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "on" : ""}"></i>`).join("")}</div>
+    <span class="muted mono" style="font-size:12px">${taken} von ${n} Plätzen vergeben</span>`;
+}
+
+function renderLanding() {
+  $("#bar").hidden = true;
+  const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
+  const waiting = w.stats.waiting;
+  const count = waiting >= CONFIG.waitlistShowCountFrom ? `<p class="muted" style="font-size:14px"><b class="mono" style="color:var(--fg)">${waiting}</b> Personen stehen schon auf der Warteliste.</p>` : "";
+  let box;
+  if (me && me.status === "waiting") box = `<div class="card wl-card" id="wlBox"><span class="label">Deine Warteliste</span>
+      <div class="place"><span class="muted">Platz</span><b class="mono">${me.position}</b></div>
+      <p>Hey ${esc(firstName(me.name))}, du stehst auf der Warteliste. Wenn ein Platz für dich frei wird, melde ich mich per Mail.</p>
+      <p class="muted" style="font-size:13px">Unter diesem Link siehst du jederzeit deinen aktuellen Platz:</p>
+      <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn small" type="button" data-a="copyPlace">Link kopieren</button></div></div>`;
+  else if (me && me.status === "invited") box = `<div class="card wl-card" id="wlBox"><span class="label">Deine Warteliste</span><h2>Du bist dabei!</h2><p>Dein Platz ist frei. Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><div><button class="btn primary" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div></div>`;
+  else box = `<form class="card wl-card" data-f="waitlist" id="wlBox" novalidate>
+      <h2>Auf die Warteliste</h2>
+      <div class="field"><label class="label" for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
+      <div class="field"><label class="label" for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
+      <div class="field"><label class="label" for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000" placeholder="z. B. Keys in einer Band, wir wollen mit Click und Playback spielen"></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
+        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Ich kann das jederzeit per Mail widerrufen.${CONFIG.datenschutzUrl ? ` Mehr in der <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutzerklärung</a>.` : ""}</span></label>
+      <button class="btn primary" type="submit">Platz sichern</button>
+    </form>`;
+  $("#app").innerHTML = `<div class="landing">
+    <div class="landing-top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>
+      <button class="btn small" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <div class="landing-grid">
+      <div class="pitch">
+        <span class="label" style="color:var(--accent-hi)">Erste Runde · Nur ${CONFIG.waitlistSpots} Plätze</span>
+        <h1 class="hero">Playback, Click und Cues, die auf der Bühne einfach laufen.</h1>
+        <p class="lead">1:1-Coaching und Videokurs für Bands und Artists, die mit Ableton Live und AbleSet live spielen. Vom ersten Rig bis zur Show.</p>
+        <div class="card" style="gap:10px"><span class="label">Erste Runde</span>${spotsMeter()}${count}<p class="muted" style="font-size:14px">${esc(CONFIG.launchText)} Die Plätze vergebe ich in der Reihenfolge der Warteliste.</p></div>
+        <ul class="perks">
+          <li><b>1:1-Sessions</b><span>Wir bauen dein Rig gemeinsam auf und lösen genau deine Probleme.</span></li>
+          <li><b>Videokurs</b><span>Von Stems und Click über In-Ear-Routing bis AbleSet und Showtag, Schritt für Schritt.</span></li>
+          <li><b>Begleitung bis zur Show</b><span>Notizen, Aufgaben und Antworten auf deine Fragen, alles an einem Ort.</span></li>
+        </ul>
+      </div>
+      <div class="wl-col">${box}</div>
+    </div></div>`;
+}
+
 /* ---------- Auth-Ansichten ---------- */
 function renderAuth() {
   $("#bar").hidden = true;
@@ -143,9 +204,10 @@ function renderAuth() {
       <div class="field"><label class="label" for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
       <div class="field"><label class="label" for="pw">Passwort</label><input id="pw" name="pw" type="password" autocomplete="current-password" required></div>
       <button class="btn primary" type="submit">Anmelden</button>
-      <div class="auth-links"><button type="button" data-a="authView" data-v="register">Konto erstellen</button><button type="button" data-a="authView" data-v="forgot">Passwort vergessen?</button></div></form>`;
+      <div class="auth-links"><button type="button" data-a="authView" data-v="register">Konto erstellen</button><button type="button" data-a="authView" data-v="forgot">Passwort vergessen?</button></div>
+      <div class="auth-links"><button type="button" data-a="goLanding">← Zur Startseite und Warteliste</button></div></form>`;
   if (v === "register") body = `<form class="login card" data-f="register" novalidate>${head}
-      <p class="muted" style="font-size:14px">Registriere dich mit der E-Mail-Adresse, mit der dein Coach dich eingeladen hat.</p>
+      <p class="muted" style="font-size:14px">Registriere dich mit der E-Mail-Adresse, mit der dein Coach dich eingeladen hat. Noch keine Einladung? <button type="button" class="linkbtn" data-a="goLanding">Trag dich auf die Warteliste ein.</button></p>
       <div class="field"><label class="label" for="rname">Name</label><input id="rname" name="name" type="text" autocomplete="name" required></div>
       <div class="field"><label class="label" for="remail">E-Mail</label><input id="remail" name="email" type="email" autocomplete="email" required></div>
       <div class="field"><label class="label" for="rpw">Passwort (mindestens 8 Zeichen)</label><input id="rpw" name="pw" type="password" autocomplete="new-password" minlength="8" required></div>
@@ -182,7 +244,8 @@ function renderChrome() {
 
 function render() {
   renderFoot();
-  if (!S.session || S.ui.recovery) return renderAuth();
+  if (S.ui.recovery) return renderAuth();
+  if (!S.session) return S.showAuth ? renderAuth() : renderLanding();
   if (!S.me) {
     $("#bar").hidden = true;
     $("#app").innerHTML = `<div class="login-screen"><div class="login card"><h2>Kein Zugang</h2><p class="muted">Zu diesem Konto gibt es kein Profil mehr. Wende dich bitte an deinen Coach.</p><button class="btn" type="button" data-a="logout">Abmelden</button></div></div>`;
@@ -333,8 +396,9 @@ function viewKonto() {
 const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
-  const tabs = [["home", "Übersicht"], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
-  const body = { home: adminHome, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews }[S.ui.tab]();
+  const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const body = { home: adminHome, warteliste: adminWaitlist, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews }[S.ui.tab]();
   return `<section class="view">
     <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-a="tab" data-v="${k}" aria-selected="${S.ui.tab === k}">${t}</button>`).join("")}</div>
@@ -346,6 +410,8 @@ function adminHome() {
   const up = S.D.bookings.filter(b => b.status === "booked" && new Date(b.starts_at) >= new Date());
   const week = up.filter(b => new Date(b.starts_at) <= new Date(Date.now() + 7 * 864e5));
   const todos = [];
+  const wlW = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
+  if (wlW) todos.push({ kind: "Warteliste", text: `${wlW} ${wlW === 1 ? "Person wartet" : "Personen warten"} auf einen Platz.`, a: `data-a="tab" data-v="warteliste"`, btn: "Ansehen" });
   openQ.forEach(q => todos.push({ kind: "Frage", text: `${esc(profileName(q.user_id))}: ${q.lesson_id && getLesson(q.lesson_id) ? "Lektion „" + esc(getLesson(q.lesson_id).title) + "“" : "Allgemeine Frage"}`, a: `data-a="tab" data-v="fragen"`, btn: "Beantworten" }));
   st.forEach(p => {
     const u = `data-a="openUser" data-id="${p.id}"`;
@@ -363,6 +429,21 @@ function adminHome() {
   return `<div class="stats">${[[st.length, "Schüler"], [week.length, "Termine in 7 Tagen"], [openQ.length, "Offene Fragen"], [st.filter(p => p.invited).reduce((a, p) => a + Math.max(0, leftFor(p)), 0), "Offene 1:1s gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
     <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div><button class="btn small" type="button" ${t.a}>${t.btn}</button></div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
     <div class="card"><h2>Nächste Termine</h2><div>${up.length ? up.map(b => { const t = fmtTs(b.starts_at); return `<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(t.date)} ${t.time}</span><span><b>${esc(profileName(b.user_id))}</b>${b.topic ? " · " + esc(b.topic) : ""}</span></div><button class="btn small quiet" type="button" data-a="openUser" data-id="${b.user_id}">Schüler öffnen</button></div>`; }).join("") : `<p class="empty">Keine Termine gebucht.</p>`}</div></div>`;
+}
+
+function adminWaitlist() {
+  const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited");
+  const li = S.ui.lastInvite;
+  const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Platz im Playback Coaching")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Platz im Playback Coaching ist frei! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
+  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Plätze in der ersten Runde</span></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
+      ${li ? `<div class="notice">${esc(li.name)} ist eingeladen. Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
+    </div>
+    ${waiting.length ? waiting.map((w, i) => `<article class="card" style="gap:8px"><div class="session-meta"><b class="mono" style="font-size:18px">#${i + 1}</b><b>${esc(w.full_name)}</b><span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+      ${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
+      <div class="actions" style="align-items:center"><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>${confirmBtn("wl:" + w.id, "Entfernen", `data-a="wlRemove" data-id="${w.id}"`)}</div></article>`).join("")
+      : `<p class="empty">Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier.</p>`}
+    ${invited.length ? `<span class="label group-label">Eingeladen</span><div class="card">${invited.map(w => `<div class="todo"><div class="what"><span><b>${esc(w.full_name)}</b> · ${esc(w.email)}</span></div><span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span></div>`).join("")}</div>` : ""}`;
 }
 
 function adminUsers() {
@@ -511,6 +592,13 @@ function adminNews() {
 /* ---------- Aktionen ---------- */
 const A = {
   authView: el => { S.authView = el.dataset.v; render(); },
+  goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
+  goLanding: async () => { S.showAuth = false; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
+  copyPlace: () => {
+    const t = $("#placeUrl").textContent, ok = () => toast("Link kopiert.");
+    const fail = () => { const r = document.createRange(); r.selectNodeContents($("#placeUrl")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Link markiert. Jetzt kopieren."); };
+    try { navigator.clipboard.writeText(t).then(ok, fail); } catch (e) { fail(); }
+  },
   logout: async () => { await sb.auth.signOut(); },
   tab: el => { S.ui.tab = el.dataset.v; S.ui.confirm = null; if (el.dataset.v !== "users") S.ui.user = null; render(); },
   confirm: el => { S.ui.confirm = el.dataset.k || null; render(); },
@@ -538,6 +626,17 @@ const A = {
   },
   unlock: async el => { await run(sb.from("module_unlocks").insert({ user_id: S.ui.user, module_id: el.dataset.id }), "Modul freigeschaltet."); reload(); },
   relock: async el => { await run(sb.from("module_unlocks").delete().eq("user_id", S.ui.user).eq("module_id", el.dataset.id)); reload(); },
+  wlInvite: async el => {
+    const w = S.D.waitlist.find(x => x.id === el.dataset.id), pack = S.ui.wlPack == null ? 4 : S.ui.wlPack;
+    if (!S.D.profiles.some(p => p.email.toLowerCase() === w.email)) {
+      const r = await run(sb.from("invites").upsert({ email: w.email, full_name: w.full_name, package_total: pack, course_access: true }));
+      if (!r) return;
+    }
+    const r2 = await run(sb.from("waitlist").update({ status: "invited" }).eq("id", w.id), w.full_name + " ist eingeladen.");
+    if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email };
+    reload();
+  },
+  wlRemove: async el => { await run(sb.from("waitlist").update({ status: "removed" }).eq("id", el.dataset.id), "Von der Warteliste entfernt."); S.ui.confirm = null; reload(); },
   delBooking: async el => { await run(sb.from("bookings").delete().eq("id", el.dataset.id), "Termin gelöscht."); S.ui.confirm = null; reload(); },
   delSession: async el => { await run(sb.from("sessions").delete().eq("id", el.dataset.id), "Session gelöscht."); S.ui.confirm = null; reload(); },
   delUser: async el => {
@@ -563,6 +662,23 @@ const A = {
 };
 
 const F = {
+  waitlist: async f => {
+    if (f.website.value) return; // Spam-Schutz
+    const name = f.name.value.trim(), email = f.email.value.trim();
+    if (!name) return toast("Bitte gib deinen Namen ein.", true);
+    if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
+    if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
+    const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim() }));
+    if (!r) return;
+    const d = r.data;
+    if (d.already) {
+      toast(d.status === "waiting" ? "Diese E-Mail-Adresse steht schon auf Platz " + d.position + "." : d.status === "invited" ? "Du bist schon eingeladen! Registriere dich mit dieser E-Mail-Adresse." : "Diese E-Mail-Adresse steht nicht mehr auf der Warteliste. Schreib mir, wenn du wieder drauf möchtest.");
+      return;
+    }
+    wlSet(d.token); S.ui.wlToken = d.token;
+    await loadLanding(); render(); toast("Du bist auf Platz " + d.position + ".");
+    const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+  },
   myName: async f => {
     const name = f.name.value.trim();
     if (!name) return toast("Bitte gib einen Namen ein.", true);
@@ -693,6 +809,8 @@ document.addEventListener("change", async e => {
   if (t.dataset.task) {
     const r = await run(sb.rpc("set_task_done", { p_task: t.dataset.task, p_done: t.checked }));
     if (r) reload(); else t.checked = !t.checked;
+  } else if (t.dataset.wlpack != null) {
+    const v = parseInt(t.value, 10); S.ui.wlPack = v >= 0 ? v : 4;
   } else if (t.dataset.access) {
     await run(sb.from("profiles").update({ course_access: t.checked }).eq("id", t.dataset.access)); reload();
   } else if (t.dataset.mt) {
@@ -722,6 +840,13 @@ const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
+  if (!S.session) {
+    const m = /^platz-([0-9a-f-]{36})$/.exec(h);
+    if (m) { S.ui.wlToken = m[1]; wlSet(m[1]); S.showAuth = false; loadLanding().then(render); return; }
+    S.showAuth = h === "login";
+    if (!S.showAuth) { loadLanding().then(render); return; }
+    render(); return;
+  }
   S.view = VIEWS.includes(h) ? h : "start";
   S.ui.confirm = null;
   render(); window.scrollTo(0, 0);
@@ -733,7 +858,7 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") { S.ui.recovery = true; S.session = session; render(); return; }
   const had = S.session && S.session.user.id, now = session && session.user.id;
   S.session = session;
-  if (!session) { S.me = null; S.D = null; S.authView = "login"; render(); return; }
+  if (!session) { S.me = null; S.D = null; S.authView = "login"; if (had) { S.showAuth = false; history.replaceState(null, "", location.pathname); route(); } return; }
   if (had !== now) {
     setTimeout(async () => {
       S.D = null; render();
@@ -745,6 +870,6 @@ sb.auth.onAuthStateChange((event, session) => {
 });
 (async () => {
   const { data } = await sb.auth.getSession();
-  if (!data.session) { S.session = null; render(); }
+  if (!data.session) { S.session = null; route(); }
 })();
 })();

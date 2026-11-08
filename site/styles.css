@@ -293,3 +293,28 @@ a{color:var(--accent-hi)}
 .site-foot{max-width:1080px;margin:0 auto;padding-block:0 32px;display:flex;gap:16px;font-size:13px}
 .site-foot a{color:var(--muted)}
 .site-foot:empty{display:none}
+
+/* Startseite und Warteliste */
+.landing{max-width:1080px;margin:0 auto;padding-block:20px 48px;display:flex;flex-direction:column;gap:40px}
+.landing-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.landing-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;align-items:start}
+@media (max-width:860px){.landing-grid{grid-template-columns:1fr;gap:28px}}
+.pitch{display:flex;flex-direction:column;gap:20px}
+.hero{font-size:clamp(32px,5vw,52px);line-height:1.05;font-weight:800;font-stretch:80%;letter-spacing:-.02em;max-width:16ch}
+.lead{font-size:18px;color:var(--muted);max-width:52ch}
+.spots{display:flex;gap:4px}
+.spots i{flex:1;height:22px;max-width:36px;background:var(--seg-off,var(--track));border-radius:2px}
+.spots i.on{background:var(--accent)}
+.perks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.perks li{display:flex;flex-direction:column;gap:2px;padding-left:14px;border-left:2px solid var(--accent)}
+.perks span{color:var(--muted);font-size:14px}
+.wl-col{position:sticky;top:20px}
+@media (max-width:860px){.wl-col{position:static}}
+.wl-card .place{display:flex;align-items:baseline;gap:10px}
+.wl-card .place b{font-size:56px;line-height:1;color:var(--accent-hi);font-weight:600}
+.copyrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.copyrow code{font-family:var(--font-mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:6px 8px;word-break:break-all;user-select:all;min-width:0;flex:1}
+.consent{align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.45}
+.consent .check{margin-top:2px!important}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent-hi);cursor:pointer;font:inherit;text-decoration:underline}
