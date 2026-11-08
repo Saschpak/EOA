@@ -1,4 +1,4 @@
-<title>EOA Coaching Portal</title>
+<title>Playback Coaching</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,9 +103,33 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 .check:checked+label{color:var(--faint);text-decoration:line-through}
 
 /* Kurs */
-.course{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
-@media (max-width:860px){.course{grid-template-columns:1fr}}
-.player{display:flex;flex-direction:column;gap:16px}
+.course{display:flex;flex-direction:column;gap:20px}
+.mods{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:860px){.mods{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.mods{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.modbtn{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;cursor:pointer;min-width:0}
+.modbtn:hover{border-color:var(--line-2)}
+.modbtn .n{font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.modbtn .n .mono{letter-spacing:0}
+.modbtn b{font-size:13.5px;font-weight:650;line-height:1.25;min-height:2.5em}
+.modbtn .track{height:4px}
+.modbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.modbtn[aria-pressed="true"] .n{color:var(--accent-hi)}
+.modbtn.here b::after{content:" ●";color:var(--accent);font-size:10px;vertical-align:middle}
+.where{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.step{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;cursor:pointer;min-width:0}
+.step:hover{border-color:var(--line-2)}
+.step .st{width:24px;height:24px;border-radius:50%;border:1px solid var(--line-2);flex:none;display:grid;place-items:center;font-size:11px;font-family:var(--font-mono);color:var(--muted)}
+.step.done .st{background:var(--accent);border-color:var(--accent)}
+.step.done .st::after{content:"";width:9px;height:5px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.step .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.step .tx b{font-size:14px;font-weight:600;line-height:1.3}
+.step .tx span{font-size:12px;color:var(--faint)}
+.step.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.step.active .tx span{color:var(--accent-hi)}
+
+.player{display:flex;flex-direction:column;gap:16px;width:100%}
 .screen{aspect-ratio:16/9;max-width:100%;background:var(--screen);border-radius:var(--r);position:relative;display:grid;place-items:center;overflow:hidden}
 .screen .bigplay{border:0;background:none;cursor:pointer;padding:0}
 .screen .bigplay .play{width:64px;height:64px}
@@ -160,7 +184,7 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 
 <div id="login" class="login-screen gutter" hidden>
   <form class="login card" id="loginForm" novalidate>
-    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>EOA COACHING</div>
+    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>
     <div class="field"><label class="label" for="email">E-Mail</label><input id="email" type="email" autocomplete="email" value="lena@beispiel.de"></div>
     <div class="field"><label class="label" for="pw">Passwort</label><input id="pw" type="password" autocomplete="current-password" value="demo1234"></div>
     <p class="err" id="loginErr" hidden></p>
@@ -171,7 +195,7 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 
 <header class="bar">
   <div class="bar-inner gutter">
-    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>EOA</div>
+    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>
     <nav class="nav" aria-label="Hauptnavigation">
       <a href="#start">Übersicht</a>
       <a href="#kurs">Kurs</a>
@@ -217,6 +241,9 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
       <div class="progress" id="courseProgress" style="max-width:420px"></div>
     </div>
     <div class="course">
+      <div class="mods" id="mods" role="group" aria-label="Module"></div>
+      <div class="where" id="where"></div>
+      <div class="steps" id="steps"></div>
       <div class="player">
         <div class="screen">
           <button class="bigplay" id="playBtn" type="button" aria-label="Abspielen"><span class="play"><span class="tri"></span></span></button>
@@ -226,7 +253,6 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
         <div class="times mono"><span id="tNow">0:00</span><span id="tDur">0:00</span></div>
         <div id="lessonInfo" style="display:flex;flex-direction:column;gap:16px"></div>
       </div>
-      <div class="lessons" id="lessonList"></div>
     </div>
   </section>
 
@@ -325,7 +351,7 @@ function renderDash(){
       <span class="muted mono" style="font-size:12px">${n.d} min</span>
       <div style="margin-top:6px"><button class="btn primary" type="button" data-go>Weiter ansehen</button></div>
     </div>`;
-  $("#resume").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{selected=n.id;location.hash="kurs"});
+  $("#resume").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{selected=n.id;viewMod=n.mi;location.hash="kurs"});
   $("#dashProgress").innerHTML=progressHTML();
   const s=SESSIONS.find(x=>x.planned);
   if(s){const d=pd(s.date);
@@ -339,16 +365,20 @@ function renderDash(){
 }
 
 /* Kurs */
-let selected=null,playing=false,pos=0,raf=0,lastT=0;
+let viewMod=null,selected=null,playing=false,pos=0,raf=0,lastT=0;
 const getL=id=>ALL.find(l=>l.id===id);
 function renderCourse(){
   if(!selected)selected=nextLesson().id;
   $("#courseProgress").innerHTML=progressHTML();
-  $("#lessonList").innerHTML=MODULES.map((m,mi)=>{
-    const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
-    return `<div class="mod"><div class="mod-head"><b>${mi+1}. ${esc(m.title)}</b><span class="mono muted" style="font-size:12px">${dn}/${m.lessons.length}</span></div>
-      ${m.lessons.map((l,li)=>{const id=mi+"-"+li;return `<button type="button" class="lesson ${done.has(id)?"done":""} ${id===selected?"active":""}" data-id="${id}"><span class="st">${done.has(id)?"":li+1}</span><span class="t">${esc(l.t)}</span><span class="d">${l.d}</span></button>`}).join("")}</div>`}).join("");
-  $("#lessonList").querySelectorAll(".lesson").forEach(b=>b.onclick=()=>select(b.dataset.id));
+  const sel=getL(selected);if(viewMod==null)viewMod=sel.mi;
+  $("#mods").innerHTML=MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
+    return `<button type="button" class="modbtn ${mi===sel.mi?"here":""}" data-m="${mi}" aria-pressed="${mi===viewMod}"><span class="n"><span>Modul ${mi+1}</span><span class="mono">${dn}/${m.lessons.length}</span></span><b>${esc(m.title)}</b><span class="track"><i style="width:${dn/m.lessons.length*100}%"></i></span></button>`}).join("");
+  $("#mods").querySelectorAll(".modbtn").forEach(b=>b.onclick=()=>{viewMod=+b.dataset.m;renderCourse()});
+  const vm=MODULES[viewMod];
+  $("#where").innerHTML=`<h2>Modul ${viewMod+1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${viewMod===sel.mi?`Du bist bei Lektion ${sel.li+1} von ${vm.lessons.length}`:`Du bist gerade in Modul ${sel.mi+1}, Lektion ${sel.li+1}`}</span>`;
+  $("#steps").innerHTML=vm.lessons.map((l,li)=>{const id=viewMod+"-"+li,act=id===selected;
+    return `<button type="button" class="step ${done.has(id)?"done":""} ${act?"active":""}" data-id="${id}" ${act?'aria-current="step"':""}><span class="st">${done.has(id)?"":li+1}</span><span class="tx"><b>${esc(l.t)}</b><span class="mono">${act?"Aktuell · ":""}${l.d} min</span></span></button>`}).join("");
+  $("#steps").querySelectorAll(".step").forEach(b=>b.onclick=()=>select(b.dataset.id));
   const l=getL(selected),isDone=done.has(l.id),nxt=ALL[ALL.indexOf(l)+1];
   $("#lessonInfo").innerHTML=`<div class="lesson-head"><span class="muted" style="font-size:13px">Modul ${l.mi+1} · ${esc(MODULES[l.mi].title)}</span><h2>${esc(l.t)}</h2></div>
     <ul class="points">${l.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
@@ -357,7 +387,7 @@ function renderCourse(){
   if(nxt)$("#nextBtn").onclick=()=>select(nxt.id);
   $("#tDur").textContent=l.d;updatePlayer();
 }
-function select(id){stop();pos=0;selected=id;renderCourse();if(window.innerWidth<860)window.scrollTo({top:0,behavior:"smooth"})}
+function select(id){stop();pos=0;selected=id;viewMod=getL(id).mi;renderCourse()}
 function updatePlayer(){
   const l=getL(selected);$("#tNow").textContent=mmss(pos*secs(l.d));$("#scrubFill").style.width=(pos*100)+"%";
   const b=$("#playBtn");b.setAttribute("aria-label",playing?"Pause":"Abspielen");
