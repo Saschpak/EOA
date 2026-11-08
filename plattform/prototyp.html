@@ -187,6 +187,37 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 .field input:focus{outline:none;border-color:var(--accent)}
 .err{color:var(--accent-hi);font-size:13px}
 .app-hidden .bar,.app-hidden main{display:none}
+
+/* Admin */
+.nav a.admin-link{margin-left:auto;border:1px solid var(--line-2)}
+.nav a.admin-link[aria-current="page"]{border-color:var(--accent)}
+.admin-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;min-width:680px;font-size:14px}
+th{text-align:left;font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--line)}
+td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel-2)}
+td .sub{display:block;font-size:12.5px;color:var(--muted)}
+.pct-cell{display:flex;align-items:center;gap:10px;min-width:150px}
+.pct-cell .track{flex:1;height:6px}
+.pill{display:inline-block;font-size:12px;font-weight:650;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent-hi);white-space:nowrap}
+.pill.zero{background:transparent;border:1px solid var(--line-2);color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:600px){.form-grid{grid-template-columns:1fr}}
+.field textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:10px;resize:vertical;min-height:80px}
+.field textarea:focus{outline:none;border-color:var(--accent)}
+.inline-check{display:flex;gap:10px;align-items:center;cursor:pointer}
+.stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden;width:max-content}
+.stepper button{width:40px;height:40px;border:0;background:var(--panel-2);cursor:pointer;font-size:18px;font-weight:600}
+.stepper button:hover{background:var(--accent-soft)}
+.stepper output{min-width:56px;text-align:center;font-family:var(--font-mono);font-size:18px;font-weight:600}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font-size:14px}
+.facts b{font-family:var(--font-mono);font-size:18px;display:block}
+.mod-line{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:12px;align-items:center;font-size:14px}
+.mod-line .track{height:6px}
+.back{align-self:flex-start}
 </style>
 
 <div id="login" class="login-screen gutter" hidden>
@@ -208,6 +239,7 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
       <a href="#kurs">Kurs</a>
       <a href="#sessions">1:1s</a>
       <a href="#news">News</a>
+      <a href="#admin" class="admin-link">Admin</a>
     </nav>
     <button class="btn quiet small" id="logout" type="button">Abmelden</button>
   </div>
@@ -247,6 +279,7 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
       <h1>Playback Live-Rig</h1>
       <div class="progress" id="courseProgress" style="max-width:420px"></div>
     </div>
+    <p class="card muted" id="courseLocked" hidden>Der Videokurs ist für dich noch nicht freigeschaltet. Sprich mich an, wenn du Zugang möchtest.</p>
     <div class="course">
       <div class="mods" id="mods" role="group" aria-label="Module"></div>
       <div class="where" id="where"></div>
@@ -290,6 +323,35 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
     <div class="intro"><h1>News</h1></div>
     <div id="newsList" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
+
+  <!-- Admin -->
+  <section class="view" id="view-admin" hidden>
+    <div id="adminList" style="display:flex;flex-direction:column;gap:20px">
+      <div class="admin-head">
+        <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Schüler</h1></div>
+        <button class="btn primary" type="button" id="newUserBtn">Schüler anlegen</button>
+      </div>
+      <form class="card" id="newUserForm" hidden novalidate>
+        <h2>Neuen Schüler anlegen</h2>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="nuName">Name</label><input id="nuName" type="text" placeholder="Vor- und Nachname"></div>
+          <div class="field"><label class="label" for="nuEmail">E-Mail</label><input id="nuEmail" type="email" placeholder="name@beispiel.de"></div>
+          <div class="field"><label class="label" for="nuPack">1:1s im Paket</label><input id="nuPack" type="number" min="0" max="50" value="4"></div>
+          <div class="field"><span class="label">Videokurs</span><label class="inline-check" for="nuCourse"><input class="check" id="nuCourse" type="checkbox" checked style="margin:0">Zugang freischalten</label></div>
+        </div>
+        <p class="err" id="nuErr" hidden></p>
+        <div class="actions"><button class="btn primary" type="submit">Anlegen und einladen</button><button class="btn quiet" type="button" id="nuCancel">Abbrechen</button></div>
+      </form>
+      <p class="ok-msg" id="nuMsg" hidden></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Nächster Termin</th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="adminDetail" style="display:flex;flex-direction:column;gap:20px" hidden></div>
+  </section>
 </main>
 
 <script>
@@ -329,12 +391,26 @@ const MODULES=[
 const ALL=[];MODULES.forEach((m,mi)=>m.lessons.forEach((l,li)=>ALL.push({id:mi+"-"+li,mi,li,...l})));
 let done=new Set(store.get("eoa-done",["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1"]));
 
-const SESSIONS=[
+const LENA_SESSIONS=[
   {date:"2026-10-31",time:"17:30",topic:"Cues und In-Ear-Mix",notes:"Die Cues kommen jetzt einen Takt vor dem Songteil, das klingt viel entspannter. Der Click war im In-Ear des Drummers zu leise, dafür bauen wir einen eigenen Ausgang.",hw:["Cue „Bridge“ für „Nachtfahrt“ neu aufnehmen","Eigenen Click-Ausgang für den Drummer anlegen","Lektion „In-Ear-Routing“ ansehen"]},
   {date:"2026-10-17",time:"18:00",topic:"Session-Template und Tempo",notes:"Das Template steht. Zwei Songs hatten falsche Warp-Marker im Intro, die haben wir zusammen korrigiert.",hw:["Restliche Songs ins Template übertragen","Tempo-Map von „Glas“ mit der Band testen"]},
   {date:"2026-10-03",time:"19:00",topic:"Kennenlernen & Rig-Check",notes:"MacBook, 8-Kanal-Interface, noch kein Backup. Ziel bis Tourstart: stabiles Rig mit Click, Cues und Setlist.",hw:["Kanalliste für den Techniker schreiben","Stems für die ersten fünf Songs exportieren"]}
 ];
-const PACKAGE=6;
+const USERS_DEFAULT=[
+  {id:"lena",name:"Lena Kraus",email:"lena@beispiel.de",package:6,course:true,since:"2026-10-03",sessions:LENA_SESSIONS,booked:[]},
+  {id:"jonas",name:"Jonas Weber",email:"jonas@beispiel.de",package:4,course:true,since:"2026-09-12",doneCount:16,
+    sessions:[{date:"2026-10-24",time:"16:00",topic:"Program Changes für Keys",notes:"Patches wechseln jetzt sauber auf dem ersten Schlag.",hw:["MIDI-Clips für alle Songs anlegen"]},{date:"2026-09-26",time:"17:00",topic:"Rig-Check",notes:"Gutes Grund-Setup, Backup-Rechner fehlt noch.",hw:[]}],
+    booked:[{date:"2026-11-12",time:"16:00",topic:"Licht-Sync mit dem Lichtpult"}]},
+  {id:"mira",name:"Mira Schulz",email:"mira@beispiel.de",package:10,course:true,since:"2026-11-02",doneCount:3,sessions:[],booked:[]},
+  {id:"tim",name:"Tim Hoffmann",email:"tim@beispiel.de",package:2,course:false,since:"2026-08-20",doneCount:0,
+    sessions:[{date:"2026-09-05",time:"18:00",topic:"Click für die Band",notes:"Click-Track steht, Band spielt sicher dazu.",hw:[]},{date:"2026-08-22",time:"18:00",topic:"Kennenlernen",notes:"Will nur Unterstützung beim Click, kein Kurs.",hw:[]}],booked:[]}
+];
+let users=store.get("pc-users",USERS_DEFAULT);
+const saveUsers=()=>store.set("pc-users",users);
+const me=()=>users.find(u=>u.id==="lena");
+const doneSetFor=u=>u.id==="lena"?done:new Set(ALL.slice(0,u.doneCount||0).map(l=>l.id));
+const bookedFor=u=>u.id==="lena"?booked:(u.booked||[]);
+const leftFor=u=>u.package-u.sessions.length-bookedFor(u).length;
 const SLOTS={"2026-11-10":["17:00","18:30"],"2026-11-12":["16:00","18:00","19:30"],"2026-11-14":["11:00","13:00"],"2026-11-17":["17:00","18:30"],"2026-11-19":["18:00","19:30"],"2026-11-21":["11:00"]};
 let booked=store.get("pc-booked",[]);
 let pickDay=null,pickTime=null,cancelArm=null;
@@ -375,9 +451,9 @@ function renderDash(){
     $("#dashNext").innerHTML=`<div class="date-row"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div>
       <div><b>${esc(s.topic)}</b><p class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</p></div></div>
       <a class="btn small" href="#sessions" style="margin-top:14px">Weiteres 1:1 buchen</a>`}
-  else $("#dashNext").innerHTML=`<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${left()} von ${PACKAGE} Sessions offen.</p><a class="btn primary" href="#sessions" style="margin-top:14px">1:1 buchen</a>`;
-  const last=SESSIONS[0];
-  const items=last.hw.map((h,i)=>({h,k:last.date+"-"+i})).filter(x=>!hw[x.k]);
+  else $("#dashNext").innerHTML=`<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${left()} von ${me().package} Sessions offen.</p><a class="btn primary" href="#sessions" style="margin-top:14px">1:1 buchen</a>`;
+  const last=me().sessions[0];
+  const items=(last?last.hw:[]).map((h,i)=>({h,k:last.date+"-"+i})).filter(x=>!hw[x.k]);
   $("#dashHw").innerHTML=items.length?items.map(x=>taskHTML(x.h,x.k,"d")).join(""):`<p class="muted">Alles erledigt.</p>`;
   const nw=NEWS[0];
   $("#dashNews").innerHTML=`<span class="label">Neu · ${fmt(nw.date)}</span><b>${esc(nw.title)}</b>`;
@@ -387,6 +463,8 @@ function renderDash(){
 let viewMod=null,selected=null,playing=false,pos=0,raf=0,lastT=0;
 const getL=id=>ALL.find(l=>l.id===id);
 function renderCourse(){
+  const locked=!me().course;$("#courseLocked").hidden=!locked;$("#view-kurs .course").hidden=locked;$("#courseProgress").hidden=locked;
+  $("#resume").closest(".card").hidden=locked;
   if(!selected)selected=nextLesson().id;
   $("#courseProgress").innerHTML=progressHTML();
   const sel=getL(selected);if(viewMod==null)viewMod=sel.mi;
@@ -420,12 +498,12 @@ $("#playBtn").onclick=()=>{if(playing){stop();updatePlayer();return}if(pos>=1)po
 
 /* 1:1 */
 const sortedBooked=()=>[...booked].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
-const left=()=>PACKAGE-SESSIONS.length-booked.length;
+const left=()=>leftFor(me());
 const isBooked=(d,t)=>booked.some(b=>b.date===d&&b.time===t);
 const freeTimes=d=>SLOTS[d].filter(t=>!isBooked(d,t));
 function renderSessions(){
   const l=left();
-  $("#credits").innerHTML=`Noch <b>${l}</b> von ${PACKAGE} Sessions in deinem Paket`;
+  $("#credits").innerHTML=`Noch <b>${l}</b> von ${me().package} Sessions in deinem Paket`;
   $("#bookForm").hidden=l<=0;
   if(l<=0){$("#bookMsg").hidden=false;$("#bookMsg").style.color="var(--muted)";$("#bookMsg").textContent="Dein Paket ist aufgebraucht. Sprich mich an, wenn du weitere Sessions möchtest."}
   const days=Object.keys(SLOTS).filter(d=>freeTimes(d).length);
@@ -447,8 +525,8 @@ function renderSessions(){
   $("#plannedList").querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{cancelArm=b.dataset.cancel;renderSessions()});
   $("#plannedList").querySelectorAll("[data-cancel-no]").forEach(b=>b.onclick=()=>{cancelArm=null;renderSessions()});
   $("#plannedList").querySelectorAll("[data-cancel-yes]").forEach(b=>b.onclick=()=>{booked=booked.filter(x=>x.date+x.time!==b.dataset.cancelYes);cancelArm=null;store.set("pc-booked",booked);$("#bookMsg").hidden=true;renderAll()});
-  $("#sessList").innerHTML=SESSIONS.map(s=>{const d=pd(s.date);
-    return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</span></div>
+  $("#sessList").innerHTML=me().sessions.map(s=>{const d=pd(s.date);
+    return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${WD[d.getDay()]}${s.time?`, ${s.time} Uhr`:""}</span></div>
       <h3>${esc(s.topic)}</h3>
       <p class="note">${esc(s.notes)}</p>
       ${s.hw.length?`<div class="tasks">${s.hw.map((h,i)=>taskHTML(h,s.date+"-"+i,"s")).join("")}</div>`:""}</article>`}).join("");
@@ -466,7 +544,77 @@ function renderNews(){
 
 document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.hw;if(!k)return;hw[k]=e.target.checked;store.set("eoa-hw",hw);setTimeout(renderAll,250)});
 
-function renderAll(){renderDash();renderCourse();renderSessions();renderNews()}
+/* Admin */
+let openUser=null;
+function nextBookedFor(u){const b=[...bookedFor(u)].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time))[0];return b?`${fmt(b.date)}, ${b.time} Uhr<span class="sub">${esc(b.topic)}</span>`:`<span class="muted">Kein Termin</span>`}
+function renderAdmin(){
+  $("#adminList").hidden=!!openUser;$("#adminDetail").hidden=!openUser;
+  if(!openUser){
+    $("#userRows").innerHTML=users.map(u=>{const p=Math.round(doneSetFor(u).size/ALL.length*100),l=leftFor(u);
+      return `<tr data-u="${u.id}" tabindex="0"><td><b>${esc(u.name)}</b><span class="sub">${esc(u.email)}</span></td>
+        <td><span class="pill ${l<=0?"zero":""}">${l} offen</span><span class="sub">${u.sessions.length} von ${u.package} genutzt</span></td>
+        <td>${u.course?`<div class="pct-cell"><div class="track"><i style="width:${p}%"></i></div><span class="mono" style="font-size:12.5px">${p}%</span></div>`:`<span class="muted">Kein Zugang</span>`}</td>
+        <td>${nextBookedFor(u)}</td></tr>`}).join("");
+    $("#userRows").querySelectorAll("tr").forEach(r=>{const go=()=>{openUser=r.dataset.u;renderAdmin();window.scrollTo(0,0)};r.onclick=go;r.onkeydown=e=>{if(e.key==="Enter")go()}});
+    return;
+  }
+  const u=users.find(x=>x.id===openUser),ds=doneSetFor(u),p=Math.round(ds.size/ALL.length*100),bk=bookedFor(u);
+  $("#adminDetail").innerHTML=`<button class="btn quiet small back" type="button" id="backBtn">← Alle Schüler</button>
+    <div class="intro"><h1>${esc(u.name)}</h1><p class="muted">${esc(u.email)} · dabei seit ${fmt(u.since)}${u.since.slice(0,4)}</p></div>
+    <div class="two">
+      <div class="card"><span class="label">1:1-Paket</span>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><div class="stepper"><button type="button" id="packMinus" aria-label="Eine Session weniger">−</button><output id="packVal">${u.package}</output><button type="button" id="packPlus" aria-label="Eine Session mehr">+</button></div><span class="muted" style="font-size:14px">Sessions im Paket</span></div>
+        <div class="facts"><span><b>${u.sessions.length}</b>genutzt</span><span><b>${bk.length}</b>gebucht</span><span><b style="color:var(--accent-hi)">${leftFor(u)}</b>offen</span></div>
+      </div>
+      <div class="card"><span class="label">Videokurs</span>
+        <label class="inline-check" for="courseAcc"><input class="check" id="courseAcc" type="checkbox" ${u.course?"checked":""} style="margin:0">Zugang freigeschaltet</label>
+        ${u.course?`<div class="progress"><div class="progress-top"><span class="muted">${ds.size} von ${ALL.length} Lektionen</span><b class="mono">${p}%</b></div><div class="track"><i style="width:${p}%"></i></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">${MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>ds.has(mi+"-"+li)).length;return `<div class="mod-line"><span>${mi+1}. ${esc(m.title)}</span><div class="track"><i style="width:${dn/m.lessons.length*100}%"></i></div><span class="mono muted" style="font-size:12px;text-align:right">${dn}/${m.lessons.length}</span></div>`}).join("")}</div>`:`<p class="muted">Kein Zugang zum Videokurs.</p>`}
+      </div>
+    </div>
+    <form class="card" id="noteForm" novalidate>
+      <h2>Session eintragen</h2>
+      <p class="muted" style="font-size:14px">Nach einem 1:1: Notiz und Aufgaben eintragen. ${u.id==="lena"?"Lena sieht beides sofort unter 1:1s.":"Der Schüler sieht beides unter 1:1s."} Die Session zählt als genutzt.</p>
+      <div class="form-grid">
+        <div class="field"><label class="label" for="nDate">Datum</label><input id="nDate" type="date" value="2026-11-08"></div>
+        <div class="field"><label class="label" for="nTopic">Thema</label><input id="nTopic" type="text" placeholder="z. B. Setlist in AbleSet"></div>
+      </div>
+      <div class="field"><label class="label" for="nNotes">Notiz</label><textarea id="nNotes" placeholder="Was habt ihr gemacht, was läuft gut, was noch nicht?"></textarea></div>
+      <div class="field"><label class="label" for="nHw">Aufgaben bis zum nächsten Mal (eine pro Zeile)</label><textarea id="nHw" placeholder="Cue für die Bridge neu aufnehmen"></textarea></div>
+      <p class="err" id="nErr" hidden></p>
+      <div class="actions"><button class="btn primary" type="submit">Session speichern</button></div>
+    </form>
+    <span class="label group-label">Sessions</span>
+    <div style="display:flex;flex-direction:column;gap:16px">${bk.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${s.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(s.topic)}</h3></article>`).join("")}
+    ${u.sessions.length?u.sessions.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b></div><h3>${esc(s.topic)}</h3>${s.notes?`<p class="note">${esc(s.notes)}</p>`:""}${s.hw.length?`<ul class="points">${s.hw.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>`:""}</article>`).join(""):`<p class="muted">Noch keine Sessions.</p>`}</div>`;
+  $("#backBtn").onclick=()=>{openUser=null;renderAdmin()};
+  const setPack=v=>{u.package=Math.max(u.sessions.length+bk.length,Math.min(50,v));saveUsers();renderAll()};
+  $("#packMinus").onclick=()=>setPack(u.package-1);
+  $("#packPlus").onclick=()=>setPack(u.package+1);
+  $("#courseAcc").onchange=e=>{u.course=e.target.checked;saveUsers();renderAll()};
+  $("#noteForm").onsubmit=e=>{e.preventDefault();
+    const date=$("#nDate").value,topic=$("#nTopic").value.trim(),notes=$("#nNotes").value.trim(),err=$("#nErr");
+    if(!date||!topic){err.hidden=false;err.textContent="Bitte Datum und Thema ausfüllen.";return}
+    if(leftFor(u)<=0){err.hidden=false;err.textContent="Das Paket ist aufgebraucht. Erhöhe zuerst die Zahl der Sessions.";return}
+    const hwList=$("#nHw").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    u.sessions.push({date,time:"",topic,notes,hw:hwList});u.sessions.sort((a,b)=>b.date.localeCompare(a.date));
+    saveUsers();renderAll()};
+}
+$("#newUserBtn").onclick=()=>{$("#newUserForm").hidden=false;$("#nuMsg").hidden=true;$("#nuName").focus()};
+$("#nuCancel").onclick=()=>{$("#newUserForm").hidden=true};
+$("#newUserForm").onsubmit=e=>{e.preventDefault();
+  const name=$("#nuName").value.trim(),email=$("#nuEmail").value.trim(),pack=parseInt($("#nuPack").value,10),err=$("#nuErr");
+  if(!name){err.hidden=false;err.textContent="Bitte gib einen Namen ein.";return}
+  if(!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent="Bitte gib eine gültige E-Mail-Adresse ein.";return}
+  if(users.some(u=>u.email.toLowerCase()===email.toLowerCase())){err.hidden=false;err.textContent="Diese E-Mail-Adresse ist schon angelegt.";return}
+  if(!(pack>=0)){err.hidden=false;err.textContent="Bitte gib die Zahl der 1:1s an (0 oder mehr).";return}
+  err.hidden=true;
+  users.push({id:"u"+Date.now(),name,email,package:pack,course:$("#nuCourse").checked,since:"2026-11-08",doneCount:0,sessions:[],booked:[]});
+  saveUsers();$("#newUserForm").reset();$("#nuPack").value=4;$("#newUserForm").hidden=true;
+  const m=$("#nuMsg");m.hidden=false;m.textContent=`${name} ist angelegt. Im echten System bekommt ${email} jetzt eine Einladung per Mail.`;
+  renderAdmin()};
+
+function renderAll(){renderDash();renderCourse();renderSessions();renderNews();renderAdmin()}
 
 /* Login + Navigation */
 let authed=store.get("eoa-auth",true);
@@ -477,7 +625,7 @@ $("#loginForm").addEventListener("submit",e=>{e.preventDefault();
   err.hidden=true;authed=true;store.set("eoa-auth",true);location.hash="start";route()});
 $("#logout").onclick=()=>{stop();authed=false;store.set("eoa-auth",false);location.hash="login";route()};
 
-const VIEWS=["start","kurs","sessions","news"];
+const VIEWS=["start","kurs","sessions","news","admin"];
 function route(){
   let h=location.hash.replace("#","");
   if(h==="login"&&authed){authed=false;store.set("eoa-auth",false)}
