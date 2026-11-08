@@ -104,8 +104,7 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 
 /* Kurs */
 .course{display:flex;flex-direction:column;gap:20px}
-.mods{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-@media (max-width:860px){.mods{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
 @media (max-width:480px){.mods{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .modbtn{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;cursor:pointer;min-width:0}
 .modbtn:hover{border-color:var(--line-2)}
@@ -234,11 +233,40 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
 .mod-line{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:12px;align-items:center;font-size:14px}
 .mod-line .track{height:6px}
 .back{align-self:flex-start}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
-.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;font-weight:600;color:var(--muted)}
 .tabs button:hover{color:var(--fg)}
 .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 .news-admin{display:flex;flex-direction:column;gap:8px}
+.count{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;margin-left:6px;vertical-align:1px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--font-mono);font-size:26px;font-weight:600;line-height:1.2}
+.stat span{font-size:13px;color:var(--muted)}
+.todo{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.todo:first-of-type{border-top:0}
+.todo .what{display:flex;gap:10px;align-items:baseline;min-width:0;flex:1}
+.todo .kind{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent-hi);white-space:nowrap;min-width:64px}
+.files{display:flex;flex-direction:column;gap:8px}
+.file{display:flex;gap:10px;align-items:center;font-size:14px}
+.file .ext{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;border:1px solid var(--line-2);border-radius:3px;padding:2px 5px;color:var(--muted);min-width:38px;text-align:center}
+.qa{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:16px}
+.q{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.q .a{border-left:3px solid var(--accent);padding-left:10px}
+.q .meta{font-size:12px;color:var(--muted)}
+.mod-admin{display:flex;flex-direction:column;gap:4px;padding:14px 0;border-top:1px solid var(--line)}
+.mod-admin:first-of-type{border-top:0;padding-top:0}
+.mod-admin-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.mod-admin-head input{font:inherit;font-weight:650;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:7px 10px;flex:1;min-width:180px}
+.les-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:6px 0;font-size:14px}
+.les-row .num{font-family:var(--font-mono);font-size:12px;color:var(--faint)}
+.les-row .info{font-family:var(--font-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+@media (max-width:560px){.les-row{grid-template-columns:24px minmax(0,1fr)}.les-row .info{grid-column:2}.les-row .actions{grid-column:2}}
+.danger{border-color:var(--line-2)}
+.btn.danger-btn{color:var(--fg);border-color:var(--line-2)}
+.btn.danger-btn:hover{border-color:#e5484d}
+.field select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:10px}
 .news-admin p{color:var(--muted);max-width:70ch;white-space:pre-line}
 </style>
 
@@ -350,11 +378,37 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
   <section class="view" id="view-admin" hidden>
     <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
     <div class="tabs" role="tablist">
-      <button type="button" role="tab" id="tabUsers" aria-selected="true">Schüler</button>
-      <button type="button" role="tab" id="tabCourse" aria-selected="false">Kurs-Freischaltung</button>
+      <button type="button" role="tab" id="tabHome" aria-selected="true">Übersicht</button>
+      <button type="button" role="tab" id="tabUsers" aria-selected="false">Schüler</button>
+      <button type="button" role="tab" id="tabCourse" aria-selected="false">Kurs</button>
+      <button type="button" role="tab" id="tabQ" aria-selected="false">Fragen</button>
       <button type="button" role="tab" id="tabNews" aria-selected="false">News</button>
     </div>
+    <div id="adminHome" style="display:flex;flex-direction:column;gap:20px">
+      <div class="stats" id="homeStats"></div>
+      <div class="card"><h2>Zu erledigen</h2><div id="todoList"></div></div>
+      <div class="card"><h2>Nächste Termine</h2><div id="upcoming"></div></div>
+    </div>
+    <div id="adminQ" style="display:flex;flex-direction:column;gap:16px" hidden></div>
     <div id="adminCourse" style="display:flex;flex-direction:column;gap:20px" hidden>
+      <form class="card" id="lessonEditor" hidden novalidate>
+        <h2 id="leTitle">Lektion bearbeiten</h2>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="leMod">Modul</label><select id="leMod"></select></div>
+          <div class="field"><label class="label" for="leDur">Dauer (Minuten:Sekunden)</label><input id="leDur" type="text" placeholder="10:30"></div>
+        </div>
+        <div class="field"><label class="label" for="leName">Titel</label><input id="leName" type="text" placeholder="z. B. Setlist anlegen"></div>
+        <div class="field"><label class="label" for="leVideo">Video</label><input id="leVideo" type="text" placeholder="Im echten System: Video hochladen oder Link einfügen"></div>
+        <div class="field"><label class="label" for="lePts">Inhalte (einer pro Zeile)</label><textarea id="lePts"></textarea></div>
+        <div class="field"><label class="label" for="leFiles">Material zum Download (ein Dateiname pro Zeile)</label><textarea id="leFiles" placeholder="Show-Checkliste.pdf"></textarea></div>
+        <p class="err" id="leErr" hidden></p>
+        <div class="actions"><button class="btn primary" type="submit">Speichern</button><button class="btn quiet" type="button" id="leCancel">Abbrechen</button></div>
+      </form>
+      <p class="ok-msg" id="courseMsg" hidden></p>
+      <div class="card">
+        <div class="book-head"><h2>Inhalte</h2><button class="btn small" type="button" id="addModule">Modul hinzufügen</button></div>
+        <div id="courseAdmin"></div>
+      </div>
       <div class="card">
         <h2>Wann wird welches Modul freigeschaltet?</h2>
         <p class="muted" style="font-size:14px;max-width:70ch">Die Regel gilt für alle Schüler. Tage zählen ab dem Start des Schülers, 1:1s zählen, sobald du die Session eingetragen hast. Einzelnen Schülern kannst du ein Modul auf ihrer Seite auch früher freischalten.</p>
@@ -374,7 +428,7 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
       <span class="label group-label">Veröffentlicht</span>
       <div id="newsAdminList" style="display:flex;flex-direction:column;gap:16px"></div>
     </div>
-    <div id="adminList" style="display:flex;flex-direction:column;gap:20px">
+    <div id="adminList" style="display:flex;flex-direction:column;gap:20px" hidden>
       <div class="admin-head">
         <h2>Alle Schüler</h2>
         <button class="btn primary" type="button" id="newUserBtn">Schüler anlegen</button>
@@ -409,7 +463,7 @@ const store={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
 
-const MODULES=[
+const COURSE_DEFAULT=[
   {title:"Grundlagen Rig",lessons:[
     {t:"Was gehört in ein Playback-Rig?",d:"8:12",pts:["Laptop, Interface, Controller, Splitter","Welche Kanäle an FOH und welche ins Monitoring gehen","Typische Fehler beim ersten Rig"]},
     {t:"Interface & Kanalbelegung",d:"11:40",pts:["Ausgänge planen: Stems, Click, Cues","Kanalliste für den Techniker","Pegel und Gain-Staging"]},
@@ -436,7 +490,16 @@ const MODULES=[
     {t:"Fehler live abfangen",d:"12:36",pts:["Absturz, Kabel, Stromausfall","Plan B in Sekunden","Ruhe bewahren auf der Bühne"]},
     {t:"Checkliste vor der Show",d:"6:40",pts:["Rig, Akkus, Backups","Setlist final","Kommunikation mit der Crew"]}]}
 ];
-const ALL=[];MODULES.forEach((m,mi)=>m.lessons.forEach((l,li)=>ALL.push({id:mi+"-"+li,mi,li,...l})));
+COURSE_DEFAULT.forEach((m,mi)=>m.lessons.forEach((l,li)=>{l.id=mi+"-"+li;l.files=[];l.video=""}));
+COURSE_DEFAULT[0].lessons[1].files=["Kanalliste-Vorlage.pdf"];
+COURSE_DEFAULT[1].lessons[3].files=["Playback-Template.als","Farbschema.pdf"];
+COURSE_DEFAULT[2].lessons[1].files=["Cue-Sammlung.zip"];
+COURSE_DEFAULT[5].lessons[2].files=["Show-Checkliste.pdf"];
+let MODULES=store.get("pc-course",COURSE_DEFAULT);
+let ALL=[];
+function rebuild(){ALL=[];MODULES.forEach((m,mi)=>m.lessons.forEach((l,li)=>ALL.push({...l,files:l.files||[],mi,li})))}
+rebuild();
+const saveCourse=()=>{store.set("pc-course",MODULES);rebuild()};
 let done=new Set(store.get("eoa-done",["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1"]));
 
 const LENA_SESSIONS=[
@@ -471,6 +534,13 @@ const NEWS_DEFAULT=[
 ];
 
 let news=store.get("pc-news",NEWS_DEFAULT);
+const Q_DEFAULT=[
+  {id:"q1",user:"lena",lesson:"1-1",date:"2026-10-20",text:"Muss ich Warp bei allen Stems aktivieren oder reicht das beim Click?",answer:"Bei allen Stems, die zusammen laufen. Sonst driften sie auseinander, sobald das Tempo nicht exakt stimmt."},
+  {id:"q2",user:"jonas",lesson:"4-2",date:"2026-11-07",text:"Kann ich MIDI-Timecode und Program Changes über dasselbe Interface schicken?",answer:null},
+  {id:"q3",user:"mira",lesson:null,date:"2026-11-06",text:"Welches Audio-Interface empfiehlst du für den Einstieg mit 8 Ausgängen?",answer:null}
+];
+let questions=store.get("pc-q",Q_DEFAULT);
+const saveQ=()=>store.set("pc-q",questions);
 const saveNews=()=>store.set("pc-news",news);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -483,6 +553,7 @@ const TODAY="2026-11-08";
 const LOCK_SVG=`<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.5" fill="currentColor"/><path d="M3.3 6V4.2a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
 const DRIP_DEFAULT=[{type:"now"},{type:"days",n:7},{type:"sessions",n:2},{type:"sessions",n:3},{type:"days",n:42},{type:"manual"}];
 let drip=store.get("pc-drip",DRIP_DEFAULT);
+while(drip.length<MODULES.length)drip.push({type:"now"});
 const addDays=(iso,n)=>{const d=pd(iso);d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 function access(u,mi){
   const r=drip[mi];
@@ -535,23 +606,34 @@ const getL=id=>ALL.find(l=>l.id===id);
 function renderCourse(){
   const locked=!me().course;$("#courseLocked").hidden=!locked;$("#view-kurs .course").hidden=locked;$("#courseProgress").hidden=locked;
   $("#resume").closest(".card").hidden=locked;
-  if(!selected||!openMod(getL(selected).mi))selected=nextLesson().id;
+  if(!selected||!getL(selected)||!openMod(getL(selected).mi))selected=nextLesson().id;
+  if(viewMod!=null&&viewMod>=MODULES.length)viewMod=null;
   $("#courseProgress").innerHTML=progressHTML();
   const sel=getL(selected);if(viewMod==null)viewMod=sel.mi;
-  $("#mods").innerHTML=MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
+  $("#mods").innerHTML=MODULES.map((m,mi)=>{const dn=m.lessons.filter(l=>done.has(l.id)).length;
     const a=access(me(),mi);
-    return `<button type="button" class="modbtn ${mi===sel.mi?"here":""} ${a.ok?"":"locked"}" data-m="${mi}" aria-pressed="${mi===viewMod}"><span class="n"><span>Modul ${mi+1}</span>${a.ok?`<span class="mono">${dn}/${m.lessons.length}</span>`:LOCK_SVG}</span><b>${esc(m.title)}</b>${a.ok?`<span class="track"><i style="width:${dn/m.lessons.length*100}%"></i></span>`:`<span class="why">${esc(a.why)}</span>`}</button>`}).join("");
+    return `<button type="button" class="modbtn ${mi===sel.mi?"here":""} ${a.ok?"":"locked"}" data-m="${mi}" aria-pressed="${mi===viewMod}"><span class="n"><span>Modul ${mi+1}</span>${a.ok?`<span class="mono">${dn}/${m.lessons.length}</span>`:LOCK_SVG}</span><b>${esc(m.title)}</b>${a.ok?`<span class="track"><i style="width:${dn/(m.lessons.length||1)*100}%"></i></span>`:`<span class="why">${esc(a.why)}</span>`}</button>`}).join("");
   $("#mods").querySelectorAll(".modbtn").forEach(b=>b.onclick=()=>{viewMod=+b.dataset.m;renderCourse()});
   const vm=MODULES[viewMod],va=access(me(),viewMod);
   $("#where").innerHTML=`<h2>Modul ${viewMod+1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${!va.ok?`<span class="lock-note" style="display:inline-flex;padding:6px 10px">${LOCK_SVG}${esc(va.long)}</span>`:viewMod===sel.mi?`Du bist bei Lektion ${sel.li+1} von ${vm.lessons.length}`:`Du bist gerade in Modul ${sel.mi+1}, Lektion ${sel.li+1}`}</span>`;
-  $("#steps").innerHTML=vm.lessons.map((l,li)=>{const id=viewMod+"-"+li,act=id===selected;
+  $("#steps").innerHTML=vm.lessons.map((l,li)=>{const id=l.id,act=id===selected;
     if(!va.ok)return `<button type="button" class="step" disabled><span class="st">${LOCK_SVG}</span><span class="tx"><b>${esc(l.t)}</b><span class="mono">${l.d} min</span></span></button>`;
     return `<button type="button" class="step ${done.has(id)?"done":""} ${act?"active":""}" data-id="${id}" ${act?'aria-current="step"':""}><span class="st">${done.has(id)?"":li+1}</span><span class="tx"><b>${esc(l.t)}</b><span class="mono">${act?"Aktuell · ":""}${l.d} min</span></span></button>`}).join("");
+  if(!vm.lessons.length)$("#steps").innerHTML=`<p class="muted">In diesem Modul gibt es noch keine Lektionen.</p>`;
   $("#steps").querySelectorAll(".step:not(:disabled)").forEach(b=>b.onclick=()=>select(b.dataset.id));
   const l=getL(selected),isDone=done.has(l.id);let nxt=ALL[ALL.indexOf(l)+1];if(nxt&&!openMod(nxt.mi))nxt=null;
   $("#lessonInfo").innerHTML=`<div class="lesson-head"><span class="muted" style="font-size:13px">Modul ${l.mi+1} · ${esc(MODULES[l.mi].title)}</span><h2>${esc(l.t)}</h2></div>
     <ul class="points">${l.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
-    <div class="actions"><button class="btn ${isDone?"":"primary"}" type="button" id="toggleDone">${isDone?"✓ Erledigt":"Als erledigt markieren"}</button>${nxt?`<button class="btn" type="button" id="nextBtn">Nächste Lektion</button>`:""}</div>`;
+    <div class="actions"><button class="btn ${isDone?"":"primary"}" type="button" id="toggleDone">${isDone?"✓ Erledigt":"Als erledigt markieren"}</button>${nxt?`<button class="btn" type="button" id="nextBtn">Nächste Lektion</button>`:""}</div>
+    ${l.files.length?`<div class="files"><span class="label">Material zur Lektion</span>${l.files.map(f=>`<div class="file"><span class="ext">${esc((f.split(".").pop()||"").slice(0,4))}</span><span>${esc(f)}</span></div>`).join("")}<span class="muted" style="font-size:12px">Im echten System kannst du die Dateien hier herunterladen.</span></div>`:""}
+    <div class="qa"><span class="label">Fragen zu dieser Lektion</span>
+      ${questions.filter(q=>q.user==="lena"&&q.lesson===l.id).map(q=>`<div class="q"><span class="meta">Du am ${fmt(q.date)}</span><span>${esc(q.text)}</span>${q.answer?`<span class="a">${esc(q.answer)}</span>`:`<span class="meta">Wartet auf Antwort von deinem Coach.</span>`}</div>`).join("")}
+      <div class="field"><label class="label" for="qText">Frage an deinen Coach</label><textarea id="qText" placeholder="Was ist dir bei dieser Lektion unklar?"></textarea></div>
+      <div class="actions" style="align-items:center"><button class="btn" type="button" id="qSend">Frage senden</button><span class="ok-msg" id="qMsg" hidden></span></div>
+    </div>`;
+  $("#qSend").onclick=()=>{const t=$("#qText").value.trim();if(!t){$("#qText").focus();return}
+    questions.unshift({id:"q"+Date.now(),user:"lena",lesson:l.id,date:TODAY,text:t,answer:null});saveQ();renderAll();
+    const m=$("#qMsg");m.hidden=false;m.textContent="Gesendet. Die Antwort erscheint hier."};
   $("#toggleDone").onclick=()=>{isDone?done.delete(l.id):done.add(l.id);store.set("eoa-done",[...done]);renderAll()};
   if(nxt)$("#nextBtn").onclick=()=>select(nxt.id);
   $("#tDur").textContent=l.d;updatePlayer();
@@ -619,8 +701,71 @@ document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.datase
 /* Admin */
 let openUser=null;
 function nextBookedFor(u){const b=[...bookedFor(u)].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time))[0];return b?`${fmt(b.date)}, ${b.time} Uhr<span class="sub">${esc(b.topic)}</span>`:`<span class="muted">Kein Termin</span>`}
-let adminTab="users",editNews=null,delArm=null;
-$("#tabUsers").onclick=()=>{adminTab="users";renderAdmin()};
+let adminTab="home",editNews=null,delArm=null,editLesson=null,delLesson=null,delUserArm=false;
+$("#tabUsers").onclick=()=>{adminTab="users";openUser=null;renderAdmin()};
+$("#tabHome").onclick=()=>{adminTab="home";renderAdmin()};
+$("#tabQ").onclick=()=>{adminTab="q";renderAdmin()};
+const userName=id=>(users.find(u=>u.id===id)||{name:"Gelöschter Schüler"}).name;
+const lessonName=id=>{const l=id&&getL(id);return l?`Lektion „${l.t}“`:"Allgemeine Frage"};
+function goUser(id){adminTab="users";openUser=id;delUserArm=false;renderAdmin();window.scrollTo(0,0)}
+function renderHome(){
+  const open=questions.filter(q=>!q.answer);
+  const all=[];users.forEach(u=>bookedFor(u).forEach(b=>all.push({...b,u})));all.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+  const week=all.filter(b=>b.date>=TODAY&&b.date<=addDays(TODAY,7));
+  $("#homeStats").innerHTML=[[users.length,"Schüler"],[week.length,"Termine in 7 Tagen"],[open.length,"Offene Fragen"],[users.reduce((a,u)=>a+Math.max(0,leftFor(u)),0),"Offene 1:1s gesamt"]].map(([v,t])=>`<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("");
+  const todos=[];
+  open.forEach(q=>todos.push({kind:"Frage",text:`${esc(userName(q.user))}: ${esc(lessonName(q.lesson))}`,btn:"Beantworten",act:`q`}));
+  users.forEach(u=>{
+    if(leftFor(u)<=0)todos.push({kind:"Paket",text:`${esc(u.name)} hat alle 1:1s genutzt. Neues Paket anbieten?`,btn:"Öffnen",act:"u:"+u.id});
+    else if(!bookedFor(u).length&&u.sessions.length&&u.sessions[0].date<addDays(TODAY,-21))todos.push({kind:"Kontakt",text:`${esc(u.name)} hatte seit ${fmt(u.sessions[0].date)} kein 1:1 und hat keinen Termin gebucht.`,btn:"Öffnen",act:"u:"+u.id});
+    if(u.course&&doneSetFor(u).size===0&&u.since<=addDays(TODAY,-3))todos.push({kind:"Kurs",text:`${esc(u.name)} hat noch keine Lektion angesehen.`,btn:"Öffnen",act:"u:"+u.id});
+    MODULES.forEach((m,mi)=>{if(drip[mi].type==="manual"&&!(u.manual||[]).includes(mi)&&u.course&&mi>0&&MODULES[mi-1].lessons.length&&MODULES[mi-1].lessons.every(l=>doneSetFor(u).has(l.id)))todos.push({kind:"Freischalten",text:`${esc(u.name)} ist bereit für Modul ${mi+1} „${esc(m.title)}“.`,btn:"Öffnen",act:"u:"+u.id})});
+  });
+  $("#todoList").innerHTML=todos.length?todos.map(t=>`<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div><button class="btn small" type="button" data-act="${t.act}">${t.btn}</button></div>`).join(""):`<p class="muted">Alles erledigt.</p>`;
+  $("#todoList").querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{const a=b.dataset.act;if(a==="q"){adminTab="q";renderAdmin()}else goUser(a.slice(2))});
+  $("#upcoming").innerHTML=all.filter(b=>b.date>=TODAY).length?all.filter(b=>b.date>=TODAY).map(b=>`<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(b.date)} ${b.time}</span><span><b>${esc(b.u.name)}</b> · ${esc(b.topic)}</span></div><button class="btn small quiet" type="button" data-u="${b.u.id}">Schüler öffnen</button></div>`).join(""):`<p class="muted">Keine Termine gebucht.</p>`;
+  $("#upcoming").querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>goUser(b.dataset.u));
+  $("#tabQ").innerHTML=`Fragen${open.length?`<span class="count">${open.length}</span>`:""}`;
+}
+function renderQ(){
+  const sorted=[...questions].sort((a,b)=>(!!a.answer-!!b.answer)||b.date.localeCompare(a.date));
+  $("#adminQ").innerHTML=sorted.length?sorted.map(q=>`<article class="card" style="gap:10px"><div class="session-meta"><b>${esc(userName(q.user))}</b><span class="muted" style="font-size:13px">${fmt(q.date)} · ${esc(lessonName(q.lesson))}</span>${q.answer?'<span class="label" style="color:var(--ok)">Beantwortet</span>':'<span class="label" style="color:var(--accent-hi)">Offen</span>'}</div>
+    <p>${esc(q.text)}</p>
+    ${q.answer?`<p class="note">${esc(q.answer)}</p>`:`<div class="field"><label class="label" for="ans-${q.id}">Deine Antwort</label><textarea id="ans-${q.id}"></textarea></div><div class="actions"><button class="btn primary small" type="button" data-ans="${q.id}">Antwort senden</button></div>`}</article>`).join(""):`<p class="muted">Noch keine Fragen.</p>`;
+  $("#adminQ").querySelectorAll("[data-ans]").forEach(b=>b.onclick=()=>{const q=questions.find(x=>x.id===b.dataset.ans),t=$("#ans-"+q.id).value.trim();if(!t){$("#ans-"+q.id).focus();return}q.answer=t;saveQ();renderAll()});
+}
+function openEditor(mi,id){
+  editLesson={mi,id};const l=id?MODULES[mi].lessons.find(x=>x.id===id):null;
+  $("#leTitle").textContent=l?"Lektion bearbeiten":"Neue Lektion";
+  $("#leMod").innerHTML=MODULES.map((m,i)=>`<option value="${i}" ${i===mi?"selected":""}>${i+1}. ${esc(m.title)}</option>`).join("");
+  $("#leName").value=l?l.t:"";$("#leDur").value=l?l.d:"";$("#leVideo").value=l?(l.video||""):"";$("#lePts").value=l?l.pts.join("\n"):"";$("#leFiles").value=l?(l.files||[]).join("\n"):"";
+  $("#leErr").hidden=true;$("#lessonEditor").hidden=false;$("#courseMsg").hidden=true;window.scrollTo(0,0);$("#leName").focus();
+}
+$("#leCancel").onclick=()=>{editLesson=null;$("#lessonEditor").hidden=true};
+$("#lessonEditor").onsubmit=e=>{e.preventDefault();
+  const t=$("#leName").value.trim(),d=$("#leDur").value.trim(),err=$("#leErr"),mi=+$("#leMod").value;
+  if(!t){err.hidden=false;err.textContent="Bitte gib einen Titel ein.";return}
+  if(!/^\d{1,3}:[0-5]\d$/.test(d)){err.hidden=false;err.textContent="Bitte gib die Dauer als Minuten:Sekunden ein, z. B. 10:30.";return}
+  const lines=id=>$(id).value.split("\n").map(x=>x.trim()).filter(Boolean);
+  const data={t,d,video:$("#leVideo").value.trim(),pts:lines("#lePts"),files:lines("#leFiles")};
+  if(editLesson.id){const from=MODULES[editLesson.mi].lessons,ix=from.findIndex(x=>x.id===editLesson.id),obj={...from[ix],...data};
+    if(mi===editLesson.mi)from[ix]=obj;else{from.splice(ix,1);MODULES[mi].lessons.push(obj)}}
+  else MODULES[mi].lessons.push({id:"L"+Date.now(),...data});
+  saveCourse();editLesson=null;$("#lessonEditor").hidden=true;const m=$("#courseMsg");m.hidden=false;m.textContent="Gespeichert. Deine Schüler sehen die Änderung sofort.";renderAll()};
+$("#addModule").onclick=()=>{MODULES.push({title:"Neues Modul",lessons:[]});drip.push({type:"manual"});store.set("pc-drip",drip);saveCourse();renderAll();
+  const ins=document.querySelectorAll("[data-mt]");const last=ins[ins.length-1];if(last){last.focus();last.select()}};
+function renderCourseAdmin(){
+  $("#courseAdmin").innerHTML=MODULES.map((m,mi)=>`<div class="mod-admin"><div class="mod-admin-head"><span class="label" style="min-width:64px">Modul ${mi+1}</span><input data-mt="${mi}" value="${esc(m.title)}" aria-label="Titel von Modul ${mi+1}"><button class="btn small" type="button" data-addl="${mi}">Lektion hinzufügen</button></div>
+    ${m.lessons.length?m.lessons.map((l,li)=>`<div class="les-row"><span class="num">${li+1}</span><span>${esc(l.t)}</span><span class="info">${l.d} min${(l.files||[]).length?` · ${(l.files||[]).length} Datei${(l.files||[]).length>1?"en":""}`:""}</span>
+      <div class="actions">${delLesson===l.id?`<button class="btn small" type="button" data-dly="${mi}|${l.id}">Ja, löschen</button><button class="btn small quiet" type="button" data-dln>Behalten</button>`:`<button class="btn small" type="button" data-el="${mi}|${l.id}">Bearbeiten</button><button class="btn small quiet" type="button" data-dl="${l.id}">Löschen</button>`}</div></div>`).join(""):`<p class="muted" style="font-size:14px">Noch keine Lektionen.</p>`}</div>`).join("");
+  const C=$("#courseAdmin");
+  C.querySelectorAll("[data-mt]").forEach(i=>i.onchange=()=>{const v=i.value.trim();if(!v)return;MODULES[+i.dataset.mt].title=v;saveCourse();renderAll()});
+  C.querySelectorAll("[data-addl]").forEach(b=>b.onclick=()=>openEditor(+b.dataset.addl,null));
+  C.querySelectorAll("[data-el]").forEach(b=>b.onclick=()=>{const [mi,id]=b.dataset.el.split("|");openEditor(+mi,id)});
+  C.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>{delLesson=b.dataset.dl;renderCourseAdmin()});
+  C.querySelectorAll("[data-dln]").forEach(b=>b.onclick=()=>{delLesson=null;renderCourseAdmin()});
+  C.querySelectorAll("[data-dly]").forEach(b=>b.onclick=()=>{const [mi,id]=b.dataset.dly.split("|");MODULES[+mi].lessons=MODULES[+mi].lessons.filter(x=>x.id!==id);done.delete(id);store.set("eoa-done",[...done]);delLesson=null;saveCourse();renderAll()});
+}
 $("#tabNews").onclick=()=>{adminTab="news";renderAdmin()};
 $("#tabCourse").onclick=()=>{adminTab="course";renderAdmin()};
 function renderDrip(){
@@ -654,9 +799,9 @@ $("#newsForm").onsubmit=e=>{e.preventDefault();
 $("#nwCancel").onclick=()=>{editNews=null;$("#newsForm").reset();renderNewsAdmin()};
 function renderAdmin(){
   $("#tabUsers").setAttribute("aria-selected",adminTab==="users");$("#tabNews").setAttribute("aria-selected",adminTab==="news");
-  $("#tabCourse").setAttribute("aria-selected",adminTab==="course");
-  $("#adminNews").hidden=adminTab!=="news";$("#adminCourse").hidden=adminTab!=="course";
-  renderNewsAdmin();renderDrip();
+  $("#tabCourse").setAttribute("aria-selected",adminTab==="course");$("#tabHome").setAttribute("aria-selected",adminTab==="home");$("#tabQ").setAttribute("aria-selected",adminTab==="q");
+  $("#adminNews").hidden=adminTab!=="news";$("#adminCourse").hidden=adminTab!=="course";$("#adminHome").hidden=adminTab!=="home";$("#adminQ").hidden=adminTab!=="q";
+  renderNewsAdmin();renderDrip();renderHome();renderQ();renderCourseAdmin();
   if(adminTab!=="users"){$("#adminList").hidden=true;$("#adminDetail").hidden=true;return}
   $("#adminList").hidden=!!openUser;$("#adminDetail").hidden=!openUser;
   if(!openUser){
@@ -665,10 +810,11 @@ function renderAdmin(){
         <td><span class="pill ${l<=0?"zero":""}">${l} offen</span><span class="sub">${u.sessions.length} von ${u.package} genutzt</span></td>
         <td>${u.course?`<div class="pct-cell"><div class="track"><i style="width:${p}%"></i></div><span class="mono" style="font-size:12.5px">${p}%</span></div>`:`<span class="muted">Kein Zugang</span>`}</td>
         <td>${nextBookedFor(u)}</td></tr>`}).join("");
-    $("#userRows").querySelectorAll("tr").forEach(r=>{const go=()=>{openUser=r.dataset.u;renderAdmin();window.scrollTo(0,0)};r.onclick=go;r.onkeydown=e=>{if(e.key==="Enter")go()}});
+    $("#userRows").querySelectorAll("tr").forEach(r=>{const go=()=>goUser(r.dataset.u);r.onclick=go;r.onkeydown=e=>{if(e.key==="Enter")go()}});
     return;
   }
-  const u=users.find(x=>x.id===openUser),ds=doneSetFor(u),p=Math.round(ds.size/ALL.length*100),bk=bookedFor(u);
+  const u=users.find(x=>x.id===openUser);if(!u){openUser=null;return renderAdmin()}
+  const ds=doneSetFor(u),p=Math.round(ds.size/ALL.length*100),bk=bookedFor(u);
   $("#adminDetail").innerHTML=`<button class="btn quiet small back" type="button" id="backBtn">← Alle Schüler</button>
     <div class="intro"><h1>${esc(u.name)}</h1><p class="muted">${esc(u.email)} · dabei seit ${fmt(u.since)}${u.since.slice(0,4)}</p></div>
     <div class="two">
@@ -679,7 +825,7 @@ function renderAdmin(){
       <div class="card"><span class="label">Videokurs</span>
         <label class="inline-check" for="courseAcc"><input class="check" id="courseAcc" type="checkbox" ${u.course?"checked":""} style="margin:0">Zugang freigeschaltet</label>
         ${u.course?`<div class="progress"><div class="progress-top"><span class="muted">${ds.size} von ${ALL.length} Lektionen</span><b class="mono">${p}%</b></div><div class="track"><i style="width:${p}%"></i></div></div>
-        <div style="display:flex;flex-direction:column;gap:8px">${MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>ds.has(mi+"-"+li)).length;return `<div class="mod-line"><span>${mi+1}. ${esc(m.title)}</span><div class="track"><i style="width:${dn/m.lessons.length*100}%"></i></div><span class="mono muted" style="font-size:12px;text-align:right">${dn}/${m.lessons.length}</span></div>`}).join("")}</div>`:`<p class="muted">Kein Zugang zum Videokurs.</p>`}
+        <div style="display:flex;flex-direction:column;gap:8px">${MODULES.map((m,mi)=>{const dn=m.lessons.filter(l=>ds.has(l.id)).length;return `<div class="mod-line"><span>${mi+1}. ${esc(m.title)}</span><div class="track"><i style="width:${dn/(m.lessons.length||1)*100}%"></i></div><span class="mono muted" style="font-size:12px;text-align:right">${dn}/${m.lessons.length}</span></div>`}).join("")}</div>`:`<p class="muted">Kein Zugang zum Videokurs.</p>`}
       </div>
     </div>
     ${u.course?`<div class="card"><span class="label">Freischaltung der Module</span>
@@ -700,8 +846,25 @@ function renderAdmin(){
     </form>
     <span class="label group-label">Sessions</span>
     <div style="display:flex;flex-direction:column;gap:16px">${bk.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${s.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(s.topic)}</h3></article>`).join("")}
-    ${u.sessions.length?u.sessions.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b></div><h3>${esc(s.topic)}</h3>${s.notes?`<p class="note">${esc(s.notes)}</p>`:""}${s.hw.length?`<ul class="points">${s.hw.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>`:""}</article>`).join(""):`<p class="muted">Noch keine Sessions.</p>`}</div>`;
-  $("#backBtn").onclick=()=>{openUser=null;renderAdmin()};
+    ${u.sessions.length?u.sessions.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b></div><h3>${esc(s.topic)}</h3>${s.notes?`<p class="note">${esc(s.notes)}</p>`:""}${s.hw.length?`<ul class="points">${s.hw.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>`:""}</article>`).join(""):`<p class="muted">Noch keine Sessions.</p>`}</div>
+    <form class="card" id="editUser" novalidate><h2>Daten bearbeiten</h2>
+      <div class="form-grid"><div class="field"><label class="label" for="euName">Name</label><input id="euName" type="text" value="${esc(u.name)}"></div><div class="field"><label class="label" for="euEmail">E-Mail</label><input id="euEmail" type="email" value="${esc(u.email)}"></div></div>
+      <p class="err" id="euErr" hidden></p><div class="actions" style="align-items:center"><button class="btn" type="submit">Speichern</button><span class="ok-msg" id="euMsg" hidden></span></div></form>
+    <div class="card danger"><h2>Schüler löschen</h2>
+      ${u.id==="lena"?`<p class="muted" style="font-size:14px">Lena ist im Prototyp dein Demo-Zugang und kann nicht gelöscht werden. Bei allen anderen Schülern geht es hier.</p>`:
+      delUserArm?`<p style="font-size:14px">${esc(u.name)} verliert den Zugang. Sessions, Notizen, Fragen und Fortschritt werden endgültig gelöscht.</p><div class="actions"><button class="btn danger-btn" type="button" id="delUserYes">Endgültig löschen</button><button class="btn quiet" type="button" id="delUserNo">Abbrechen</button></div>`:
+      `<p class="muted" style="font-size:14px">Entfernt den Zugang und alle Daten dieses Schülers.</p><div><button class="btn danger-btn" type="button" id="delUser">Schüler löschen</button></div>`}
+    </div>`;
+  $("#editUser").onsubmit=e=>{e.preventDefault();const n=$("#euName").value.trim(),em=$("#euEmail").value.trim(),err=$("#euErr");
+    if(!n){err.hidden=false;err.textContent="Bitte gib einen Namen ein.";return}
+    if(!/^\S+@\S+\.\S+$/.test(em)){err.hidden=false;err.textContent="Bitte gib eine gültige E-Mail-Adresse ein.";return}
+    if(users.some(x=>x!==u&&x.email.toLowerCase()===em.toLowerCase())){err.hidden=false;err.textContent="Diese E-Mail-Adresse gehört schon zu einem anderen Schüler.";return}
+    u.name=n;u.email=em;saveUsers();renderAll();const m=$("#euMsg");m.hidden=false;m.textContent="Gespeichert."};
+  if($("#delUser"))$("#delUser").onclick=()=>{delUserArm=true;renderAdmin()};
+  if($("#delUserNo"))$("#delUserNo").onclick=()=>{delUserArm=false;renderAdmin()};
+  if($("#delUserYes"))$("#delUserYes").onclick=()=>{const name=u.name;users=users.filter(x=>x!==u);questions=questions.filter(q=>q.user!==u.id);saveUsers();saveQ();openUser=null;delUserArm=false;renderAll();
+    const m=$("#nuMsg");m.hidden=false;m.textContent=`${name} wurde gelöscht.`};
+  $("#backBtn").onclick=()=>{openUser=null;delUserArm=false;renderAdmin()};
   $("#adminDetail").querySelectorAll("[data-unlock]").forEach(b=>b.onclick=()=>{u.manual=[...(u.manual||[]),+b.dataset.unlock];saveUsers();renderAll()});
   $("#adminDetail").querySelectorAll("[data-relock]").forEach(b=>b.onclick=()=>{u.manual=(u.manual||[]).filter(x=>x!==+b.dataset.relock);saveUsers();renderAll()});
   const setPack=v=>{u.package=Math.max(u.sessions.length+bk.length,Math.min(50,v));saveUsers();renderAll()};
