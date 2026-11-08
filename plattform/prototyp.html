@@ -218,6 +218,12 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
 .mod-line{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:12px;align-items:center;font-size:14px}
 .mod-line .track{height:6px}
 .back{align-self:flex-start}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.news-admin{display:flex;flex-direction:column;gap:8px}
+.news-admin p{color:var(--muted);max-width:70ch;white-space:pre-line}
 </style>
 
 <div id="login" class="login-screen gutter" hidden>
@@ -326,9 +332,26 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
 
   <!-- Admin -->
   <section class="view" id="view-admin" hidden>
+    <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabUsers" aria-selected="true">Schüler</button>
+      <button type="button" role="tab" id="tabNews" aria-selected="false">News</button>
+    </div>
+    <div id="adminNews" style="display:flex;flex-direction:column;gap:20px" hidden>
+      <form class="card" id="newsForm" novalidate>
+        <h2 id="newsFormTitle">News schreiben</h2>
+        <div class="field"><label class="label" for="nwTitle">Überschrift</label><input id="nwTitle" type="text" placeholder="z. B. Neue Lektion ist online"></div>
+        <div class="field"><label class="label" for="nwText">Text</label><textarea id="nwText" placeholder="Was gibt es Neues?" style="min-height:120px"></textarea></div>
+        <p class="err" id="nwErr" hidden></p>
+        <div class="actions"><button class="btn primary" type="submit" id="nwSubmit">Veröffentlichen</button><button class="btn quiet" type="button" id="nwCancel" hidden>Abbrechen</button></div>
+      </form>
+      <p class="ok-msg" id="nwMsg" hidden></p>
+      <span class="label group-label">Veröffentlicht</span>
+      <div id="newsAdminList" style="display:flex;flex-direction:column;gap:16px"></div>
+    </div>
     <div id="adminList" style="display:flex;flex-direction:column;gap:20px">
       <div class="admin-head">
-        <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Schüler</h1></div>
+        <h2>Alle Schüler</h2>
         <button class="btn primary" type="button" id="newUserBtn">Schüler anlegen</button>
       </div>
       <form class="card" id="newUserForm" hidden novalidate>
@@ -416,12 +439,14 @@ let booked=store.get("pc-booked",[]);
 let pickDay=null,pickTime=null,cancelArm=null;
 let hw=store.get("eoa-hw",{"2026-10-17-0":true,"2026-10-17-1":true,"2026-10-03-0":true,"2026-10-03-1":true,"2026-10-31-2":true});
 
-const NEWS=[
+const NEWS_DEFAULT=[
   {date:"2026-11-06",title:"Neue Lektion: Licht-Sync über MIDI/Timecode",text:"Im Modul Live-Steuerung zeige ich dir, wie dein Rig das Lichtpult mitsteuert und worauf du bei der Probe mit dem Lichttechniker achten solltest."},
   {date:"2026-10-28",title:"Tipp: Energiesparmodus aus",text:"Schalte Ruhezustand, Bildschirmschoner und automatische Updates ab, bevor du auf die Bühne gehst. Steht jetzt auch in der Show-Checkliste."},
   {date:"2026-10-09",title:"Offene Q&A-Runde im November",text:"Einmal im Monat beantworte ich in einem Gruppen-Call eure Fragen. Termin und Link kommen hier als News."}
 ];
 
+let news=store.get("pc-news",NEWS_DEFAULT);
+const saveNews=()=>store.set("pc-news",news);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const WD=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],MON=["JAN","FEB","MÄR","APR","MAI","JUN","JUL","AUG","SEP","OKT","NOV","DEZ"];
@@ -455,8 +480,8 @@ function renderDash(){
   const last=me().sessions[0];
   const items=(last?last.hw:[]).map((h,i)=>({h,k:last.date+"-"+i})).filter(x=>!hw[x.k]);
   $("#dashHw").innerHTML=items.length?items.map(x=>taskHTML(x.h,x.k,"d")).join(""):`<p class="muted">Alles erledigt.</p>`;
-  const nw=NEWS[0];
-  $("#dashNews").innerHTML=`<span class="label">Neu · ${fmt(nw.date)}</span><b>${esc(nw.title)}</b>`;
+  const nw=news[0];$("#dashNews").hidden=!nw;
+  if(nw)$("#dashNews").innerHTML=`<span class="label">Neu · ${fmt(nw.date)}</span><b>${esc(nw.title)}</b>`;
 }
 
 /* Kurs */
@@ -539,7 +564,7 @@ $("#bookBtn").onclick=()=>{if(!pickDay||!pickTime||left()<=0)return;
 
 /* News */
 function renderNews(){
-  $("#newsList").innerHTML=NEWS.map(n=>`<article class="card news"><span class="label">${fmt(n.date)}</span><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`).join("");
+  $("#newsList").innerHTML=news.length?news.map(n=>`<article class="card news"><span class="label">${fmt(n.date)}</span><h3>${esc(n.title)}</h3><p style="white-space:pre-line">${esc(n.text)}</p></article>`).join(""):`<p class="muted">Noch keine News.</p>`;
 }
 
 document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.hw;if(!k)return;hw[k]=e.target.checked;store.set("eoa-hw",hw);setTimeout(renderAll,250)});
@@ -547,7 +572,34 @@ document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.datase
 /* Admin */
 let openUser=null;
 function nextBookedFor(u){const b=[...bookedFor(u)].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time))[0];return b?`${fmt(b.date)}, ${b.time} Uhr<span class="sub">${esc(b.topic)}</span>`:`<span class="muted">Kein Termin</span>`}
+let adminTab="users",editNews=null,delArm=null;
+$("#tabUsers").onclick=()=>{adminTab="users";renderAdmin()};
+$("#tabNews").onclick=()=>{adminTab="news";renderAdmin()};
+function renderNewsAdmin(){
+  $("#newsFormTitle").textContent=editNews!=null?"News bearbeiten":"News schreiben";
+  $("#nwSubmit").textContent=editNews!=null?"Änderungen speichern":"Veröffentlichen";
+  $("#nwCancel").hidden=editNews==null;
+  $("#newsAdminList").innerHTML=news.length?news.map((n,i)=>`<article class="card news-admin"><span class="label">${fmt(n.date)}${n.date.slice(0,4)}</span><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p>
+    <div class="actions" style="align-items:center">${delArm===i?`<span style="font-size:14px">Wirklich löschen?</span><button class="btn small" type="button" data-del-yes="${i}">Ja, löschen</button><button class="btn small quiet" type="button" data-del-no>Behalten</button>`:`<button class="btn small" type="button" data-edit="${i}">Bearbeiten</button><button class="btn small quiet" type="button" data-del="${i}">Löschen</button>`}</div></article>`).join(""):`<p class="muted">Noch keine News veröffentlicht.</p>`;
+  const L=$("#newsAdminList");
+  L.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{editNews=+b.dataset.edit;const n=news[editNews];$("#nwTitle").value=n.title;$("#nwText").value=n.text;$("#nwMsg").hidden=true;renderNewsAdmin();window.scrollTo(0,0);$("#nwTitle").focus()});
+  L.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{delArm=+b.dataset.del;renderNewsAdmin()});
+  L.querySelectorAll("[data-del-no]").forEach(b=>b.onclick=()=>{delArm=null;renderNewsAdmin()});
+  L.querySelectorAll("[data-del-yes]").forEach(b=>b.onclick=()=>{const i=+b.dataset.delYes;news.splice(i,1);if(editNews===i){editNews=null;$("#newsForm").reset()}else if(editNews>i)editNews--;delArm=null;saveNews();const m=$("#nwMsg");m.hidden=false;m.textContent="News gelöscht.";renderAll()});
+}
+$("#newsForm").onsubmit=e=>{e.preventDefault();
+  const title=$("#nwTitle").value.trim(),text=$("#nwText").value.trim(),err=$("#nwErr");
+  if(!title||!text){err.hidden=false;err.textContent="Bitte Überschrift und Text ausfüllen.";return}
+  err.hidden=true;const m=$("#nwMsg");m.hidden=false;
+  if(editNews!=null){news[editNews]={...news[editNews],title,text};m.textContent="Änderungen gespeichert."}
+  else{news.unshift({date:"2026-11-08",title,text});m.textContent="Veröffentlicht. Deine Schüler sehen die News jetzt unter News und auf der Übersicht."}
+  editNews=null;$("#newsForm").reset();saveNews();renderAll()};
+$("#nwCancel").onclick=()=>{editNews=null;$("#newsForm").reset();renderNewsAdmin()};
 function renderAdmin(){
+  $("#tabUsers").setAttribute("aria-selected",adminTab==="users");$("#tabNews").setAttribute("aria-selected",adminTab==="news");
+  $("#adminNews").hidden=adminTab!=="news";
+  renderNewsAdmin();
+  if(adminTab==="news"){$("#adminList").hidden=true;$("#adminDetail").hidden=true;return}
   $("#adminList").hidden=!!openUser;$("#adminDetail").hidden=!openUser;
   if(!openUser){
     $("#userRows").innerHTML=users.map(u=>{const p=Math.round(doneSetFor(u).size/ALL.length*100),l=leftFor(u);
