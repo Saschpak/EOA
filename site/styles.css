@@ -330,3 +330,9 @@ a{color:var(--accent-hi)}
 .legal h2{font-size:17px;margin-top:16px}
 .legal p,.legal li{color:var(--fg);max-width:68ch}
 .legal ul{margin:0;padding-left:20px}
+.price-card{gap:10px}
+.price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.price b{font-size:40px;font-weight:800;font-stretch:80%;line-height:1.1;letter-spacing:-.01em}
+.incl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.incl li{display:flex;gap:8px}
+.incl li::before{content:"✓";color:var(--accent-hi);font-weight:700}

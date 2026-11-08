@@ -18,6 +18,15 @@ window.CONFIG = {
   earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 5 bekommen
   earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
+  // Preis und Paket der ersten Runde (Startseite und Wartelisten-Formular)
+  priceTotal: "960 €",
+  priceInstallments: "4 × 240 € monatlich",
+  packageItems: [
+    "4 × 1:1-Session, verteilt über 4 Monate",
+    "12 Monate Zugang zum Videokurs",
+    "Fragen, Notizen und Aufgaben über die Plattform"
+  ],
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };
