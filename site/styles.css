@@ -282,3 +282,8 @@ a{color:var(--accent-hi)}
 .file-row{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px;padding:4px 0}
 .notice{background:var(--accent-soft);border-radius:var(--r);padding:12px 14px;font-size:14px}
 .empty{color:var(--muted);font-size:14px}
+@media (max-width:640px){
+  .bar-inner{flex-wrap:wrap;row-gap:6px}
+  .nav{order:3;flex-basis:100%}
+  #logout{margin-left:auto}
+}
