@@ -20,6 +20,8 @@ create table public.coach_emails (
   email text primary key
 );
 
+insert into public.coach_emails (email) values ('info@saschpak.de');
+
 create or replace function public.is_coach()
 returns boolean
 language sql
@@ -55,6 +57,16 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Profile für Nutzer, die schon vor dieser Migration existierten
+insert into public.profiles (id, email, full_name, role)
+select u.id,
+       coalesce(u.email, ''),
+       coalesce(u.raw_user_meta_data ->> 'full_name', ''),
+       case when exists (select 1 from public.coach_emails c where lower(c.email) = lower(u.email))
+            then 'coach' else 'student' end
+from auth.users u
+on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------
 -- Kurs
