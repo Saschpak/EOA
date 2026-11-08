@@ -323,3 +323,16 @@ a{color:var(--accent-hi)}
 .eb-tag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:2px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
 .eb.off .eb-tag{background:var(--track);color:var(--muted)}
 .wl-card .eb{border-top:0;padding-top:0}
+
+/* Rechtliche Seiten */
+.legal{max-width:720px;margin:0 auto;padding-block:32px 64px;display:flex;flex-direction:column;gap:12px}
+.legal h1{margin-bottom:8px}
+.legal h2{font-size:17px;margin-top:16px}
+.legal p,.legal li{color:var(--fg);max-width:68ch}
+.legal ul{margin:0;padding-left:20px}
+.price-card{gap:10px}
+.price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.price b{font-size:40px;font-weight:800;font-stretch:80%;line-height:1.1;letter-spacing:-.01em}
+.incl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.incl li{display:flex;gap:8px}
+.incl li::before{content:"✓";color:var(--accent-hi);font-weight:700}

@@ -181,6 +181,8 @@ function renderLanding() {
       <div class="field"><label class="label" for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       <div class="field"><label class="label" for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000" placeholder="z. B. Keys in einer Band, wir wollen mit Click und Playback spielen"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      ${CONFIG.priceTotal ? `<label class="inline-check consent" for="wlPrice"><input class="check" id="wlPrice" name="price" type="checkbox" style="margin:0">
+        <span>Der Preis von ${esc(CONFIG.priceTotal)}${CONFIG.priceInstallments ? " (oder " + esc(CONFIG.priceInstallments) + ")" : ""} passt für mich.</span></label>` : ""}
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
         <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Ich kann das jederzeit per Mail widerrufen.${CONFIG.datenschutzUrl ? ` Mehr in der <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutzerklärung</a>.` : ""}</span></label>
       <button class="btn primary" type="submit">Platz sichern</button>
@@ -194,6 +196,9 @@ function renderLanding() {
         <h1 class="hero">Playback, Click und Cues, die auf der Bühne einfach laufen.</h1>
         <p class="lead">1:1-Coaching und Videokurs für Bands und Artists, die mit Ableton Live und AbleSet live spielen. Vom ersten Rig bis zur Show.</p>
         <div class="card" style="gap:10px"><span class="label">Erste Runde</span>${spotsMeter()}${count}${earlyBirdLine()}<p class="muted" style="font-size:14px">${esc(CONFIG.launchText)} Die Plätze vergebe ich in der Reihenfolge der Warteliste.</p></div>
+        ${CONFIG.priceTotal ? `<div class="card price-card"><span class="label">Dein Paket</span>
+          <div class="price"><b>${esc(CONFIG.priceTotal)}</b>${CONFIG.priceInstallments ? `<span class="muted">oder ${esc(CONFIG.priceInstallments)}</span>` : ""}</div>
+          <ul class="incl">${(CONFIG.packageItems || []).map(i => `<li>${esc(i)}</li>`).join("")}</ul></div>` : ""}
         <ul class="perks">
           <li><b>1:1-Sessions</b><span>Wir bauen dein Rig gemeinsam auf und lösen genau deine Probleme.</span></li>
           <li><b>Videokurs</b><span>Von Stems und Click über In-Ear-Routing bis AbleSet und Showtag, Schritt für Schritt.</span></li>
@@ -678,6 +683,7 @@ const F = {
     const name = f.name.value.trim(), email = f.email.value.trim();
     if (!name) return toast("Bitte gib deinen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
+    if (f.price && !f.price.checked) return toast("Bitte bestätige, dass der Preis für dich passt. Die Warteliste ist für alle, die wirklich starten möchten.", true);
     if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
     const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim() }));
     if (!r) return;
