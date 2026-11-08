@@ -15,6 +15,8 @@ window.CONFIG = {
   waitlistSpots: 10,          // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
   launchText: "Die erste Runde startet im Dezember.",
+  earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 5 bekommen
+  earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
