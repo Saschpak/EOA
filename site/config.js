@@ -11,6 +11,11 @@ window.CONFIG = {
   impressumUrl: "",
   datenschutzUrl: "",
 
+  // Warteliste auf der Startseite
+  waitlistSpots: 10,          // Plätze in der ersten Runde
+  waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
+  launchText: "Die erste Runde startet im Dezember.",
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };
