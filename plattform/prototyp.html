@@ -1,0 +1,621 @@
+<title>EOA Coaching Portal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Ableton-artige Arbeitsfläche. Transportleiste oben, Hauptansicht darunter, Kurs als Session-View-Raster mit Detailbereich */
+:root{
+  color-scheme: dark;
+  --bg:#17191d; --panel:#212429; --panel-2:#2a2e35; --line:#373c45; --line-2:#454b56;
+  --fg:#dde1e7; --muted:#8b93a0; --faint:#5d6470;
+  --accent:#3d9bff; --accent-hi:#8cc6ff; --accent-ink:#06111f; --accent-soft:rgba(61,155,255,.14);
+  --ok:#6fd28e; --warn:#f2b84b;
+  --c1:#3d9bff; --c2:#5fc3f0; --c3:#6f8cff; --c4:#4fd1c5; --c5:#9aa8ff; --c6:#2f6fd8;
+  --clip-ink:#0a1322;
+  --seg-off:#2c3138;
+  --font-ui:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:3px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --bg:#c9cdd3; --panel:#dde0e4; --panel-2:#eceef1; --line:#b3b9c1; --line-2:#9aa1ab;
+    --fg:#171a1f; --muted:#4f5763; --faint:#7a828e;
+    --accent:#1d6fe0; --accent-hi:#0f4fae; --accent-ink:#ffffff; --accent-soft:rgba(29,111,224,.12);
+    --ok:#1f8f4a; --warn:#a86a00;
+    --seg-off:#c3c8cf;
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#c9cdd3; --panel:#dde0e4; --panel-2:#eceef1; --line:#b3b9c1; --line-2:#9aa1ab;
+  --fg:#171a1f; --muted:#4f5763; --faint:#7a828e;
+  --accent:#1d6fe0; --accent-hi:#0f4fae; --accent-ink:#ffffff; --accent-soft:rgba(29,111,224,.12);
+  --ok:#1f8f4a; --warn:#a86a00;
+  --seg-off:#c3c8cf;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-stretch:85%}
+h1,h2,h3{margin:0;text-wrap:balance;font-stretch:90%}
+h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:17px;font-weight:650}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Transportleiste */
+.transport{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.transport-inner{display:flex;align-items:center;gap:12px;padding-block:8px;max-width:1240px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-stretch:75%;letter-spacing:.04em;font-size:15px;white-space:nowrap}
+.logo-mark{display:grid;grid-template-columns:repeat(4,4px);gap:2px;height:16px;align-items:end}
+.logo-mark i{display:block;background:var(--accent);border-radius:1px}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav a{display:block;padding:6px 11px;border-radius:var(--r);text-decoration:none;color:var(--muted);font-weight:550;font-size:13px;white-space:nowrap;border:1px solid transparent}
+.nav a:hover{color:var(--fg);background:var(--panel-2)}
+.nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink);font-weight:650}
+.lcd{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px 8px;white-space:nowrap}
+.lcd b{font-family:var(--font-mono);font-size:13px;color:var(--accent-hi);font-weight:600}
+.mini-meter{display:flex;gap:2px}
+.mini-meter i{width:4px;height:12px;background:var(--seg-off);border-radius:1px}
+.mini-meter i.on{background:var(--accent)}
+.user{display:flex;align-items:center;gap:8px}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line-2);display:grid;place-items:center;font-size:11px;font-weight:700}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:var(--panel-2);border-radius:var(--r);padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;color:var(--fg);white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.small{padding:4px 9px;font-size:12px}
+.proto-chip{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn);border:1px solid currentColor;border-radius:2px;padding:1px 5px;white-space:nowrap}
+
+main{max-width:1240px;margin:0 auto;padding-block:24px 48px}
+.view{display:flex;flex-direction:column;gap:20px}
+.view-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.view-head p{color:var(--muted);max-width:60ch}
+
+/* Panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line)}
+.panel-body{padding:14px}
+.grid{display:grid;gap:16px}
+.dash-grid{grid-template-columns:repeat(12,1fr)}
+.span-8{grid-column:span 8}.span-4{grid-column:span 4}.span-6{grid-column:span 6}
+@media (max-width:860px){.dash-grid>*{grid-column:1/-1}}
+
+/* Weiter im Kurs */
+.resume{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center}
+@media (max-width:560px){.resume{grid-template-columns:1fr}}
+.thumb{aspect-ratio:16/9;max-width:100%;border-radius:var(--r);background:var(--bg);border:1px solid var(--line);position:relative;overflow:hidden}
+.thumb canvas{width:100%;height:100%;display:block}
+.thumb .play{position:absolute;inset:0;margin:auto;width:40px;height:40px;border-radius:50%;background:var(--accent);display:grid;place-items:center;border:0;cursor:pointer}
+.tri{width:0;height:0;border-left:12px solid var(--accent-ink);border-top:8px solid transparent;border-bottom:8px solid transparent;margin-left:3px}
+.meta-row{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+
+/* Meter */
+.hmeter{height:8px;background:var(--seg-off);border-radius:1px;overflow:hidden}
+.hmeter i{display:block;height:100%;background:var(--accent)}
+.big-pct{font-family:var(--font-mono);font-size:40px;font-weight:600;line-height:1;color:var(--accent-hi);font-variant-numeric:tabular-nums}
+
+/* Listen */
+.list{display:flex;flex-direction:column}
+.list>*+*{border-top:1px solid var(--line)}
+.row{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.row:first-child{padding-top:0}.row:last-child{padding-bottom:0}
+.check{appearance:none;width:16px;height:16px;border:1px solid var(--line-2);border-radius:2px;background:var(--bg);flex:none;margin-top:2px;cursor:pointer;display:grid;place-items:center}
+.check:checked{background:var(--accent);border-color:var(--accent)}
+.check:checked::after{content:"";width:8px;height:4px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.row label{cursor:pointer}
+.done-text{color:var(--faint);text-decoration:line-through}
+.tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:var(--accent-soft);color:var(--accent-hi);white-space:nowrap}
+.tag.ok{background:transparent;color:var(--ok);border:1px solid currentColor}
+.tag.warn{background:transparent;color:var(--warn);border:1px solid currentColor}
+
+/* Nächstes 1:1 */
+.next-date{display:flex;gap:14px;align-items:center}
+.cal{width:56px;flex:none;border:1px solid var(--line-2);border-radius:var(--r);text-align:center;overflow:hidden;background:var(--bg)}
+.cal span{display:block;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 0}
+.cal b{display:block;font-family:var(--font-mono);font-size:22px;padding:4px 0}
+
+/* Session View (Kurs) */
+.session-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.session{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));min-width:900px}
+.track{border-right:1px solid var(--line);display:flex;flex-direction:column}
+.track:last-child{border-right:0}
+.track-head{padding:8px 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px;background:var(--panel-2)}
+.track-head .name{font-weight:650;font-size:12.5px;font-stretch:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.track-head .name::before{content:"";width:8px;height:8px;border-radius:1px;background:var(--tc);flex:none}
+.slots{display:flex;flex-direction:column;gap:3px;padding:6px}
+.clip{display:flex;align-items:center;gap:7px;min-height:30px;padding:5px 8px;border-radius:2px;border:1px solid var(--line-2);background:var(--bg);cursor:pointer;text-align:left;font-size:12px;width:100%}
+.clip .tri-s{width:0;height:0;border-left:7px solid var(--faint);border-top:5px solid transparent;border-bottom:5px solid transparent;flex:none}
+.clip .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clip .d{font-family:var(--font-mono);font-size:10.5px;color:var(--faint)}
+.clip.done{background:var(--tc);border-color:var(--tc);color:var(--clip-ink);font-weight:600}
+.clip.done .tri-s{border-left-color:var(--clip-ink)}
+.clip.done .d{color:var(--clip-ink);opacity:.75}
+.clip.next{border-color:var(--tc);box-shadow:inset 0 0 0 1px var(--tc)}
+.clip.next .tri-s{border-left-color:var(--tc);animation:blink 1s steps(2,start) infinite}
+.clip.selected{outline:2px solid var(--fg);outline-offset:1px}
+.clip.empty{cursor:default;border-style:dashed;border-color:var(--line);background:transparent}
+@keyframes blink{to{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.clip.next .tri-s{animation:none}}
+
+/* Detailansicht / Player */
+.detail{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0}
+@media (max-width:860px){.detail{grid-template-columns:1fr}}
+.player{border-right:1px solid var(--line)}
+@media (max-width:860px){.player{border-right:0;border-bottom:1px solid var(--line)}}
+.screen{aspect-ratio:16/9;max-width:100%;background:#0b0d10;position:relative;overflow:hidden}
+.screen canvas{width:100%;height:100%;display:block}
+.screen .placeholder{position:absolute;left:12px;bottom:10px;font-size:11px;color:#8b93a0;letter-spacing:.06em;text-transform:uppercase}
+.controls{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.pbtn{width:32px;height:32px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--panel-2);display:grid;place-items:center;cursor:pointer;flex:none}
+.pbtn .tri{border-left-color:var(--fg);border-left-width:10px;border-top-width:6px;border-bottom-width:6px;margin-left:2px}
+.pbtn.on{background:var(--accent);border-color:var(--accent)}
+.pbtn.on .pause{display:flex;gap:3px}
+.pause i{width:3px;height:11px;background:var(--accent-ink)}
+.scrub{flex:1;height:6px;background:var(--seg-off);border-radius:1px;position:relative;cursor:pointer}
+.scrub i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:1px}
+.lesson-info{padding:14px;display:flex;flex-direction:column;gap:12px}
+.lesson-info ul{margin:0;padding-left:18px;color:var(--muted)}
+.lesson-info li+li{margin-top:4px}
+
+/* Fortschritt */
+.meters{display:flex;gap:18px;justify-content:space-around;flex-wrap:wrap;padding-block:6px}
+.vmeter{display:flex;flex-direction:column;align-items:center;gap:8px;width:72px}
+.vmeter .segs{display:flex;flex-direction:column-reverse;gap:2px;width:22px}
+.vmeter .segs i{height:7px;background:var(--seg-off);border-radius:1px}
+.vmeter .segs i.on{background:var(--accent)}
+.vmeter .segs i.on.hi{background:var(--accent-hi)}
+.vmeter .v{font-family:var(--font-mono);font-size:13px;font-weight:600}
+.vmeter .n{font-size:11.5px;text-align:center;color:var(--muted);line-height:1.25;min-height:2.5em}
+.mod-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 44px;gap:12px;align-items:center;padding:8px 0}
+.mod-row .hmeter i{background:var(--tc)}
+.milestones{display:flex;flex-direction:column;gap:0}
+.ms{display:grid;grid-template-columns:76px 16px 1fr;gap:10px;align-items:start;padding:8px 0}
+.ms .dot{width:10px;height:10px;border-radius:50%;margin-top:4px;border:2px solid var(--line-2)}
+.ms.ok .dot{background:var(--ok);border-color:var(--ok)}
+.ms .when{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);padding-top:1px}
+
+/* 1:1 Sessions */
+.sess{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:16px 14px}
+.sess+.sess{border-top:1px solid var(--line)}
+@media (max-width:560px){.sess{grid-template-columns:1fr;gap:8px}}
+.sess .when{display:flex;flex-direction:column;gap:2px}
+.sess .when b{font-family:var(--font-mono);font-size:15px}
+.sess .body{display:flex;flex-direction:column;gap:10px;min-width:0}
+.note{background:var(--bg);border-left:3px solid var(--accent);padding:10px 12px;border-radius:0 var(--r) var(--r) 0;color:var(--fg)}
+.contact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.contact code{font-family:var(--font-mono);background:var(--bg);border:1px solid var(--line);padding:4px 8px;border-radius:var(--r);user-select:all}
+
+/* News */
+.news-item{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:16px 14px}
+.news-item+.news-item{border-top:1px solid var(--line)}
+@media (max-width:560px){.news-item{grid-template-columns:1fr;gap:6px}}
+.news-item .body{display:flex;flex-direction:column;gap:6px;max-width:68ch}
+.news-item .body p{color:var(--muted)}
+
+/* Login */
+.login-screen{min-height:100vh;display:grid;place-items:center;padding-block:40px}
+.login{width:100%;max-width:380px;display:flex;flex-direction:column;gap:18px}
+.login .logo{font-size:20px;justify-content:center}
+.login .logo-mark{grid-template-columns:repeat(4,5px);height:22px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:9px 10px}
+.field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.login .btn{justify-content:center;padding:10px}
+.login .hint{font-size:12px;color:var(--muted);text-align:center}
+.err{color:var(--warn);font-size:12.5px}
+.app-hidden .transport,.app-hidden main{display:none}
+</style>
+
+<div id="login" class="login-screen gutter" hidden>
+  <form class="login panel panel-body" id="loginForm" novalidate>
+    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>EOA PLAYBACK COACHING</div>
+    <div class="field"><label class="label" for="email">E-Mail</label><input id="email" type="email" autocomplete="email" value="lena@beispiel.de"></div>
+    <div class="field"><label class="label" for="pw">Passwort</label><input id="pw" type="password" autocomplete="current-password" value="demo1234"></div>
+    <p class="err" id="loginErr" hidden></p>
+    <button class="btn primary" type="submit">Anmelden</button>
+    <p class="hint">Prototyp: Die Zugangsdaten sind schon eingetragen. Klick einfach auf „Anmelden“.</p>
+  </form>
+</div>
+
+<header class="transport">
+  <div class="transport-inner gutter">
+    <div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>EOA</div>
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a href="#start">Übersicht</a>
+      <a href="#kurs">Videokurs</a>
+      <a href="#fortschritt">Fortschritt</a>
+      <a href="#sessions">1:1 Sessions</a>
+      <a href="#news">News</a>
+    </nav>
+    <div class="lcd" title="Kursfortschritt"><span class="label">Kurs</span><b id="lcdPct">0%</b><span class="mini-meter" id="lcdMeter"></span></div>
+    <div class="user"><span class="avatar" aria-hidden="true">LK</span><button class="btn ghost small" id="logout" type="button">Abmelden</button></div>
+  </div>
+</header>
+
+<main class="gutter">
+  <!-- Übersicht -->
+  <section class="view" id="view-start">
+    <div class="view-head">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="proto-chip" style="align-self:flex-start">Prototyp · Beispieldaten</span>
+        <h1>Hey Lena, weiter geht's.</h1>
+        <p>Dein nächstes 1:1 ist am <b id="nextShort"></b>. Bis dahin stehen noch zwei Aufgaben aus der letzten Session offen.</p>
+      </div>
+    </div>
+    <div class="grid dash-grid">
+      <div class="panel span-8">
+        <div class="panel-head"><span class="label">Weiter im Kurs</span><a class="btn small ghost" href="#kurs">Alle Lektionen</a></div>
+        <div class="panel-body resume" id="resume"></div>
+      </div>
+      <div class="panel span-4">
+        <div class="panel-head"><span class="label">Kursfortschritt</span></div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;gap:10px"><span class="big-pct" id="dashPct">0%</span><span class="mono" style="color:var(--muted)" id="dashCount"></span></div>
+          <div class="hmeter"><i id="dashBar" style="width:0"></i></div>
+          <a class="btn small" href="#fortschritt" style="align-self:flex-start">Fortschritt ansehen</a>
+        </div>
+      </div>
+      <div class="panel span-4">
+        <div class="panel-head"><span class="label">Nächstes 1:1</span><span class="tag">Geplant</span></div>
+        <div class="panel-body" id="dashNext"></div>
+      </div>
+      <div class="panel span-4">
+        <div class="panel-head"><span class="label">Offene Aufgaben</span><a class="btn small ghost" href="#sessions">Sessions</a></div>
+        <div class="panel-body list" id="dashHw"></div>
+      </div>
+      <div class="panel span-4">
+        <div class="panel-head"><span class="label">Neu</span><a class="btn small ghost" href="#news">Alle News</a></div>
+        <div class="panel-body list" id="dashNews"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Videokurs -->
+  <section class="view" id="view-kurs" hidden>
+    <div class="view-head">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>Playback Live-Rig</h1>
+        <p>Sechs Module, aufgebaut wie eine Session View. Jede Spalte ist ein Modul, jeder Clip eine Lektion. Ausgefüllte Clips hast du schon erledigt, der blinkende ist als Nächstes dran.</p>
+      </div>
+      <div class="meta-row mono" id="courseMeta"></div>
+    </div>
+    <div class="session-wrap"><div class="session" id="session"></div></div>
+    <div class="panel detail" id="detail">
+      <div class="player">
+        <div class="screen"><canvas id="screen" width="960" height="540"></canvas><span class="placeholder">Videoplatzhalter · später Bunny Stream / Vimeo</span></div>
+        <div class="controls">
+          <button class="pbtn" id="playBtn" type="button" aria-label="Abspielen"><span class="tri"></span></button>
+          <span class="mono" id="tNow" style="font-size:12px">0:00</span>
+          <div class="scrub" id="scrub" role="slider" aria-label="Position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i id="scrubFill" style="width:0"></i></div>
+          <span class="mono" id="tDur" style="font-size:12px;color:var(--muted)">0:00</span>
+        </div>
+      </div>
+      <div class="lesson-info" id="lessonInfo"></div>
+    </div>
+  </section>
+
+  <!-- Fortschritt -->
+  <section class="view" id="view-fortschritt" hidden>
+    <div class="view-head">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>Dein Fortschritt</h1>
+        <p>Die Skill-Meter stellt dein Coach nach jedem 1:1 ein. Der Kursfortschritt füllt sich automatisch, wenn du Lektionen abschließt.</p>
+      </div>
+    </div>
+    <div class="grid dash-grid">
+      <div class="panel span-6">
+        <div class="panel-head"><span class="label">Skills · vom Coach bewertet</span><span class="mono" style="font-size:11.5px;color:var(--muted)">Stand 31.10.</span></div>
+        <div class="panel-body meters" id="meters"></div>
+      </div>
+      <div class="panel span-6">
+        <div class="panel-head"><span class="label">Kurs nach Modulen</span></div>
+        <div class="panel-body list" id="modRows"></div>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
+        <div class="panel-head"><span class="label">Meilensteine</span></div>
+        <div class="panel-body milestones list" id="milestones"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1:1 Sessions -->
+  <section class="view" id="view-sessions" hidden>
+    <div class="view-head">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>1:1 Sessions</h1>
+        <p>Termine machen wir direkt miteinander aus. Hier findest du deinen nächsten Termin, die Notizen aus jeder Session und deine Aufgaben bis zum nächsten Mal.</p>
+      </div>
+    </div>
+    <div class="panel panel-body contact">
+      <span class="label">Neuen Termin anfragen</span>
+      <span>Schreib mir per WhatsApp:</span>
+      <code id="phone">+49 170 0000000</code>
+      <button class="btn small" type="button" id="copyPhone">Nummer kopieren</button>
+      <span class="err" id="copyMsg" hidden style="color:var(--ok)"></span>
+    </div>
+    <div class="panel" id="sessList"></div>
+  </section>
+
+  <!-- News -->
+  <section class="view" id="view-news" hidden>
+    <div class="view-head">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>News</h1>
+        <p>Neue Lektionen, Updates zu Tools und Tipps aus dem Tourleben.</p>
+      </div>
+    </div>
+    <div class="panel" id="newsList"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+const MODULES=[
+  {title:"Grundlagen Rig",color:"var(--c1)",lessons:[
+    {t:"Was gehört in ein Playback-Rig?",d:"8:12",pts:["Laptop, Interface, Controller, Splitter","Welche Kanäle gehen an FOH und welche ans Monitoring","Typische Fehler beim ersten Rig"]},
+    {t:"Audio-Interface & Kanalbelegung",d:"11:40",pts:["Ausgänge planen: Stems, Click, Cues","Kanalliste für den Techniker","Pegel und Gain-Staging"]},
+    {t:"Main/Backup-Redundanz",d:"14:05",pts:["Zwei Rechner synchron fahren","Umschalter und Failover","Wann sich Redundanz lohnt"]}]},
+  {title:"Session vorbereiten",color:"var(--c2)",lessons:[
+    {t:"Stems richtig exportieren",d:"9:30",pts:["Welche Stems du wirklich brauchst","Benennung und Startpunkt","Export-Einstellungen"]},
+    {t:"Tempo, Warp & Taktart",d:"12:18",pts:["Tempo-Automation übernehmen","Warp-Marker setzen","Taktartwechsel sauber anlegen"]},
+    {t:"Locators & Songstruktur",d:"7:55",pts:["Locator pro Songteil","Sprünge vorbereiten","Ordnung in langen Sets"]},
+    {t:"Session-Template bauen",d:"10:02",pts:["Spuren, Gruppen, Routing","Farben und Namen","Template speichern"]}]},
+  {title:"Click & Cues",color:"var(--c3)",lessons:[
+    {t:"Click-Track bauen",d:"8:44",pts:["Sounds und Unterteilungen","Click nur im Monitoring","Count-in pro Song"]},
+    {t:"Cue-Ansagen aufnehmen",d:"9:21",pts:["„Verse“, „Chorus“, „Break“","Timing vor dem Songteil","Lautstärke im Mix"]},
+    {t:"In-Ear-Routing",d:"13:10",pts:["Eigene Mixe pro Musiker","Click und Cues getrennt","Zusammenarbeit mit dem Monitortech"]}]},
+  {title:"AbleSet & Setlist",color:"var(--c4)",lessons:[
+    {t:"Setlist anlegen",d:"10:35",pts:["Songs aus Locators","Reihenfolge und Pausen","Setlist für mehrere Shows"]},
+    {t:"Steuern per Tablet",d:"8:09",pts:["Ansichten für Band und Tech","Songs live umstellen","Sicher bedienen auf der Bühne"]},
+    {t:"Loops & spontane Teile",d:"11:27",pts:["Sections wiederholen","Jam-Teile mit Ausstieg","Notstopp und Wiedereinstieg"]}]},
+  {title:"Live-Steuerung",color:"var(--c5)",lessons:[
+    {t:"Footswitch & MIDI-Controller",d:"9:48",pts:["Mapping für Start, Stopp, Weiter","Controller-Auswahl","Fehlbedienung vermeiden"]},
+    {t:"Program Changes senden",d:"12:50",pts:["Patches für Gitarre und Keys","MIDI-Clips pro Song","Timing der Umschaltung"]},
+    {t:"Licht-Sync über MIDI/Timecode",d:"15:22",pts:["Was das Lichtpult braucht","MIDI vs. Timecode","Gemeinsam proben"]}]},
+  {title:"Showtag",color:"var(--c6)",lessons:[
+    {t:"Soundcheck-Ablauf",d:"10:14",pts:["Reihenfolge mit dem Techniker","Line-Check der Stems","Click-Check mit der Band"]},
+    {t:"Fehler live abfangen",d:"12:36",pts:["Absturz, Kabel, Stromausfall","Plan B in Sekunden","Ruhe bewahren auf der Bühne"]},
+    {t:"Checkliste vor der Show",d:"6:40",pts:["Rig, Akkus, Backups","Setlist final","Kommunikation mit Crew"]}]}
+];
+const ALL=[];MODULES.forEach((m,mi)=>m.lessons.forEach((l,li)=>ALL.push({id:mi+"-"+li,mi,li,...l})));
+const DEFAULT_DONE=["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1"];
+let done=new Set(store.get("eoa-done",DEFAULT_DONE));
+
+const SESSIONS=[
+  {date:"2026-11-14",time:"18:00",dur:"60 min",status:"planned",topic:"AbleSet-Setlist für die Wintertour",notes:null,hw:[]},
+  {date:"2026-10-31",time:"17:30",dur:"60 min",status:"done",topic:"Cues und In-Ear-Mix",notes:"Cues sitzen jetzt einen Takt vor dem Songteil, das klingt viel entspannter. Der Click war im In-Ear-Mix des Drummers zu leise, dafür bauen wir einen eigenen Ausgang.",hw:["Cue „Bridge“ für „Nachtfahrt“ neu aufnehmen","Eigenen Click-Ausgang für den Drummer anlegen","Lektion „In-Ear-Routing“ ansehen"]},
+  {date:"2026-10-17",time:"18:00",dur:"45 min",status:"done",topic:"Session-Template und Tempo",notes:"Template steht. Zwei Songs hatten falsche Warp-Marker im Intro, die haben wir zusammen korrigiert. Taktartwechsel in „Glas“ ist jetzt sauber.",hw:["Restliche Songs ins Template übertragen","Tempo-Map von „Glas“ mit Band testen"]},
+  {date:"2026-10-03",time:"19:00",dur:"60 min",status:"done",topic:"Kennenlernen & Rig-Check",notes:"Bestandsaufnahme: MacBook, 8-Kanal-Interface, noch kein Backup. Ziel bis Tourstart: stabiles Rig mit Click, Cues und Setlist.",hw:["Kanalliste für den Techniker schreiben","Stems für die ersten fünf Songs exportieren"]}
+];
+const HW_DEFAULT={"2026-10-17-0":true,"2026-10-17-1":true,"2026-10-03-0":true,"2026-10-03-1":true,"2026-10-31-2":true};
+let hw=store.get("eoa-hw",HW_DEFAULT);
+
+const NEWS=[
+  {date:"2026-11-06",tag:"Neue Lektion",title:"„Licht-Sync über MIDI/Timecode“ ist online",text:"Im Modul Live-Steuerung zeige ich dir, wie dein Rig das Lichtpult mitsteuert und worauf du bei der gemeinsamen Probe mit dem Lichttechniker achten solltest."},
+  {date:"2026-10-28",tag:"Tipp",title:"Vor jeder Show: Energiesparmodus aus",text:"Der Klassiker. Schalte Ruhezustand, Bildschirmschoner und automatische Updates ab, bevor du auf die Bühne gehst. Ich packe das als Punkt in die Show-Checkliste."},
+  {date:"2026-10-20",tag:"Update",title:"AbleSet-Update: Neues zu Setlists",text:"Das letzte Update bringt Änderungen beim Bearbeiten von Setlists. Ich schaue es mir an und passe die Lektionen im Modul AbleSet & Setlist an, falls nötig."},
+  {date:"2026-10-09",tag:"Community",title:"Offene Q&A-Runde im November",text:"Einmal im Monat beantworte ich in einem Gruppen-Call eure Fragen. Termin und Link kommen hier als News."}
+];
+const SKILLS=[["Rig-Aufbau",80],["Session-Prep",65],["Click & Cues",70],["Live-Steuerung",35],["Show-Routine",50]];
+const MILESTONES=[
+  {when:"03.10.",ok:true,t:"Coaching gestartet",s:"Rig-Check und Ziele festgelegt"},
+  {when:"17.10.",ok:true,t:"Session-Template steht",s:"Alle Songs mit Tempo und Locators"},
+  {when:"31.10.",ok:true,t:"Erste Probe mit Click & Cues",s:"Ganze Band spielt zum Click"},
+  {when:"Nov",ok:false,t:"Setlist in AbleSet",s:"Wintertour-Set komplett steuerbar"},
+  {when:"Dez",ok:false,t:"Erste Show mit eigenem Rig",s:"Tourstart"}
+];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const WD=["So","Mo","Di","Mi","Do","Fr","Sa"],MON=["JAN","FEB","MÄR","APR","MAI","JUN","JUL","AUG","SEP","OKT","NOV","DEZ"];
+const pd=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const fmt=s=>{const d=pd(s);return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear()};
+const secs=d=>{const [m,s]=d.split(":").map(Number);return m*60+s};
+const mmss=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
+
+function pct(){return Math.round(done.size/ALL.length*100)}
+function nextLesson(){return ALL.find(l=>!done.has(l.id))||ALL[ALL.length-1]}
+
+/* Thumbnail / screen drawing */
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawScreen(cv,lesson,progress){
+  const ctx=cv.getContext("2d"),W=cv.width,H=cv.height;
+  ctx.fillStyle="#0b0d10";ctx.fillRect(0,0,W,H);
+  const m=MODULES[lesson.mi];
+  const tmp=document.createElement("span");tmp.style.color=m.color;document.body.appendChild(tmp);
+  const col=getComputedStyle(tmp).color;tmp.remove();
+  // arrangement-like lanes
+  const lanes=5,top=H*0.2,lh=(H*0.62)/lanes;
+  let seed=lesson.mi*31+lesson.li*7+3;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
+  for(let i=0;i<lanes;i++){
+    const y=top+i*lh;
+    ctx.fillStyle="#16191e";ctx.fillRect(0,y+2,W,lh-4);
+    let x=0;
+    while(x<W){
+      const w=W*(0.12+rnd()*0.25);
+      if(rnd()>0.25){
+        ctx.globalAlpha=0.35+0.4*(i===0?1:rnd());
+        ctx.fillStyle=col;ctx.fillRect(x+3,y+5,w-6,lh-10);
+        ctx.globalAlpha=0.9;ctx.fillStyle="#0b0d10";
+        for(let k=x+8;k<x+w-8;k+=4){const a=(lh-18)*(0.15+rnd()*0.8);ctx.fillRect(k,y+lh/2-a/2,2,a)}
+      }
+      x+=w;
+    }
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#dde1e7";ctx.font="600 "+Math.round(H*0.06)+"px Archivo, sans-serif";
+  ctx.fillText(lesson.t,W*0.04,H*0.12);
+  ctx.fillStyle="#8b93a0";ctx.font=Math.round(H*0.035)+"px 'JetBrains Mono', monospace";
+  ctx.fillText((lesson.mi+1)+"."+(lesson.li+1)+".1  ·  "+m.title.toUpperCase(),W*0.04,H*0.17);
+  if(progress!=null){
+    const px=W*progress;ctx.fillStyle=cssVar("--accent")||"#3d9bff";ctx.fillRect(px-1,top-6,2,H*0.62+12);
+    ctx.beginPath();ctx.moveTo(px-7,top-12);ctx.lineTo(px+7,top-12);ctx.lineTo(px,top-4);ctx.fill();
+  }
+}
+
+/* Header */
+function renderHeader(){
+  const p=pct();$("#lcdPct").textContent=p+"%";
+  const on=Math.round(p/10);$("#lcdMeter").innerHTML=Array.from({length:10},(_,i)=>`<i class="${i<on?"on":""}"></i>`).join("");
+}
+
+/* Dashboard */
+function renderDash(){
+  const p=pct();$("#dashPct").textContent=p+"%";$("#dashBar").style.width=p+"%";
+  $("#dashCount").textContent=done.size+" / "+ALL.length+" Lektionen";
+  const n=nextLesson(),m=MODULES[n.mi];
+  $("#resume").innerHTML=`<div class="thumb"><canvas width="480" height="270"></canvas><button class="play" type="button" aria-label="Lektion öffnen"><span class="tri"></span></button></div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+      <span class="label">Modul ${n.mi+1} · ${esc(m.title)}</span>
+      <h2>${esc(n.t)}</h2>
+      <div class="meta-row mono"><span>Lektion ${n.li+1} von ${m.lessons.length}</span><span>${n.d} min</span></div>
+      <div><button class="btn primary" type="button" data-open="${n.id}">Weiter ansehen</button></div>
+    </div>`;
+  drawScreen($("#resume canvas"),n,null);
+  $("#resume").querySelectorAll("button").forEach(b=>b.onclick=()=>{selected=n.id;location.hash="kurs"});
+  const s=SESSIONS.find(x=>x.status==="planned");let nextTxt="";
+  if(s){const d=pd(s.date);
+    nextTxt=WD[d.getDay()]+", "+fmt(s.date).slice(0,6)+" um "+s.time+" Uhr";
+    $("#dashNext").innerHTML=`<div class="next-date"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0"><b>${esc(s.topic)}</b><span class="mono" style="color:var(--muted);font-size:12px">${WD[d.getDay()]} · ${s.time} · ${s.dur}</span></div></div>
+      <p style="color:var(--muted);font-size:12.5px;margin-top:12px">Vereinbart per WhatsApp. Den Call-Link bekommst du vorher von mir.</p>`;}
+  const last=SESSIONS.find(x=>x.status==="done");
+  const open=last.hw.map((h,i)=>({h,k:last.date+"-"+i})).filter(x=>!hw[x.k]);
+  $("#dashHw").innerHTML=open.length?open.map(x=>`<div class="row"><input class="check" type="checkbox" id="d-${x.k}" data-hw="${x.k}"><label for="d-${x.k}">${esc(x.h)}</label></div>`).join("")
+    :`<p style="color:var(--muted)">Alles erledigt. Stark.</p>`;
+  $("#dashNews").innerHTML=NEWS.slice(0,2).map(n=>`<div class="row" style="flex-direction:column;gap:4px"><span class="mono" style="font-size:11px;color:var(--muted)">${fmt(n.date)}</span><a href="#news" style="color:var(--fg);font-weight:600;text-decoration:none">${esc(n.title)}</a></div>`).join("");
+  const open2=document.querySelectorAll('#view-start .view-head p')[0];
+  open2.innerHTML=s?`Dein nächstes 1:1 ist am <b>${nextTxt}</b>. ${open.length?`Bis dahin ${open.length===1?"ist noch eine Aufgabe":"sind noch "+open.length+" Aufgaben"} aus der letzten Session offen.`:"Alle Aufgaben aus der letzten Session sind erledigt."}`:"";
+}
+
+/* Kurs */
+let selected=null,playing=false,pos=0,raf=0,last=0;
+function renderCourse(){
+  const n=nextLesson();if(!selected)selected=n.id;
+  $("#courseMeta").innerHTML=`<span>${MODULES.length} Module</span><span>${ALL.length} Lektionen</span><span>${mmss(ALL.reduce((a,l)=>a+secs(l.d),0)).replace(/:\d+$/,"")} min gesamt</span>`;
+  const maxL=Math.max(...MODULES.map(m=>m.lessons.length));
+  $("#session").innerHTML=MODULES.map((m,mi)=>{
+    const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
+    const slots=[];for(let li=0;li<maxL;li++){const l=m.lessons[li];
+      if(!l){slots.push(`<div class="clip empty" aria-hidden="true"></div>`);continue}
+      const id=mi+"-"+li,cls=["clip",done.has(id)?"done":"",id===n.id&&!done.has(id)?"next":"",id===selected?"selected":""].join(" ");
+      slots.push(`<button type="button" class="${cls}" data-id="${id}" title="${esc(l.t)}"><span class="tri-s"></span><span class="t">${esc(l.t)}</span><span class="d">${l.d}</span></button>`)}
+    return `<div class="track" style="--tc:${m.color}"><div class="track-head"><span class="name">${mi+1} ${esc(m.title)}</span><div class="hmeter" style="height:4px"><i style="width:${dn/m.lessons.length*100}%;background:var(--tc)"></i></div></div><div class="slots">${slots.join("")}</div></div>`;
+  }).join("");
+  $("#session").querySelectorAll(".clip[data-id]").forEach(b=>b.onclick=()=>{selectLesson(b.dataset.id)});
+  renderLesson();
+}
+function getL(id){return ALL.find(l=>l.id===id)}
+function selectLesson(id){selected=id;stop();pos=0;renderCourse();}
+function renderLesson(){
+  const l=getL(selected),m=MODULES[l.mi],isDone=done.has(l.id);
+  const idx=ALL.indexOf(l),nxt=ALL[idx+1];
+  $("#lessonInfo").innerHTML=`<span class="label">Modul ${l.mi+1} · ${esc(m.title)} · Lektion ${l.li+1}</span>
+    <h2>${esc(l.t)}</h2>
+    <div>${isDone?'<span class="tag ok">Erledigt</span>':'<span class="tag">Offen</span>'}</div>
+    <div><span class="label">In dieser Lektion</span><ul style="margin-top:6px">${l.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+      <button class="btn ${isDone?"":"primary"}" type="button" id="toggleDone">${isDone?"Als offen markieren":"Als erledigt markieren"}</button>
+      ${nxt?`<button class="btn ghost" type="button" id="nextBtn">Nächste Lektion</button>`:""}
+    </div>`;
+  $("#toggleDone").onclick=()=>{isDone?done.delete(l.id):done.add(l.id);store.set("eoa-done",[...done]);renderAll()};
+  if(nxt)$("#nextBtn").onclick=()=>selectLesson(nxt.id);
+  $("#tDur").textContent=l.d;updatePlayer();
+}
+function updatePlayer(){
+  const l=getL(selected),dur=secs(l.d);
+  $("#tNow").textContent=mmss(pos*dur);$("#scrubFill").style.width=(pos*100)+"%";
+  $("#scrub").setAttribute("aria-valuenow",Math.round(pos*100));
+  drawScreen($("#screen"),l,pos);
+  const b=$("#playBtn");b.classList.toggle("on",playing);b.setAttribute("aria-label",playing?"Pause":"Abspielen");
+  b.innerHTML=playing?'<span class="pause"><i></i><i></i></span>':'<span class="tri"></span>';
+}
+function tick(t){
+  if(!playing)return;const dt=(t-last)/1000;last=t;
+  pos=Math.min(1,pos+dt/20); // Demo: ganze Lektion in 20 s
+  updatePlayer();
+  if(pos>=1){playing=false;if(!done.has(selected)){done.add(selected);store.set("eoa-done",[...done]);renderAll();}updatePlayer();return}
+  raf=requestAnimationFrame(tick);
+}
+function stop(){playing=false;cancelAnimationFrame(raf)}
+$("#playBtn").onclick=()=>{if(playing){stop();updatePlayer();return}if(pos>=1)pos=0;playing=true;last=performance.now();updatePlayer();raf=requestAnimationFrame(tick)};
+$("#scrub").onclick=e=>{const r=e.currentTarget.getBoundingClientRect();pos=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));updatePlayer()};
+$("#scrub").onkeydown=e=>{if(e.key==="ArrowRight"){pos=Math.min(1,pos+.05);updatePlayer()}if(e.key==="ArrowLeft"){pos=Math.max(0,pos-.05);updatePlayer()}};
+
+/* Fortschritt */
+function renderProgress(){
+  $("#meters").innerHTML=SKILLS.map(([n,v])=>{const on=Math.round(v/100*16);
+    return `<div class="vmeter"><div class="segs" aria-hidden="true">${Array.from({length:16},(_,i)=>`<i class="${i<on?"on":""} ${i>=12&&i<on?"hi":""}"></i>`).join("")}</div><span class="v">${v}</span><span class="n">${esc(n)}</span></div>`}).join("");
+  $("#modRows").innerHTML=MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
+    return `<div class="mod-row" style="--tc:${m.color}"><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mi+1} · ${esc(m.title)}</span><div class="hmeter"><i style="width:${dn/m.lessons.length*100}%"></i></div><span class="mono" style="text-align:right;color:var(--muted);font-size:12px">${dn}/${m.lessons.length}</span></div>`}).join("");
+  $("#milestones").innerHTML=MILESTONES.map(x=>`<div class="ms ${x.ok?"ok":""}"><span class="when">${x.when}</span><span class="dot"></span><div><b>${esc(x.t)}</b><p style="color:var(--muted);font-size:12.5px">${esc(x.s)}</p></div></div>`).join("");
+}
+
+/* Sessions */
+function renderSessions(){
+  $("#sessList").innerHTML=SESSIONS.map(s=>{const d=pd(s.date);
+    const tasks=s.hw.map((h,i)=>{const k=s.date+"-"+i;return `<div class="row"><input class="check" type="checkbox" id="s-${k}" data-hw="${k}" ${hw[k]?"checked":""}><label for="s-${k}" class="${hw[k]?"done-text":""}">${esc(h)}</label></div>`}).join("");
+    return `<article class="sess"><div class="when"><b>${fmt(s.date).slice(0,6)}</b><span class="mono" style="font-size:12px;color:var(--muted)">${WD[d.getDay()]} · ${s.time}</span><span class="mono" style="font-size:12px;color:var(--muted)">${s.dur}</span></div>
+      <div class="body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>${esc(s.topic)}</h3>${s.status==="planned"?'<span class="tag">Geplant</span>':'<span class="tag ok">Abgeschlossen</span>'}</div>
+      ${s.notes?`<div class="note"><span class="label" style="display:block;margin-bottom:4px">Notizen vom Coach</span>${esc(s.notes)}</div>`:`<p style="color:var(--muted)">Notizen und Aufgaben erscheinen hier nach der Session.</p>`}
+      ${tasks?`<div><span class="label">Aufgaben bis zur nächsten Session</span><div class="list" style="margin-top:8px">${tasks}</div></div>`:""}</div></article>`}).join("");
+}
+
+/* News */
+function renderNews(){
+  $("#newsList").innerHTML=NEWS.map(n=>`<article class="news-item"><span class="mono" style="font-size:12px;color:var(--muted);padding-top:2px">${fmt(n.date)}</span><div class="body"><div><span class="tag">${esc(n.tag)}</span></div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></div></article>`).join("");
+}
+
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.hw;if(!k)return;hw[k]=e.target.checked;store.set("eoa-hw",hw);renderAll()});
+$("#copyPhone").onclick=()=>{const t=$("#phone").textContent,msg=$("#copyMsg");
+  const ok=()=>{msg.hidden=false;msg.textContent="Kopiert"};
+  const fail=()=>{const r=document.createRange();r.selectNodeContents($("#phone"));const s=getSelection();s.removeAllRanges();s.addRange(r);msg.hidden=false;msg.textContent="Markiert, jetzt kopieren"};
+  try{navigator.clipboard.writeText(t).then(ok,fail)}catch(e){fail()}};
+
+function renderAll(){renderHeader();renderDash();renderCourse();renderProgress();renderSessions();renderNews()}
+
+/* Login + Routing */
+let authed=store.get("eoa-auth",true);
+$("#loginForm").addEventListener("submit",e=>{e.preventDefault();
+  const em=$("#email").value.trim(),pw=$("#pw").value;const err=$("#loginErr");
+  if(!/^\S+@\S+\.\S+$/.test(em)){err.hidden=false;err.textContent="Bitte gib eine gültige E-Mail-Adresse ein.";return}
+  if(pw.length<4){err.hidden=false;err.textContent="Das Passwort muss mindestens 4 Zeichen haben.";return}
+  err.hidden=true;authed=true;store.set("eoa-auth",true);location.hash="start";route()});
+$("#logout").onclick=()=>{stop();authed=false;store.set("eoa-auth",false);location.hash="login";route()};
+
+const VIEWS=["start","kurs","fortschritt","sessions","news"];
+function route(){
+  let h=location.hash.replace("#","");
+  if(!authed||h==="login"){
+    if(authed&&h==="login"){authed=false;store.set("eoa-auth",false)}
+    document.body.classList.add("app-hidden");$("#login").hidden=false;return}
+  document.body.classList.remove("app-hidden");$("#login").hidden=true;
+  if(!VIEWS.includes(h))h="start";
+  if(h!=="kurs")stop();
+  VIEWS.forEach(v=>$("#view-"+v).hidden=v!==h);
+  document.querySelectorAll(".nav a").forEach(a=>{if(a.getAttribute("href")==="#"+h)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+  if(h==="kurs")updatePlayer();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",route);
+renderAll();route();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{renderDash();updatePlayer()});
+})();
+</script>
