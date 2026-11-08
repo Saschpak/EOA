@@ -163,8 +163,15 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 .session{display:flex;flex-direction:column;gap:12px}
 .session-meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .note{border-left:3px solid var(--accent);padding:2px 0 2px 12px}
-.contact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.contact code{font-family:var(--font-mono);background:var(--bg);border:1px solid var(--line);padding:5px 9px;border-radius:var(--r);user-select:all}
+.book-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line-2);background:var(--bg);border-radius:var(--r);padding:8px 12px;cursor:pointer;font-size:14px;font-weight:600;display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
+.chip small{font-size:12px;font-weight:400;color:var(--muted)}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] small{color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.group-label{margin-top:8px}
 .ok-msg{color:var(--ok);font-size:13px}
 
 /* News */
@@ -260,14 +267,21 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
   <section class="view" id="view-sessions" hidden>
     <div class="intro">
       <h1>1:1s</h1>
-      <p class="muted">Termine machen wir direkt aus. Hier findest du Notizen und Aufgaben aus jeder Session.</p>
+      <p class="muted">Buch deine Sessions einzeln, wann es für dich passt. Nach jeder Session findest du hier Notizen und Aufgaben.</p>
     </div>
-    <div class="contact">
-      <span class="muted">Termin anfragen per WhatsApp:</span>
-      <code id="phone">+49 170 0000000</code>
-      <button class="btn small" type="button" id="copyPhone">Kopieren</button>
-      <span class="ok-msg" id="copyMsg" hidden></span>
+    <div class="card" id="booking">
+      <div class="book-head"><h2>1:1 buchen</h2><span class="muted" id="credits"></span></div>
+      <div id="bookForm" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px"><span class="label">1. Tag wählen</span><div class="chips" id="days"></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span class="label">2. Uhrzeit wählen</span><div class="chips" id="slotTimes"></div></div>
+        <div class="field"><label class="label" for="topic">3. Worum soll es gehen? (optional)</label><input id="topic" type="text" placeholder="z. B. Setlist in AbleSet anlegen"></div>
+        <div class="actions" style="align-items:center"><button class="btn primary" type="button" id="bookBtn" disabled>Termin buchen</button><span class="muted" style="font-size:13px" id="bookHint">Wähl einen Tag und eine Uhrzeit.</span></div>
+      </div>
+      <p class="ok-msg" id="bookMsg" hidden></p>
     </div>
+    <span class="label group-label" id="plannedLabel">Geplant</span>
+    <div id="plannedList" style="display:flex;flex-direction:column;gap:16px"></div>
+    <span class="label group-label">Vergangene Sessions</span>
     <div id="sessList" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
 
@@ -316,11 +330,14 @@ const ALL=[];MODULES.forEach((m,mi)=>m.lessons.forEach((l,li)=>ALL.push({id:mi+"
 let done=new Set(store.get("eoa-done",["0-0","0-1","0-2","1-0","1-1","1-2","2-0","2-1"]));
 
 const SESSIONS=[
-  {date:"2026-11-14",time:"18:00",planned:true,topic:"AbleSet-Setlist für die Wintertour",notes:null,hw:[]},
   {date:"2026-10-31",time:"17:30",topic:"Cues und In-Ear-Mix",notes:"Die Cues kommen jetzt einen Takt vor dem Songteil, das klingt viel entspannter. Der Click war im In-Ear des Drummers zu leise, dafür bauen wir einen eigenen Ausgang.",hw:["Cue „Bridge“ für „Nachtfahrt“ neu aufnehmen","Eigenen Click-Ausgang für den Drummer anlegen","Lektion „In-Ear-Routing“ ansehen"]},
   {date:"2026-10-17",time:"18:00",topic:"Session-Template und Tempo",notes:"Das Template steht. Zwei Songs hatten falsche Warp-Marker im Intro, die haben wir zusammen korrigiert.",hw:["Restliche Songs ins Template übertragen","Tempo-Map von „Glas“ mit der Band testen"]},
   {date:"2026-10-03",time:"19:00",topic:"Kennenlernen & Rig-Check",notes:"MacBook, 8-Kanal-Interface, noch kein Backup. Ziel bis Tourstart: stabiles Rig mit Click, Cues und Setlist.",hw:["Kanalliste für den Techniker schreiben","Stems für die ersten fünf Songs exportieren"]}
 ];
+const PACKAGE=6;
+const SLOTS={"2026-11-10":["17:00","18:30"],"2026-11-12":["16:00","18:00","19:30"],"2026-11-14":["11:00","13:00"],"2026-11-17":["17:00","18:30"],"2026-11-19":["18:00","19:30"],"2026-11-21":["11:00"]};
+let booked=store.get("pc-booked",[]);
+let pickDay=null,pickTime=null,cancelArm=null;
 let hw=store.get("eoa-hw",{"2026-10-17-0":true,"2026-10-17-1":true,"2026-10-03-0":true,"2026-10-03-1":true,"2026-10-31-2":true});
 
 const NEWS=[
@@ -353,11 +370,13 @@ function renderDash(){
     </div>`;
   $("#resume").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{selected=n.id;viewMod=n.mi;location.hash="kurs"});
   $("#dashProgress").innerHTML=progressHTML();
-  const s=SESSIONS.find(x=>x.planned);
+  const s=sortedBooked()[0];
   if(s){const d=pd(s.date);
     $("#dashNext").innerHTML=`<div class="date-row"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div>
-      <div><b>${esc(s.topic)}</b><p class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</p></div></div>`}
-  const last=SESSIONS.find(x=>!x.planned);
+      <div><b>${esc(s.topic)}</b><p class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</p></div></div>
+      <a class="btn small" href="#sessions" style="margin-top:14px">Weiteres 1:1 buchen</a>`}
+  else $("#dashNext").innerHTML=`<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${left()} von ${PACKAGE} Sessions offen.</p><a class="btn primary" href="#sessions" style="margin-top:14px">1:1 buchen</a>`;
+  const last=SESSIONS[0];
   const items=last.hw.map((h,i)=>({h,k:last.date+"-"+i})).filter(x=>!hw[x.k]);
   $("#dashHw").innerHTML=items.length?items.map(x=>taskHTML(x.h,x.k,"d")).join(""):`<p class="muted">Alles erledigt.</p>`;
   const nw=NEWS[0];
@@ -400,13 +419,45 @@ function stop(){playing=false;cancelAnimationFrame(raf)}
 $("#playBtn").onclick=()=>{if(playing){stop();updatePlayer();return}if(pos>=1)pos=0;playing=true;lastT=performance.now();updatePlayer();raf=requestAnimationFrame(tick)};
 
 /* 1:1 */
+const sortedBooked=()=>[...booked].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+const left=()=>PACKAGE-SESSIONS.length-booked.length;
+const isBooked=(d,t)=>booked.some(b=>b.date===d&&b.time===t);
+const freeTimes=d=>SLOTS[d].filter(t=>!isBooked(d,t));
 function renderSessions(){
-  $("#sessList").innerHTML=SESSIONS.map(s=>{const d=pd(s.date);
-    return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</span>${s.planned?'<span class="label" style="color:var(--accent-hi)">Nächster Termin</span>':""}</div>
+  const l=left();
+  $("#credits").innerHTML=`Noch <b>${l}</b> von ${PACKAGE} Sessions in deinem Paket`;
+  $("#bookForm").hidden=l<=0;
+  if(l<=0){$("#bookMsg").hidden=false;$("#bookMsg").style.color="var(--muted)";$("#bookMsg").textContent="Dein Paket ist aufgebraucht. Sprich mich an, wenn du weitere Sessions möchtest."}
+  const days=Object.keys(SLOTS).filter(d=>freeTimes(d).length);
+  if(pickDay&&!days.includes(pickDay))pickDay=null;
+  $("#days").innerHTML=days.map(d=>{const dt=pd(d);return `<button type="button" class="chip" data-day="${d}" aria-pressed="${d===pickDay}">${WD[dt.getDay()].slice(0,2)}, ${fmt(d)}<small>${freeTimes(d).length} frei</small></button>`}).join("");
+  $("#days").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{pickDay=c.dataset.day;pickTime=null;$("#bookMsg").hidden=true;renderSessions()});
+  $("#slotTimes").innerHTML=pickDay?freeTimes(pickDay).map(t=>`<button type="button" class="chip" data-t="${t}" aria-pressed="${t===pickTime}">${t} Uhr<small>60 min</small></button>`).join(""):`<span class="muted" style="font-size:13px">Erst einen Tag wählen.</span>`;
+  $("#slotTimes").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{pickTime=c.dataset.t;renderSessions()});
+  const ready=pickDay&&pickTime;
+  $("#bookBtn").disabled=!ready;
+  $("#bookHint").textContent=ready?`${WD[pd(pickDay).getDay()]}, ${fmt(pickDay)} um ${pickTime} Uhr`:"Wähl einen Tag und eine Uhrzeit.";
+  const pl=sortedBooked();
+  $("#plannedLabel").hidden=!pl.length;
+  $("#plannedList").innerHTML=pl.map(s=>{const d=pd(s.date),k=s.date+s.time;
+    return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr · 60 min</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div>
       <h3>${esc(s.topic)}</h3>
-      ${s.notes?`<p class="note">${esc(s.notes)}</p>`:`<p class="muted">Notizen und Aufgaben erscheinen hier nach der Session.</p>`}
+      <p class="muted">Den Call-Link bekommst du einen Tag vorher per Mail.</p>
+      <div class="actions" style="align-items:center">${cancelArm===k?`<span style="font-size:14px">Termin wirklich stornieren?</span><button class="btn small" type="button" data-cancel-yes="${k}">Ja, stornieren</button><button class="btn small quiet" type="button" data-cancel-no>Behalten</button>`:`<button class="btn small" type="button" data-cancel="${k}">Stornieren</button>`}</div></article>`}).join("");
+  $("#plannedList").querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{cancelArm=b.dataset.cancel;renderSessions()});
+  $("#plannedList").querySelectorAll("[data-cancel-no]").forEach(b=>b.onclick=()=>{cancelArm=null;renderSessions()});
+  $("#plannedList").querySelectorAll("[data-cancel-yes]").forEach(b=>b.onclick=()=>{booked=booked.filter(x=>x.date+x.time!==b.dataset.cancelYes);cancelArm=null;store.set("pc-booked",booked);$("#bookMsg").hidden=true;renderAll()});
+  $("#sessList").innerHTML=SESSIONS.map(s=>{const d=pd(s.date);
+    return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${WD[d.getDay()]}, ${s.time} Uhr</span></div>
+      <h3>${esc(s.topic)}</h3>
+      <p class="note">${esc(s.notes)}</p>
       ${s.hw.length?`<div class="tasks">${s.hw.map((h,i)=>taskHTML(h,s.date+"-"+i,"s")).join("")}</div>`:""}</article>`}).join("");
 }
+$("#bookBtn").onclick=()=>{if(!pickDay||!pickTime||left()<=0)return;
+  const topic=$("#topic").value.trim()||"Offenes Thema";
+  booked.push({date:pickDay,time:pickTime,topic});store.set("pc-booked",booked);
+  const msg=$("#bookMsg");msg.hidden=false;msg.style.color="";msg.textContent=`Gebucht: ${WD[pd(pickDay).getDay()]}, ${fmt(pickDay)} um ${pickTime} Uhr. Du findest den Termin unten unter „Geplant“.`;
+  pickDay=null;pickTime=null;$("#topic").value="";renderAll()};
 
 /* News */
 function renderNews(){
@@ -414,10 +465,6 @@ function renderNews(){
 }
 
 document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.hw;if(!k)return;hw[k]=e.target.checked;store.set("eoa-hw",hw);setTimeout(renderAll,250)});
-$("#copyPhone").onclick=()=>{const t=$("#phone").textContent,msg=$("#copyMsg");
-  const ok=()=>{msg.hidden=false;msg.textContent="Kopiert"};
-  const fail=()=>{const r=document.createRange();r.selectNodeContents($("#phone"));const s=getSelection();s.removeAllRanges();s.addRange(r);msg.hidden=false;msg.textContent="Markiert, jetzt kopieren"};
-  try{navigator.clipboard.writeText(t).then(ok,fail)}catch(e){fail()}};
 
 function renderAll(){renderDash();renderCourse();renderSessions();renderNews()}
 
