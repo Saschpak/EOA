@@ -116,6 +116,22 @@ main{max-width:1080px;margin:0 auto;padding-block:32px 56px}
 .modbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .modbtn[aria-pressed="true"] .n{color:var(--accent-hi)}
 .modbtn.here b::after{content:" ●";color:var(--accent);font-size:10px;vertical-align:middle}
+.lock{width:11px;height:13px;flex:none;display:inline-block;vertical-align:-1px}
+.modbtn.locked{background:transparent;border-style:dashed}
+.modbtn.locked b{color:var(--muted)}
+.modbtn .why{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;line-height:1.2}
+.step:disabled{cursor:default;background:transparent;border-style:dashed}
+.step:disabled .tx b{color:var(--muted)}
+.step:disabled .st{color:var(--faint)}
+.lock-note{display:flex;gap:10px;align-items:center;background:var(--accent-soft);border-radius:var(--r);padding:12px 14px;font-size:14px}
+.drip-row{display:grid;grid-template-columns:minmax(0,1fr) 190px 90px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.drip-row:first-of-type{border-top:0}
+@media (max-width:600px){.drip-row{grid-template-columns:1fr 1fr}.drip-row>span:first-child{grid-column:1/-1}}
+.drip-row select,.drip-row input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:8px;width:100%}
+.unlock-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.unlock-row:first-of-type{border-top:0}
+.unlock-row .st{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.unlock-row .st.ok{color:var(--ok)}
 .where{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
 .step{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;cursor:pointer;min-width:0}
@@ -335,7 +351,16 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
     <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="tabUsers" aria-selected="true">Schüler</button>
+      <button type="button" role="tab" id="tabCourse" aria-selected="false">Kurs-Freischaltung</button>
       <button type="button" role="tab" id="tabNews" aria-selected="false">News</button>
+    </div>
+    <div id="adminCourse" style="display:flex;flex-direction:column;gap:20px" hidden>
+      <div class="card">
+        <h2>Wann wird welches Modul freigeschaltet?</h2>
+        <p class="muted" style="font-size:14px;max-width:70ch">Die Regel gilt für alle Schüler. Tage zählen ab dem Start des Schülers, 1:1s zählen, sobald du die Session eingetragen hast. Einzelnen Schülern kannst du ein Modul auf ihrer Seite auch früher freischalten.</p>
+        <div id="dripRows"></div>
+        <p class="ok-msg" id="dripMsg" hidden></p>
+      </div>
     </div>
     <div id="adminNews" style="display:flex;flex-direction:column;gap:20px" hidden>
       <form class="card" id="newsForm" novalidate>
@@ -454,7 +479,21 @@ const pd=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const fmt=s=>{const d=pd(s);return d.getDate()+"."+(d.getMonth()+1)+"."};
 const secs=d=>{const [m,s]=d.split(":").map(Number);return m*60+s};
 const mmss=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
-const nextLesson=()=>ALL.find(l=>!done.has(l.id))||ALL[ALL.length-1];
+const TODAY="2026-11-08";
+const LOCK_SVG=`<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.5" fill="currentColor"/><path d="M3.3 6V4.2a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+const DRIP_DEFAULT=[{type:"now"},{type:"days",n:7},{type:"sessions",n:2},{type:"sessions",n:3},{type:"days",n:42},{type:"manual"}];
+let drip=store.get("pc-drip",DRIP_DEFAULT);
+const addDays=(iso,n)=>{const d=pd(iso);d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function access(u,mi){
+  const r=drip[mi];
+  if((u.manual||[]).includes(mi))return {ok:true,why:"Von dir freigeschaltet"};
+  if(r.type==="now")return {ok:true,why:"Sofort frei"};
+  if(r.type==="days"){const d=addDays(u.since,r.n);return d<=TODAY?{ok:true,why:`Frei seit ${fmt(d)}`}:{ok:false,why:`Ab ${fmt(d)}`,long:`Wird am ${fmt(d)} freigeschaltet.`}}
+  if(r.type==="sessions"){const k=u.sessions.length;return k>=r.n?{ok:true,why:`Frei nach ${r.n} 1:1s`}:{ok:false,why:`Nach dem ${r.n}. 1:1`,long:`Wird nach deinem ${r.n}. 1:1 freigeschaltet. Noch ${r.n-k} ${r.n-k===1?"Session":"Sessions"}.`}}
+  return {ok:false,why:"Schaltet dein Coach frei",long:"Dieses Modul schaltet dein Coach für dich frei."};
+}
+const openMod=mi=>access(me(),mi).ok;
+const nextLesson=()=>{const av=ALL.filter(l=>openMod(l.mi));return av.find(l=>!done.has(l.id))||av[av.length-1]||ALL[0]};
 function progressHTML(){const p=Math.round(done.size/ALL.length*100);
   return `<div class="progress-top"><span class="muted">${done.size} von ${ALL.length} Lektionen</span><b class="mono">${p}%</b></div><div class="track"><i style="width:${p}%"></i></div>`}
 function taskHTML(text,k,prefix){return `<div class="task"><input class="check" type="checkbox" id="${prefix}-${k}" data-hw="${k}" ${hw[k]?"checked":""}><label for="${prefix}-${k}">${esc(text)}</label></div>`}
@@ -462,6 +501,11 @@ function taskHTML(text,k,prefix){return `<div class="task"><input class="check" 
 /* Übersicht */
 function renderDash(){
   const n=nextLesson();
+  const caughtUp=done.has(n.id),lockedNext=MODULES.findIndex((_,mi)=>!openMod(mi));
+  if(caughtUp&&lockedNext>=0){
+    $("#resume").innerHTML=`<div class="lock-note" style="grid-column:1/-1">${LOCK_SVG}<span>Du hast alle freigeschalteten Lektionen geschafft. Modul ${lockedNext+1} „${esc(MODULES[lockedNext].title)}“: ${esc(access(me(),lockedNext).long)}</span></div>`;
+    $("#dashProgress").innerHTML=progressHTML();
+  } else {
   $("#resume").innerHTML=`<button class="thumb" type="button" data-go aria-label="Lektion öffnen"><span class="play"><span class="tri"></span></span></button>
     <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
       <span class="muted" style="font-size:13px">Modul ${n.mi+1} · ${esc(MODULES[n.mi].title)}</span>
@@ -471,6 +515,7 @@ function renderDash(){
     </div>`;
   $("#resume").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{selected=n.id;viewMod=n.mi;location.hash="kurs"});
   $("#dashProgress").innerHTML=progressHTML();
+  }
   const s=sortedBooked()[0];
   if(s){const d=pd(s.date);
     $("#dashNext").innerHTML=`<div class="date-row"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div>
@@ -490,18 +535,20 @@ const getL=id=>ALL.find(l=>l.id===id);
 function renderCourse(){
   const locked=!me().course;$("#courseLocked").hidden=!locked;$("#view-kurs .course").hidden=locked;$("#courseProgress").hidden=locked;
   $("#resume").closest(".card").hidden=locked;
-  if(!selected)selected=nextLesson().id;
+  if(!selected||!openMod(getL(selected).mi))selected=nextLesson().id;
   $("#courseProgress").innerHTML=progressHTML();
   const sel=getL(selected);if(viewMod==null)viewMod=sel.mi;
   $("#mods").innerHTML=MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>done.has(mi+"-"+li)).length;
-    return `<button type="button" class="modbtn ${mi===sel.mi?"here":""}" data-m="${mi}" aria-pressed="${mi===viewMod}"><span class="n"><span>Modul ${mi+1}</span><span class="mono">${dn}/${m.lessons.length}</span></span><b>${esc(m.title)}</b><span class="track"><i style="width:${dn/m.lessons.length*100}%"></i></span></button>`}).join("");
+    const a=access(me(),mi);
+    return `<button type="button" class="modbtn ${mi===sel.mi?"here":""} ${a.ok?"":"locked"}" data-m="${mi}" aria-pressed="${mi===viewMod}"><span class="n"><span>Modul ${mi+1}</span>${a.ok?`<span class="mono">${dn}/${m.lessons.length}</span>`:LOCK_SVG}</span><b>${esc(m.title)}</b>${a.ok?`<span class="track"><i style="width:${dn/m.lessons.length*100}%"></i></span>`:`<span class="why">${esc(a.why)}</span>`}</button>`}).join("");
   $("#mods").querySelectorAll(".modbtn").forEach(b=>b.onclick=()=>{viewMod=+b.dataset.m;renderCourse()});
-  const vm=MODULES[viewMod];
-  $("#where").innerHTML=`<h2>Modul ${viewMod+1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${viewMod===sel.mi?`Du bist bei Lektion ${sel.li+1} von ${vm.lessons.length}`:`Du bist gerade in Modul ${sel.mi+1}, Lektion ${sel.li+1}`}</span>`;
+  const vm=MODULES[viewMod],va=access(me(),viewMod);
+  $("#where").innerHTML=`<h2>Modul ${viewMod+1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${!va.ok?`<span class="lock-note" style="display:inline-flex;padding:6px 10px">${LOCK_SVG}${esc(va.long)}</span>`:viewMod===sel.mi?`Du bist bei Lektion ${sel.li+1} von ${vm.lessons.length}`:`Du bist gerade in Modul ${sel.mi+1}, Lektion ${sel.li+1}`}</span>`;
   $("#steps").innerHTML=vm.lessons.map((l,li)=>{const id=viewMod+"-"+li,act=id===selected;
+    if(!va.ok)return `<button type="button" class="step" disabled><span class="st">${LOCK_SVG}</span><span class="tx"><b>${esc(l.t)}</b><span class="mono">${l.d} min</span></span></button>`;
     return `<button type="button" class="step ${done.has(id)?"done":""} ${act?"active":""}" data-id="${id}" ${act?'aria-current="step"':""}><span class="st">${done.has(id)?"":li+1}</span><span class="tx"><b>${esc(l.t)}</b><span class="mono">${act?"Aktuell · ":""}${l.d} min</span></span></button>`}).join("");
-  $("#steps").querySelectorAll(".step").forEach(b=>b.onclick=()=>select(b.dataset.id));
-  const l=getL(selected),isDone=done.has(l.id),nxt=ALL[ALL.indexOf(l)+1];
+  $("#steps").querySelectorAll(".step:not(:disabled)").forEach(b=>b.onclick=()=>select(b.dataset.id));
+  const l=getL(selected),isDone=done.has(l.id);let nxt=ALL[ALL.indexOf(l)+1];if(nxt&&!openMod(nxt.mi))nxt=null;
   $("#lessonInfo").innerHTML=`<div class="lesson-head"><span class="muted" style="font-size:13px">Modul ${l.mi+1} · ${esc(MODULES[l.mi].title)}</span><h2>${esc(l.t)}</h2></div>
     <ul class="points">${l.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
     <div class="actions"><button class="btn ${isDone?"":"primary"}" type="button" id="toggleDone">${isDone?"✓ Erledigt":"Als erledigt markieren"}</button>${nxt?`<button class="btn" type="button" id="nextBtn">Nächste Lektion</button>`:""}</div>`;
@@ -575,6 +622,16 @@ function nextBookedFor(u){const b=[...bookedFor(u)].sort((x,y)=>(x.date+x.time).
 let adminTab="users",editNews=null,delArm=null;
 $("#tabUsers").onclick=()=>{adminTab="users";renderAdmin()};
 $("#tabNews").onclick=()=>{adminTab="news";renderAdmin()};
+$("#tabCourse").onclick=()=>{adminTab="course";renderAdmin()};
+function renderDrip(){
+  $("#dripRows").innerHTML=MODULES.map((m,mi)=>{const r=drip[mi];
+    return `<div class="drip-row"><span><b>${mi+1}. ${esc(m.title)}</b></span>
+      <select data-dt="${mi}" aria-label="Regel für Modul ${mi+1}"><option value="now" ${r.type==="now"?"selected":""}>Sofort</option><option value="days" ${r.type==="days"?"selected":""}>Nach Tagen ab Start</option><option value="sessions" ${r.type==="sessions"?"selected":""}>Nach Anzahl 1:1s</option><option value="manual" ${r.type==="manual"?"selected":""}>Manuell durch mich</option></select>
+      ${r.type==="days"||r.type==="sessions"?`<input type="number" min="1" max="365" value="${r.n}" data-dn="${mi}" aria-label="${r.type==="days"?"Tage":"Anzahl 1:1s"}">`:`<span></span>`}</div>`}).join("");
+  const saved=()=>{store.set("pc-drip",drip);const m=$("#dripMsg");m.hidden=false;m.textContent="Gespeichert. Gilt sofort für alle Schüler.";renderAll()};
+  $("#dripRows").querySelectorAll("select").forEach(el=>el.onchange=()=>{const mi=+el.dataset.dt,t=el.value;drip[mi]=t==="days"?{type:t,n:drip[mi].n||7}:t==="sessions"?{type:t,n:drip[mi].n||1}:{type:t};saved()});
+  $("#dripRows").querySelectorAll("input").forEach(el=>el.onchange=()=>{const v=parseInt(el.value,10);if(!(v>=1))return;drip[+el.dataset.dn].n=v;saved()});
+}
 function renderNewsAdmin(){
   $("#newsFormTitle").textContent=editNews!=null?"News bearbeiten":"News schreiben";
   $("#nwSubmit").textContent=editNews!=null?"Änderungen speichern":"Veröffentlichen";
@@ -597,9 +654,10 @@ $("#newsForm").onsubmit=e=>{e.preventDefault();
 $("#nwCancel").onclick=()=>{editNews=null;$("#newsForm").reset();renderNewsAdmin()};
 function renderAdmin(){
   $("#tabUsers").setAttribute("aria-selected",adminTab==="users");$("#tabNews").setAttribute("aria-selected",adminTab==="news");
-  $("#adminNews").hidden=adminTab!=="news";
-  renderNewsAdmin();
-  if(adminTab==="news"){$("#adminList").hidden=true;$("#adminDetail").hidden=true;return}
+  $("#tabCourse").setAttribute("aria-selected",adminTab==="course");
+  $("#adminNews").hidden=adminTab!=="news";$("#adminCourse").hidden=adminTab!=="course";
+  renderNewsAdmin();renderDrip();
+  if(adminTab!=="users"){$("#adminList").hidden=true;$("#adminDetail").hidden=true;return}
   $("#adminList").hidden=!!openUser;$("#adminDetail").hidden=!openUser;
   if(!openUser){
     $("#userRows").innerHTML=users.map(u=>{const p=Math.round(doneSetFor(u).size/ALL.length*100),l=leftFor(u);
@@ -624,6 +682,10 @@ function renderAdmin(){
         <div style="display:flex;flex-direction:column;gap:8px">${MODULES.map((m,mi)=>{const dn=m.lessons.filter((_,li)=>ds.has(mi+"-"+li)).length;return `<div class="mod-line"><span>${mi+1}. ${esc(m.title)}</span><div class="track"><i style="width:${dn/m.lessons.length*100}%"></i></div><span class="mono muted" style="font-size:12px;text-align:right">${dn}/${m.lessons.length}</span></div>`}).join("")}</div>`:`<p class="muted">Kein Zugang zum Videokurs.</p>`}
       </div>
     </div>
+    ${u.course?`<div class="card"><span class="label">Freischaltung der Module</span>
+      <div>${MODULES.map((m,mi)=>{const a=access(u,mi),man=(u.manual||[]).includes(mi);
+        return `<div class="unlock-row"><div><b>${mi+1}. ${esc(m.title)}</b><div class="st ${a.ok?"ok":""}">${a.ok?"Frei":LOCK_SVG+" Gesperrt"} · ${esc(a.why)}</div></div>
+        ${man?`<button class="btn small quiet" type="button" data-relock="${mi}">Wieder nach Regel</button>`:a.ok?"":`<button class="btn small" type="button" data-unlock="${mi}">Jetzt freischalten</button>`}</div>`}).join("")}</div></div>`:""}
     <form class="card" id="noteForm" novalidate>
       <h2>Session eintragen</h2>
       <p class="muted" style="font-size:14px">Nach einem 1:1: Notiz und Aufgaben eintragen. ${u.id==="lena"?"Lena sieht beides sofort unter 1:1s.":"Der Schüler sieht beides unter 1:1s."} Die Session zählt als genutzt.</p>
@@ -640,6 +702,8 @@ function renderAdmin(){
     <div style="display:flex;flex-direction:column;gap:16px">${bk.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b><span class="muted" style="font-size:13px">${s.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(s.topic)}</h3></article>`).join("")}
     ${u.sessions.length?u.sessions.map(s=>`<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.date)}</b></div><h3>${esc(s.topic)}</h3>${s.notes?`<p class="note">${esc(s.notes)}</p>`:""}${s.hw.length?`<ul class="points">${s.hw.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>`:""}</article>`).join(""):`<p class="muted">Noch keine Sessions.</p>`}</div>`;
   $("#backBtn").onclick=()=>{openUser=null;renderAdmin()};
+  $("#adminDetail").querySelectorAll("[data-unlock]").forEach(b=>b.onclick=()=>{u.manual=[...(u.manual||[]),+b.dataset.unlock];saveUsers();renderAll()});
+  $("#adminDetail").querySelectorAll("[data-relock]").forEach(b=>b.onclick=()=>{u.manual=(u.manual||[]).filter(x=>x!==+b.dataset.relock);saveUsers();renderAll()});
   const setPack=v=>{u.package=Math.max(u.sessions.length+bk.length,Math.min(50,v));saveUsers();renderAll()};
   $("#packMinus").onclick=()=>setPack(u.package-1);
   $("#packPlus").onclick=()=>setPack(u.package+1);
