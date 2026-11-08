@@ -1,3 +1,6 @@
+@font-face{font-family:"Archivo";font-style:normal;font-display:swap;font-weight:100 900;font-stretch:62% 125%;src:url(fonts/archivo-latin-wdth-normal.woff2) format("woff2-variations"),url(fonts/archivo-latin-wdth-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:400;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:600;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 /* Layout: schlichte Leiste oben, eine Spalte Inhalt; im Kurs Player links, Lektionsliste rechts */
 :root{
   color-scheme: dark;
@@ -287,3 +290,6 @@ a{color:var(--accent-hi)}
   .nav{order:3;flex-basis:100%}
   #logout{margin-left:auto}
 }
+.site-foot{max-width:1080px;margin:0 auto;padding-block:0 32px;display:flex;gap:16px;font-size:13px}
+.site-foot a{color:var(--muted)}
+.site-foot:empty{display:none}

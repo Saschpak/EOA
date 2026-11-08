@@ -7,6 +7,10 @@ window.CONFIG = {
   // Link zu deiner Calendly-Buchungsseite. Leer lassen, solange es keine gibt.
   calendlyUrl: "",
 
+  // Links zu Impressum und Datenschutzerklärung (z. B. auf saschpak.de)
+  impressumUrl: "",
+  datenschutzUrl: "",
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };

@@ -165,6 +165,12 @@ function renderAuth() {
   $("#app").innerHTML = `<div class="login-screen">${body}</div>`;
 }
 
+/* ---------- Fuß ---------- */
+function renderFoot() {
+  const links = [[CONFIG.impressumUrl, "Impressum"], [CONFIG.datenschutzUrl, "Datenschutz"]].filter(x => x[0]);
+  $("#foot").innerHTML = links.length ? links.map(([u, t]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`).join("") : "";
+}
+
 /* ---------- Kopf und Navigation ---------- */
 function renderChrome() {
   $("#bar").hidden = false;
@@ -175,6 +181,7 @@ function renderChrome() {
 }
 
 function render() {
+  renderFoot();
   if (!S.session || S.ui.recovery) return renderAuth();
   if (!S.me) {
     $("#bar").hidden = true;
@@ -184,7 +191,7 @@ function render() {
   if (!S.D) { $("#app").innerHTML = `<div class="loading">Lädt …</div>`; return; }
   if (S.view === "admin" && S.me.role !== "coach") S.view = "start";
   renderChrome();
-  const v = { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, admin: viewAdmin }[S.view] || viewStart;
+  const v = { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin }[S.view] || viewStart;
   $("#app").innerHTML = v();
   afterRender();
 }
@@ -307,6 +314,21 @@ function viewNews() {
   </section>`;
 }
 
+/* ---------- Konto ---------- */
+function viewKonto() {
+  const me = S.me;
+  return `<section class="view"><div class="intro"><h1>Mein Konto</h1><p class="muted">${esc(me.email)}</p></div>
+    <form class="card" data-f="myName" novalidate><h2>Name</h2>
+      <div class="field"><label class="label" for="myName">So spricht dich die Plattform an</label><input id="myName" name="name" type="text" autocomplete="name" value="${esc(me.full_name)}"></div>
+      <div class="actions"><button class="btn" type="submit">Speichern</button></div></form>
+    <form class="card" data-f="myPw" novalidate><h2>Passwort ändern</h2>
+      <div class="field"><label class="label" for="myPw">Neues Passwort (mindestens 8 Zeichen)</label><input id="myPw" name="pw" type="password" autocomplete="new-password" minlength="8"></div>
+      <div class="field"><label class="label" for="myPw2">Neues Passwort wiederholen</label><input id="myPw2" name="pw2" type="password" autocomplete="new-password" minlength="8"></div>
+      <div class="actions"><button class="btn" type="submit">Passwort ändern</button></div></form>
+    <div class="card"><h2>E-Mail-Adresse oder Konto löschen</h2><p class="muted" style="font-size:14px">Wenn du deine E-Mail-Adresse ändern oder dein Konto löschen möchtest, schreib bitte deinem Coach.</p></div>
+  </section>`;
+}
+
 /* ---------- Admin ---------- */
 const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
@@ -407,8 +429,18 @@ function adminUserDetail() {
       <div class="field"><label class="label" for="nHw">Aufgaben bis zum nächsten Mal (eine pro Zeile)</label><textarea id="nHw" name="tasks"></textarea></div>
       <div class="actions"><button class="btn primary" type="submit">Session speichern</button></div>
     </form>
+    <form class="card" data-f="booking" novalidate>
+      <h2>Termin eintragen</h2>
+      <p class="muted" style="font-size:14px">Für Termine, die ihr direkt ausgemacht habt. Der Schüler sieht den Termin unter 1:1s. Nach dem Termin trägst du oben die Session ein und löschst den Termin.</p>
+      <div class="form-grid">
+        <div class="field"><label class="label" for="bDate">Datum</label><input id="bDate" name="date" type="date" value="${today()}"></div>
+        <div class="field"><label class="label" for="bTime">Uhrzeit</label><input id="bTime" name="time" type="time" value="18:00"></div>
+      </div>
+      <div class="field"><label class="label" for="bTopic">Thema (optional)</label><input id="bTopic" name="topic" type="text"></div>
+      <div class="actions"><button class="btn primary" type="submit">Termin eintragen</button></div>
+    </form>
     <span class="label group-label">Sessions</span>
-    ${up.map(b => { const t = fmtTs(b.starts_at); return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(b.topic || "1:1")}</h3></article>`; }).join("")}
+    ${up.map(b => { const t = fmtTs(b.starts_at); return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span><span style="margin-left:auto">${confirmBtn("book:" + b.id, "Termin löschen", `data-a="delBooking" data-id="${b.id}"`)}</span></div><h3>${esc(b.topic || "1:1")}</h3></article>`; }).join("")}
     ${ss.length ? ss.map(s => `<article class="card session"><div class="session-meta"><b class="mono">${fmtY(s.held_on)}</b><span style="margin-left:auto">${confirmBtn("ses:" + s.id, "Löschen", `data-a="delSession" data-id="${s.id}"`)}</span></div><h3>${esc(s.topic)}</h3>${s.notes ? `<p class="note" style="white-space:pre-line">${esc(s.notes)}</p>` : ""}${s.session_tasks.length ? `<ul class="points">${s.session_tasks.map(t => `<li>${t.done ? "✓ " : ""}${esc(t.body)}</li>`).join("")}</ul>` : ""}</article>`).join("") : `<p class="empty">Noch keine Sessions.</p>`}
     <form class="card" data-f="editUser" novalidate><h2>Name ändern</h2>
       <div class="field"><label class="label" for="euName">Name</label><input id="euName" name="name" type="text" value="${esc(p.full_name)}"></div>
@@ -506,6 +538,7 @@ const A = {
   },
   unlock: async el => { await run(sb.from("module_unlocks").insert({ user_id: S.ui.user, module_id: el.dataset.id }), "Modul freigeschaltet."); reload(); },
   relock: async el => { await run(sb.from("module_unlocks").delete().eq("user_id", S.ui.user).eq("module_id", el.dataset.id)); reload(); },
+  delBooking: async el => { await run(sb.from("bookings").delete().eq("id", el.dataset.id), "Termin gelöscht."); S.ui.confirm = null; reload(); },
   delSession: async el => { await run(sb.from("sessions").delete().eq("id", el.dataset.id), "Session gelöscht."); S.ui.confirm = null; reload(); },
   delUser: async el => {
     const r = await run(sb.from("profiles").delete().eq("id", el.dataset.id), "Schüler entfernt. Das Login-Konto löschst du in Supabase unter Authentication → Users.");
@@ -530,6 +563,26 @@ const A = {
 };
 
 const F = {
+  myName: async f => {
+    const name = f.name.value.trim();
+    if (!name) return toast("Bitte gib einen Namen ein.", true);
+    await run(sb.rpc("set_my_name", { p_name: name }), "Gespeichert."); reload();
+  },
+  myPw: async f => {
+    const pw = f.pw.value, pw2 = f.pw2.value;
+    if (pw.length < 8) return toast("Das Passwort muss mindestens 8 Zeichen haben.", true);
+    if (pw !== pw2) return toast("Die beiden Passwörter stimmen nicht überein.", true);
+    const r = await run(sb.auth.updateUser({ password: pw }), "Neues Passwort gespeichert.");
+    if (r) f.reset();
+  },
+  booking: async f => {
+    const date = f.date.value, time = f.time.value, topic = f.topic.value.trim();
+    if (!date || !time) return toast("Bitte Datum und Uhrzeit angeben.", true);
+    const p = S.D.profiles.find(x => x.id === S.ui.user);
+    if (leftFor(p) <= 0) return toast("Das Paket ist aufgebraucht. Erhöhe zuerst die Zahl der Sessions.", true);
+    const starts_at = new Date(date + "T" + time).toISOString();
+    await run(sb.from("bookings").insert({ user_id: S.ui.user, starts_at, topic }), "Termin eingetragen."); reload();
+  },
   login: async f => {
     const email = f.email.value.trim(), password = f.pw.value;
     if (!email || !password) return toast("Bitte E-Mail und Passwort eingeben.", true);
@@ -665,7 +718,7 @@ document.addEventListener("change", async e => {
 $("#logout").addEventListener("click", () => A.logout());
 
 /* ---------- Navigation ---------- */
-const VIEWS = ["start", "kurs", "sessions", "news", "admin"];
+const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
