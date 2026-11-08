@@ -318,3 +318,8 @@ a{color:var(--accent-hi)}
 .consent .check{margin-top:2px!important}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent-hi);cursor:pointer;font:inherit;text-decoration:underline}
+.eb{display:flex;gap:10px;align-items:flex-start;font-size:14px;border-top:1px solid var(--line);padding-top:10px}
+.eb.off{color:var(--muted)}
+.eb-tag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:2px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.eb.off .eb-tag{background:var(--track);color:var(--muted)}
+.wl-card .eb{border-top:0;padding-top:0}

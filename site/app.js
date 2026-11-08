@@ -153,6 +153,15 @@ function spotsMeter() {
     <span class="muted mono" style="font-size:12px">${taken} von ${n} Plätzen vergeben</span>`;
 }
 
+function earlyBirdLine() {
+  const st = S.wl && S.wl.stats;
+  if (!st || st.early_bird_slots == null || !CONFIG.earlyBirdBonus) return "";
+  const left = st.early_bird_left, n = st.early_bird_slots;
+  return left > 0
+    ? `<div class="eb"><span class="eb-tag">Early-Bird</span><span>Die ersten ${n} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu. <b>Noch ${left} ${left === 1 ? "Platz" : "Plätze"} frei.</b></span></div>`
+    : `<div class="eb off"><span class="eb-tag">Early-Bird</span><span>Alle Early-Bird-Plätze sind vergeben.</span></div>`;
+}
+
 function renderLanding() {
   $("#bar").hidden = true;
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
@@ -161,6 +170,7 @@ function renderLanding() {
   let box;
   if (me && me.status === "waiting") box = `<div class="card wl-card" id="wlBox"><span class="label">Deine Warteliste</span>
       <div class="place"><span class="muted">Platz</span><b class="mono">${me.position}</b></div>
+      ${me.early_bird && CONFIG.earlyBirdBonus ? `<div class="eb"><span class="eb-tag">Early-Bird</span><span>Du hast dir einen Early-Bird-Platz gesichert: ${esc(CONFIG.earlyBirdBonus)} gibt's obendrauf.</span></div>` : ""}
       <p>Hey ${esc(firstName(me.name))}, du stehst auf der Warteliste. Wenn ein Platz für dich frei wird, melde ich mich per Mail.</p>
       <p class="muted" style="font-size:13px">Unter diesem Link siehst du jederzeit deinen aktuellen Platz:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn small" type="button" data-a="copyPlace">Link kopieren</button></div></div>`;
@@ -183,7 +193,7 @@ function renderLanding() {
         <span class="label" style="color:var(--accent-hi)">Erste Runde · Nur ${CONFIG.waitlistSpots} Plätze</span>
         <h1 class="hero">Playback, Click und Cues, die auf der Bühne einfach laufen.</h1>
         <p class="lead">1:1-Coaching und Videokurs für Bands und Artists, die mit Ableton Live und AbleSet live spielen. Vom ersten Rig bis zur Show.</p>
-        <div class="card" style="gap:10px"><span class="label">Erste Runde</span>${spotsMeter()}${count}<p class="muted" style="font-size:14px">${esc(CONFIG.launchText)} Die Plätze vergebe ich in der Reihenfolge der Warteliste.</p></div>
+        <div class="card" style="gap:10px"><span class="label">Erste Runde</span>${spotsMeter()}${count}${earlyBirdLine()}<p class="muted" style="font-size:14px">${esc(CONFIG.launchText)} Die Plätze vergebe ich in der Reihenfolge der Warteliste.</p></div>
         <ul class="perks">
           <li><b>1:1-Sessions</b><span>Wir bauen dein Rig gemeinsam auf und lösen genau deine Probleme.</span></li>
           <li><b>Videokurs</b><span>Von Stems und Click über In-Ear-Routing bis AbleSet und Showtag, Schritt für Schritt.</span></li>
@@ -437,13 +447,13 @@ function adminWaitlist() {
   const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Platz im Playback Coaching")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Platz im Playback Coaching ist frei! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
   return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Plätze in der ersten Runde</span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
-      ${li ? `<div class="notice">${esc(li.name)} ist eingeladen. Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
+      ${li ? `<div class="notice">${esc(li.name)} ist eingeladen.${li.early ? ` <b>Early-Bird:</b> ${CONFIG.earlyBirdExtraSessions ? `${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket.` : `denk an ${esc(CONFIG.earlyBirdBonus)}.`}` : ""} Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
     </div>
-    ${waiting.length ? waiting.map((w, i) => `<article class="card" style="gap:8px"><div class="session-meta"><b class="mono" style="font-size:18px">#${i + 1}</b><b>${esc(w.full_name)}</b><span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+    ${waiting.length ? waiting.map((w, i) => `<article class="card" style="gap:8px"><div class="session-meta"><b class="mono" style="font-size:18px">#${i + 1}</b><b>${esc(w.full_name)}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
       ${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
       <div class="actions" style="align-items:center"><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>${confirmBtn("wl:" + w.id, "Entfernen", `data-a="wlRemove" data-id="${w.id}"`)}</div></article>`).join("")
       : `<p class="empty">Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier.</p>`}
-    ${invited.length ? `<span class="label group-label">Eingeladen</span><div class="card">${invited.map(w => `<div class="todo"><div class="what"><span><b>${esc(w.full_name)}</b> · ${esc(w.email)}</span></div><span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span></div>`).join("")}</div>` : ""}`;
+    ${invited.length ? `<span class="label group-label">Eingeladen</span><div class="card">${invited.map(w => `<div class="todo"><div class="what"><span><b>${esc(w.full_name)}</b> · ${esc(w.email)}${w.early_bird ? ' <span class="eb-tag">Early-Bird</span>' : ""}</span></div><span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span></div>`).join("")}</div>` : ""}`;
 }
 
 function adminUsers() {
@@ -627,13 +637,14 @@ const A = {
   unlock: async el => { await run(sb.from("module_unlocks").insert({ user_id: S.ui.user, module_id: el.dataset.id }), "Modul freigeschaltet."); reload(); },
   relock: async el => { await run(sb.from("module_unlocks").delete().eq("user_id", S.ui.user).eq("module_id", el.dataset.id)); reload(); },
   wlInvite: async el => {
-    const w = S.D.waitlist.find(x => x.id === el.dataset.id), pack = S.ui.wlPack == null ? 4 : S.ui.wlPack;
+    const w = S.D.waitlist.find(x => x.id === el.dataset.id);
+    const pack = (S.ui.wlPack == null ? 4 : S.ui.wlPack) + (w.early_bird ? (CONFIG.earlyBirdExtraSessions || 0) : 0);
     if (!S.D.profiles.some(p => p.email.toLowerCase() === w.email)) {
       const r = await run(sb.from("invites").upsert({ email: w.email, full_name: w.full_name, package_total: pack, course_access: true }));
       if (!r) return;
     }
     const r2 = await run(sb.from("waitlist").update({ status: "invited" }).eq("id", w.id), w.full_name + " ist eingeladen.");
-    if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email };
+    if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email, early: w.early_bird };
     reload();
   },
   wlRemove: async el => { await run(sb.from("waitlist").update({ status: "removed" }).eq("id", el.dataset.id), "Von der Warteliste entfernt."); S.ui.confirm = null; reload(); },
@@ -676,7 +687,7 @@ const F = {
       return;
     }
     wlSet(d.token); S.ui.wlToken = d.token;
-    await loadLanding(); render(); toast("Du bist auf Platz " + d.position + ".");
+    await loadLanding(); render(); toast("Du bist auf Platz " + d.position + "." + (d.early_bird ? " Early-Bird gesichert!" : ""));
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
   },
   myName: async f => {
