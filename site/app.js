@@ -447,18 +447,34 @@ function adminHome() {
 }
 
 function adminWaitlist() {
-  const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited");
+  const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited"), removed = all.filter(w => w.status === "removed");
   const li = S.ui.lastInvite;
   const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Platz im Playback Coaching")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Platz im Playback Coaching ist frei! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
+  const del = w => confirmBtn("wldel:" + w.id, "Löschen", `data-a="wlDelete" data-id="${w.id}"`);
+  const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
+      <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
+      <div class="field"><label class="label" for="we-e-${w.id}">E-Mail</label><input id="we-e-${w.id}" name="email" type="email" value="${esc(w.email)}"></div></div>
+      <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
+      <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
+      <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
+  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(w.full_name)}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+      ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
+      <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : `<span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span>`}
+        <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
   return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Plätze in der ersten Runde</span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
+      <div><button class="btn small" type="button" data-a="wlAddOpen">${S.ui.wlAdd ? "Formular schließen" : "Person hinzufügen"}</button></div>
+      ${S.ui.wlAdd ? `<form data-f="wlAdd" novalidate style="display:flex;flex-direction:column;gap:10px">
+        <div class="form-grid"><div class="field"><label class="label" for="wa-n">Name</label><input id="wa-n" name="name" type="text"></div>
+        <div class="field"><label class="label" for="wa-e">E-Mail</label><input id="wa-e" name="email" type="email"></div></div>
+        <div class="field"><label class="label" for="wa-t">Nachricht (optional)</label><textarea id="wa-t" name="note"></textarea></div>
+        <p class="muted" style="font-size:13px">Die Person kommt ans Ende der Warteliste. Trag nur Leute ein, die zugestimmt haben, auf die Liste zu kommen.</p>
+        <div class="actions"><button class="btn primary small" type="submit">Hinzufügen</button></div></form>` : ""}
       ${li ? `<div class="notice">${esc(li.name)} ist eingeladen.${li.early ? ` <b>Early-Bird:</b> ${CONFIG.earlyBirdExtraSessions ? `${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket.` : `denk an ${esc(CONFIG.earlyBirdBonus)}.`}` : ""} Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
     </div>
-    ${waiting.length ? waiting.map((w, i) => `<article class="card" style="gap:8px"><div class="session-meta"><b class="mono" style="font-size:18px">#${i + 1}</b><b>${esc(w.full_name)}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
-      ${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
-      <div class="actions" style="align-items:center"><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>${confirmBtn("wl:" + w.id, "Entfernen", `data-a="wlRemove" data-id="${w.id}"`)}</div></article>`).join("")
-      : `<p class="empty">Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier.</p>`}
-    ${invited.length ? `<span class="label group-label">Eingeladen</span><div class="card">${invited.map(w => `<div class="todo"><div class="what"><span><b>${esc(w.full_name)}</b> · ${esc(w.email)}${w.early_bird ? ' <span class="eb-tag">Early-Bird</span>' : ""}</span></div><span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span></div>`).join("")}</div>` : ""}`;
+    ${waiting.length ? waiting.map((w, i) => row(w, i)).join("") : `<p class="empty">Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier.</p>`}
+    ${invited.length ? `<span class="label group-label">Eingeladen</span>${invited.map(w => row(w)).join("")}` : ""}
+    ${removed.length ? `<span class="label group-label">Von der Liste genommen</span>${removed.map(w => row(w)).join("")}` : ""}`;
 }
 
 function adminUsers() {
@@ -652,7 +668,13 @@ const A = {
     if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email, early: w.early_bird };
     reload();
   },
-  wlRemove: async el => { await run(sb.from("waitlist").update({ status: "removed" }).eq("id", el.dataset.id), "Von der Warteliste entfernt."); S.ui.confirm = null; reload(); },
+  wlDelete: async el => {
+    const r = await run(sb.from("waitlist").delete().eq("id", el.dataset.id), "Endgültig gelöscht.");
+    S.ui.confirm = null; if (r && S.ui.wlEdit === el.dataset.id) S.ui.wlEdit = null; reload();
+  },
+  wlRestore: async el => { await run(sb.from("waitlist").update({ status: "waiting" }).eq("id", el.dataset.id), "Wieder auf der Warteliste."); reload(); },
+  wlEditOpen: el => { S.ui.wlEdit = el.dataset.id || null; S.ui.confirm = null; render(); },
+  wlAddOpen: () => { S.ui.wlAdd = !S.ui.wlAdd; render(); },
   delBooking: async el => { await run(sb.from("bookings").delete().eq("id", el.dataset.id), "Termin gelöscht."); S.ui.confirm = null; reload(); },
   delSession: async el => { await run(sb.from("sessions").delete().eq("id", el.dataset.id), "Session gelöscht."); S.ui.confirm = null; reload(); },
   delUser: async el => {
@@ -678,6 +700,21 @@ const A = {
 };
 
 const F = {
+  wlEdit: async f => {
+    const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
+    if (!name) return toast("Bitte gib einen Namen ein.", true);
+    if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
+    const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked }).eq("id", f.dataset.id), "Gespeichert.");
+    if (r) { S.ui.wlEdit = null; reload(); }
+  },
+  wlAdd: async f => {
+    const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
+    if (!name) return toast("Bitte gib einen Namen ein.", true);
+    if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
+    if ((S.D.waitlist || []).some(w => w.email === email)) return toast("Diese E-Mail-Adresse steht schon auf der Warteliste.", true);
+    const r = await run(sb.from("waitlist").insert({ full_name: name, email, note: f.note.value.trim() }), name + " steht jetzt auf der Warteliste.");
+    if (r) { S.ui.wlAdd = false; reload(); }
+  },
   waitlist: async f => {
     if (f.website.value) return; // Spam-Schutz
     const name = f.name.value.trim(), email = f.email.value.trim();
