@@ -14,7 +14,7 @@ window.CONFIG = {
   // Warteliste auf der Startseite
   waitlistSpots: 10,          // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
-  launchText: "Die erste Runde startet im Dezember.",
+  launchText: "Die erste Runde startet im Januar.",
   earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 5 bekommen
   earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
