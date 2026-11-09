@@ -10,6 +10,7 @@ Dieses Repo enthält zwei Dinge:
 - `site/index.html`, `site/app.js`, `site/styles.css`: statische Single-Page-App ohne Build-Schritt. `supabase-js` liegt unter `site/vendor/`, Schriften (Archivo, JetBrains Mono, OFL) unter `site/fonts/`.
 - `site/config.js`: **alle Inhalte und Einstellungen der Startseite** (Preis, Paket, Plätze, Early-Bird, Kurs-Übersicht, „Kennst du das?“, Über mich, Stimmen, FAQ, Geschenk-PDF, Calendly-Links, Impressum- und Datenschutz-Links). Texte bevorzugt hier ändern, nicht in `app.js`.
 - `supabase/migrations/`: Datenbankschema. Die Supabase-GitHub-Integration spielt neue Dateien beim Merge auf `main` automatisch ins Produktionsprojekt ein. Eingespielte Migrationen nie ändern, immer eine neue Datei mit Zeitstempel anlegen.
+- Wartelisten-Mails (Migration `20261109160000_waitlist_mail.sql`): Versand über Resend direkt aus der Datenbank (pg_net, Batch-API), Schlüssel im Supabase Vault als `resend_api_key` (nie ins Repo). Absender `masterclass@saschpak.de`, Antworten an info@saschpak.de (in `mail_config()`). Double-Opt-in (`#bestaetigen-<token>`), Abmelden (`#abmelden-<token>`), Info an den Coach bei jedem Eintrag, Einladungs-Mail beim „Einladen“, Rundmail und Mail-Protokoll im Admin. In Mails immer „Nr. X auf der Warteliste“ von den „Teilnehmerplätzen“ trennen.
 - `supabase/email-vorlagen/`: deutsche Auth-Mail-Texte zum Einfügen im Supabase-Dashboard.
 - `site/impressum.html`, `site/datenschutz.html`: Impressum (Sascha Pakai, § 5 DDG, keine Steuernummer veröffentlichen) und Datenschutzerklärung, verlinkt über `impressumUrl`/`datenschutzUrl`. Bei neuen Diensten (Bunny, Calendly, Resend, Stripe) die Datenschutzerklärung ergänzen.
 - `plattform/prototyp.html`: alter Klick-Prototyp, nur zur Referenz.
@@ -41,7 +42,7 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 
 - Impressum und Datenschutz sind online (Stand November 2026). Der Coach muss die Auftragsverarbeitungsverträge mit Netlify und Supabase noch abschließen.
 - Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
-- Eigener Mail-Versand (Resend als SMTP in Supabase) und deutsche Mail-Vorlagen einrichten.
+- Wartelisten-Mails laufen über Resend (Domain saschpak.de verifiziert). Noch offen: Resend auch als SMTP für die Konto-Mails in Supabase eintragen und die deutschen Vorlagen einfügen; AV-Vertrag mit Resend.
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
 - Intro-Video (`site/media/intro.mp4`, Website-Schnitt ohne Plätze-Angabe und ohne Instagram-Aufruf) und Stichpunkte über Sascha sind drin. Noch offen: Stimmen, Geschenk-PDF (Ableton-Shortcuts), Bild für `heroImage`. Vorschau mit Platzhaltern unter `#vorschau`.
 - Kontra K und Oliver Tree bewusst NICHT nennen (Wunsch des Coachs). Simon Will ist drin, den Woodwalkers-2-Soundtrack bewusst nicht erwähnen (Wunsch des Coachs). „Toni“-Tour noch unbestätigt.

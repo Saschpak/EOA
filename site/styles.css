@@ -246,6 +246,10 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
 .news-admin{gap:6px}
 .news-admin p{color:var(--muted);max-width:70ch;white-space:pre-line}
 .eb-tag{flex:none;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:5px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.ok-tag,.muted-tag,.err-tag{flex:none;font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap;line-height:1.4}
+.ok-tag{color:var(--ok)}.muted-tag{color:var(--muted)}.err-tag{color:var(--danger)}
+.confirm-hint{background:var(--accent-soft);border-radius:var(--r);padding:10px 12px;font-size:15px}
+.mail-check{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line-2);border-radius:var(--r);padding:14px}
 .back{align-self:flex-start}
 .chart-wrap{position:relative;padding-top:40px}
 .chart{width:100%;height:auto;display:block;overflow:visible}
