@@ -20,7 +20,7 @@ Wenn sich am Kurs oder am Angebot etwas ändert (Module, Lektionen, Paketinhalt,
 
 - `courseModules`, `courseIntro`, `courseFinale`: Kurs-Übersicht „Der Kurs: vom leeren Projekt bis auf die Bühne“ (Modul + kurze Beschreibung). Muss zu den Modulen im Admin passen.
 - `heroImage`: optionales Bild rechts neben der Überschrift (z. B. Screenshot des eigenen Sets oder Bühnenfoto)
-- `packageItems`, `priceHeadline`, `priceDetail`: Paket und Preis
+- `packageItems`, `priceHeadline`, `priceDetail`: Paket und Preis. Alle Preise sind Bruttopreise inkl. 19 % MwSt. (Coach hat eine USt-ID)
 - `earlyBirdPriceHeadline`, `earlyBirdPriceWas`, `earlyBirdDeal`, `earlyBirdMonthly`: Early-Bird-Preis (durchgestrichen), sichtbar solange Early-Bird-Plätze frei sind. Der Early-Bird gilt für die ersten Buchungen: Er wird beim „Einladen“ im Admin (Zusage nach dem Kennenlerngespräch) vergeben, nicht beim Eintragen auf die Warteliste
 - `faq`: besonders „Welche Ausstattung brauche ich?“, „Brauche ich AbleSet?“, „Wie läuft die Bezahlung?“
 - `painPoints` und die drei Bausteine in `renderLanding()` in `app.js`
