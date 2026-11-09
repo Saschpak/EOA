@@ -81,7 +81,7 @@ window.CONFIG = {
 
   // Geschenk nach dem Eintragen. Erscheint erst, wenn giftFile gesetzt ist.
   giftTitle: "Meine Ableton-Shortcuts als PDF",
-  giftFile: "",        // z. B. "downloads/ableton-shortcuts.pdf" (Datei in site/downloads/ ablegen)
+  giftFile: "downloads/ableton-shortcuts.pdf", // Quelle zum Bearbeiten: plattform/geschenk/ableton-shortcuts.html
 
   // Häufige Fragen
   faq: [

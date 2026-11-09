@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Ableton-Shortcuts für die Bühne</title>
+<!-- Quelle für site/downloads/ableton-shortcuts.pdf. PDF neu erzeugen: in Chromium als A4 drucken (printBackground). -->
+<style>
+@font-face{font-family:"Archivo";font-weight:100 900;font-stretch:62% 125%;src:url(../../site/fonts/archivo-latin-wdth-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;src:url(../../site/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@page{size:A4;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--fg:#1d1d1f;--muted:#6e6e73;--line:#e3e3e8;--accent:#d9480f;--soft:#fdf0ea}
+html,body{background:#fff}
+body{font-family:"Archivo",system-ui,sans-serif;color:var(--fg);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;padding:17mm 18mm 14mm;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:8px;font-weight:750;font-stretch:85%;font-size:12.5px}
+.mark{display:inline-flex;align-items:flex-end;gap:2px;height:13px}
+.mark i{display:block;width:3px;background:var(--accent);border-radius:1px}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);letter-spacing:.02em;margin-top:22px}
+h1{font-size:46px;font-weight:800;font-stretch:72%;line-height:.98;letter-spacing:-.015em;margin-top:8px}
+h1 span{color:var(--accent)}
+.lead{font-size:13.5px;color:var(--muted);line-height:1.5;margin-top:12px;max-width:34em}
+section{margin-top:22px}
+h2{font-size:17px;font-weight:780;font-stretch:80%;letter-spacing:-.005em;display:flex;align-items:baseline;gap:10px}
+h2 .n{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:400;color:var(--accent)}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:5px;max-width:40em}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+th{font-size:10px;font-weight:600;color:var(--muted);text-align:left;padding:0 0 6px;border-bottom:1px solid var(--fg)}
+td{padding:7.5px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+th:first-child,td:first-child{width:46%}
+th:nth-child(2),td:nth-child(2){width:27%}
+td:first-child{font-weight:620}
+td small{display:block;font-weight:400;color:var(--muted);font-size:10.5px;margin-top:1px}
+kbd{font-family:"JetBrains Mono",monospace;font-size:10.5px;display:inline-block;min-width:20px;text-align:center;padding:2px 6px 1px;border:1px solid #cfcfd6;border-bottom-width:2px;border-radius:5px;background:#fff;color:var(--fg)}
+.plus{color:var(--muted);font-size:10px;margin:0 3px}
+section.magic{margin-bottom:16px;background:var(--soft);border-radius:10px;padding:14px 16px 6px;margin-left:-16px;margin-right:-16px}
+section.magic td{border-bottom-color:rgba(217,72,15,.15)}
+section.magic tr:last-child td{border-bottom:0}
+.foot{margin-top:auto;margin-bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.foot b{color:var(--fg);font-weight:650}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand"><span class="mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</div>
+  <p class="eyebrow">von Saschpak · Ableton Live 12</p>
+  <h1>Ableton-Shortcuts<br><span>für die Bühne.</span></h1>
+  <p class="lead">Die Tastenkürzel, die ich beim Bauen meiner Live-Sets ständig benutze. Für Mac und Windows. Druck dir die Seite aus oder leg sie neben deinen Laptop.</p>
+
+  <section>
+    <h2><span class="n">01</span>Playback &amp; Navigation</h2>
+    <table>
+      <thead><tr><th>Funktion</th><th>Mac</th><th>Windows</th></tr></thead>
+      <tbody>
+        <tr><td>Play / Stop</td><td><kbd>Leertaste</kbd></td><td><kbd>Leertaste</kbd></td></tr>
+        <tr><td>Metronom an/aus</td><td><kbd>O</kbd></td><td><kbd>O</kbd></td></tr>
+        <tr><td>Loop an/aus<small>Setzt den Loop auf die Auswahl</small></td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>L</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>L</kbd></td></tr>
+        <tr><td>Session ↔ Arrangement</td><td><kbd>Tab</kbd></td><td><kbd>Tab</kbd></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>Projekt &amp; Bearbeitung</h2>
+    <table>
+      <thead><tr><th>Funktion</th><th>Mac</th><th>Windows</th></tr></thead>
+      <tbody>
+        <tr><td>Rückgängig</td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>Z</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Z</kbd></td></tr>
+        <tr><td>Speichern</td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>S</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>S</kbd></td></tr>
+        <tr><td>Speichern unter</td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Cmd</kbd><span class="plus">+</span><kbd>S</kbd></td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Ctrl</kbd><span class="plus">+</span><kbd>S</kbd></td></tr>
+        <tr><td>Umbenennen</td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>R</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>R</kbd></td></tr>
+        <tr><td>Leeren MIDI-Clip erstellen</td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Cmd</kbd><span class="plus">+</span><kbd>M</kbd></td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Ctrl</kbd><span class="plus">+</span><kbd>M</kbd></td></tr>
+        <tr><td>Quantisieren</td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>U</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>U</kbd></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="magic">
+    <h2><span class="n">03</span>Magic: Zeit bearbeiten</h2>
+    <p class="note">Wirkt auf alle Spuren gleichzeitig. Damit verlängerst, kürzt oder verdoppelst du ganze Songteile, ohne dass Click, Stems und Automation auseinanderlaufen.</p>
+    <table>
+      <thead><tr><th>Funktion</th><th>Mac</th><th>Windows</th></tr></thead>
+      <tbody>
+        <tr><td>Zeit einfügen</td><td><kbd>Cmd</kbd><span class="plus">+</span><kbd>I</kbd></td><td><kbd>Ctrl</kbd><span class="plus">+</span><kbd>I</kbd></td></tr>
+        <tr><td>Zeit ausschneiden</td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Cmd</kbd><span class="plus">+</span><kbd>X</kbd></td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Ctrl</kbd><span class="plus">+</span><kbd>X</kbd></td></tr>
+        <tr><td>Zeit duplizieren</td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Cmd</kbd><span class="plus">+</span><kbd>D</kbd></td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Ctrl</kbd><span class="plus">+</span><kbd>D</kbd></td></tr>
+        <tr><td>Zeit löschen</td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Cmd</kbd><span class="plus">+</span><kbd>Delete</kbd></td><td><kbd>Shift</kbd><span class="plus">+</span><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Entf</kbd></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="foot">
+    <span><b>Sascha · Playback Masterclass</b><br>coaching.saschpak.de</span>
+    <span style="text-align:right">Stand: November 2026 · Ableton Live 12<br>Das Metronom-Kürzel O gibt es ab Live 12.</span>
+  </div>
+</div>
+</body>
+</html>
