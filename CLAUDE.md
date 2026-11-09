@@ -42,7 +42,7 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 
 - Impressum und Datenschutz sind online (Stand November 2026). Der Coach muss die Auftragsverarbeitungsverträge mit Netlify und Supabase noch abschließen.
 - Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
-- Wartelisten-Mails laufen über Resend (Domain saschpak.de verifiziert). Noch offen: Resend auch als SMTP für die Konto-Mails in Supabase eintragen und die deutschen Vorlagen einfügen; AV-Vertrag mit Resend.
+- Wartelisten-Mails laufen über Resend (Domain saschpak.de verifiziert). Noch offen: Resend auch als SMTP für die Konto-Mails in Supabase eintragen und die deutschen Vorlagen einfügen. AV-Vertrag mit Resend ist unterschrieben (November 2026).
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
 - Intro-Video (`site/media/intro.mp4`, Website-Schnitt ohne Plätze-Angabe und ohne Instagram-Aufruf) und Stichpunkte über Sascha sind drin. Noch offen: Stimmen, Geschenk-PDF (Ableton-Shortcuts), Bild für `heroImage`. Vorschau mit Platzhaltern unter `#vorschau`.
 - Kontra K und Oliver Tree bewusst NICHT nennen (Wunsch des Coachs). Simon Will ist drin, den Woodwalkers-2-Soundtrack bewusst nicht erwähnen (Wunsch des Coachs). „Toni“-Tour noch unbestätigt.
