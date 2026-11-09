@@ -12,10 +12,10 @@ window.CONFIG = {
   datenschutzUrl: "",
 
   // Warteliste auf der Startseite
-  waitlistSpots: 10,          // Plätze in der ersten Runde
+  waitlistSpots: 6,           // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
   launchText: "Die erste Runde startet im Januar.",
-  earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 5 bekommen
+  earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 3 bekommen (Anzahl steht in der Datenbank)
   earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
   // Kennenlerngespräch nach dem Eintragen (Calendly-Link). Leer lassen, solange es keinen gibt.

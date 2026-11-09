@@ -22,7 +22,7 @@ Wenn sich am Kurs oder am Angebot etwas ändert (Module, Lektionen, Paketinhalt,
 - `packageItems`, `priceHeadline`, `priceDetail`: Paket und Preis
 - `faq`: besonders „Welche Ausstattung brauche ich?“, „Brauche ich AbleSet?“, „Wie läuft die Bezahlung?“
 - `painPoints` und die drei Bausteine in `renderLanding()` in `app.js`
-- `launchText`, `waitlistSpots`, `earlyBirdBonus`, `earlyBirdExtraSessions`
+- `launchText`, `waitlistSpots`, `earlyBirdBonus`, `earlyBirdExtraSessions` (die Anzahl der Early-Birds steht in der Datenbankfunktion `waitlist_early_bird_slots`, Änderung nur per neuer Migration)
 - Datenschutz-Entwurf, falls neue Dienste dazukommen (z. B. Bunny, Calendly, Resend, Stripe)
 
 Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Bereich der Plattform. Sie liegen in der Datenbank, nicht im Code.
