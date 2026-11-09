@@ -35,6 +35,37 @@ window.CONFIG = {
   // Die Setlist auf der Startseite (Stationen des Kurses)
   setlist: ["Rig aufbauen", "Stems & Session", "Click & Cues", "In-Ear-Routing", "AbleSet", "Showtag"],
 
+  // "Kennst du das?" auf der Startseite
+  painPoints: [
+    "Der Click läuft mitten im Song weg, und keiner merkt es rechtzeitig.",
+    "Der Laptop hängt, und die ganze Band schaut zu dir rüber.",
+    "Vor jeder Show baust du dein Set neu zusammen, weil keiner mehr weiß, wie es ging.",
+    "Im In-Ear hörst du alles, nur nicht das, was du brauchst."
+  ],
+
+  // Über dich. Der Abschnitt erscheint, sobald videoUrl, photoUrl oder aboutPoints gefüllt sind.
+  aboutTitle: "Hi, ich bin Sascha.",
+  videoUrl: "",        // z. B. "media/intro.mp4" (Datei in site/media/ ablegen)
+  photoUrl: "",        // z. B. "media/sascha.jpg" (dient auch als Vorschaubild fürs Video)
+  aboutPoints: [],     // z. B. ["Seit 10 Jahren live mit Ableton unterwegs", "Playback für …"]
+
+  // Stimmen von Teilnehmern. Erscheinen erst, wenn hier Einträge stehen.
+  testimonials: [],    // z. B. [{ quote: "…", name: "Lena", role: "Keys, Bandname" }]
+
+  // Geschenk nach dem Eintragen. Erscheint erst, wenn giftFile gesetzt ist.
+  giftTitle: "Meine Ableton-Shortcuts als PDF",
+  giftFile: "",        // z. B. "downloads/ableton-shortcuts.pdf" (Datei in site/downloads/ ablegen)
+
+  // Häufige Fragen
+  faq: [
+    ["Ich bin kein Technik-Typ. Schaffe ich das?", "Ja. Genau dafür ist das Coaching da. Wir gehen Schritt für Schritt vor, in deinem Tempo, und bauen nur das, was du für deine Show wirklich brauchst."],
+    ["Brauche ich AbleSet?", "Nicht zwingend. AbleSet ist ein Baustein im Kurs, weil es Setlists auf der Bühne sehr einfach macht. Ob es für dich Sinn ergibt, klären wir im Kennenlerngespräch."],
+    ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Was genau für dein Setup passt, besprechen wir im Gespräch, bevor du etwas kaufst."],
+    ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
+    ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
+    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240 € oder 960 € einmalig. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
+  ],
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };

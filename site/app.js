@@ -169,6 +169,33 @@ function roundText() {
   return t;
 }
 
+function landingExtras() {
+  const pains = CONFIG.painPoints || [], pts = CONFIG.aboutPoints || [], tst = CONFIG.testimonials || [], faq = CONFIG.faq || [];
+  const hasAbout = CONFIG.videoUrl || CONFIG.photoUrl || pts.length;
+  const media = CONFIG.videoUrl
+    ? `<video class="about-media" src="${esc(CONFIG.videoUrl)}" ${CONFIG.photoUrl ? `poster="${esc(CONFIG.photoUrl)}"` : ""} controls playsinline preload="metadata"></video>`
+    : CONFIG.photoUrl ? `<img class="about-media" src="${esc(CONFIG.photoUrl)}" alt="${esc(CONFIG.aboutTitle || "")}">` : "";
+  return {
+    pain: pains.length ? `<section class="l-sec"><div class="l-inner">
+      <h2 class="big">Kennst du das?</h2>
+      <ul class="pains">${pains.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+      <p class="pains-after">So muss es nicht sein. Ein gut gebautes Setup läuft jede Show gleich, und du kannst dich aufs Spielen konzentrieren.</p>
+    </div></section>` : "",
+    about: hasAbout ? `<section class="l-sec"><div class="l-inner"><div class="about${media ? "" : " no-media"}">
+      ${media ? `<div>${media}</div>` : ""}
+      <div><h2 class="big">${esc(CONFIG.aboutTitle || "Über mich")}</h2>${pts.length ? `<ul class="about-pts">${pts.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</div>
+    </div></div></section>` : "",
+    voices: tst.length ? `<section class="l-sec alt"><div class="l-inner">
+      <h2 class="big">Was andere sagen.</h2>
+      <div class="voices">${tst.map(t => `<figure><blockquote>„${esc(t.quote)}“</blockquote><figcaption><b>${esc(t.name)}</b>${t.role ? ` · ${esc(t.role)}` : ""}</figcaption></figure>`).join("")}</div>
+    </div></section>` : "",
+    faq: faq.length ? `<section class="l-sec"><div class="l-inner">
+      <h2 class="big">Häufige Fragen</h2>
+      <div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>
+    </div></section>` : ""
+  };
+}
+
 function renderLanding() {
   $("#bar").hidden = true;
   document.body.classList.add("is-landing");
@@ -179,6 +206,7 @@ function renderLanding() {
       ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
       <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in den nächsten Tagen per Mail bei dir für einen Termin.</p>`}
+      ${CONFIG.giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(CONFIG.giftFile)}" download>Herunterladen</a></div>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit, auf welchem Platz du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
@@ -192,9 +220,10 @@ function renderLanding() {
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
         <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
       <button class="btn-ink" type="submit">Unverbindlich auf die Warteliste</button>
+      ${CONFIG.giftFile ? `<p class="gift-note"><span class="eb-tag">Geschenk</span>${esc(CONFIG.giftTitle)} bekommst du direkt nach dem Eintragen.</p>` : ""}
       <p class="form-note">Kein Kauf, keine Verpflichtung. Bevor du dich entscheidest, sprechen wir kostenlos ${CONFIG.introCallMinutes || 20} Minuten über dein Setup.</p>
     </form>`;
-  const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [];
+  const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [], X = landingExtras();
   $("#app").innerHTML = `<div class="landing">
     <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
     <section class="l-sec" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
@@ -212,6 +241,7 @@ function renderLanding() {
         <span class="stamp">Nur ${CONFIG.waitlistSpots} Plätze</span>
       </div></div>` : ""}
     </div></div></section>
+    ${X.pain}
     <section class="l-sec alt"><div class="l-inner">
       <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
       <div class="features">
@@ -220,10 +250,12 @@ function renderLanding() {
         <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
       </div>
     </div></section>
+    ${X.about}${X.voices}
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
       <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}</div>
       <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
     </div></div></section>` : ""}
+    ${X.faq}
     <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
       <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich unverbindlich ein. Danach sprechen wir kostenlos über dein Setup, und du entscheidest in Ruhe, ob du dabei bist.</p></div>
       <div class="wl-box">${box}</div>
