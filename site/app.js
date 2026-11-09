@@ -147,73 +147,94 @@ async function loadLanding() {
   S.wl = { stats: st.data || { waiting: 0, invited: 0 }, me: me.data || null, token: me.data ? token : null };
 }
 
+function spotsInfo() {
+  const st = (S.wl && S.wl.stats) || {}, n = CONFIG.waitlistSpots, taken = Math.min(n, st.invited || 0);
+  return { n, taken, free: n - taken };
+}
 function spotsMeter() {
-  const n = CONFIG.waitlistSpots, taken = Math.min(n, (S.wl && S.wl.stats.invited) || 0);
-  return `<div class="spots" aria-label="${taken} von ${n} Plätzen vergeben">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "on" : ""}"></i>`).join("")}</div>
-    <span class="muted mono" style="font-size:12px">${taken} von ${n} Plätzen vergeben</span>`;
+  const { n, taken, free } = spotsInfo();
+  return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Plätzen frei">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : ""}"></i>`).join("")}</div>
+    <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Plätzen frei` : `Alle ${n} Plätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
 }
 
-function earlyBirdLine() {
-  const st = S.wl && S.wl.stats;
-  if (!st || st.early_bird_slots == null || !CONFIG.earlyBirdBonus) return "";
-  const left = st.early_bird_left, n = st.early_bird_slots;
-  return left > 0
-    ? `<div class="eb"><span class="eb-tag">Early-Bird</span><span>Die ersten ${n} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu. <b>Noch ${left} ${left === 1 ? "Platz" : "Plätze"} frei.</b></span></div>`
-    : `<div class="eb off"><span class="eb-tag">Early-Bird</span><span>Alle Early-Bird-Plätze sind vergeben.</span></div>`;
+function roundText() {
+  const st = (S.wl && S.wl.stats) || {};
+  const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
+  let t = `Nur ${n} Plätze in der ersten Runde. ${esc(CONFIG.launchText)}`;
+  if (CONFIG.earlyBirdBonus && st.early_bird_slots != null) {
+    t += st.early_bird_left > 0
+      ? ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu, <b>noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}</b>.`
+      : "";
+  }
+  return t;
 }
 
 function renderLanding() {
   $("#bar").hidden = true;
+  document.body.classList.add("is-landing");
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
-  const waiting = w.stats.waiting;
-  const count = waiting >= CONFIG.waitlistShowCountFrom ? `<p class="muted" style="font-size:14px"><b class="mono" style="color:var(--fg)">${waiting}</b> Personen stehen schon auf der Warteliste.</p>` : "";
   let box;
-  if (me && me.status === "waiting") box = `<div class="card wl-card" id="wlBox"><span class="label">Deine Warteliste</span>
-      <div class="place"><span class="muted">Platz</span><b class="mono">${me.position}</b></div>
-      ${me.early_bird && CONFIG.earlyBirdBonus ? `<div class="eb"><span class="eb-tag">Early-Bird</span><span>Du hast dir einen Early-Bird-Platz gesichert: ${esc(CONFIG.earlyBirdBonus)} gibt's obendrauf.</span></div>` : ""}
-      <p>Hey ${esc(firstName(me.name))}, du stehst auf der Warteliste. Wenn ein Platz für dich frei wird, melde ich mich per Mail.</p>
-      <p class="muted" style="font-size:13px">Unter diesem Link siehst du jederzeit deinen aktuellen Platz:</p>
-      <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn small" type="button" data-a="copyPlace">Link kopieren</button></div></div>`;
-  else if (me && me.status === "invited") box = `<div class="card wl-card" id="wlBox"><span class="label">Deine Warteliste</span><h2>Du bist dabei!</h2><p>Dein Platz ist frei. Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><div><button class="btn primary" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div></div>`;
-  else box = `<form class="card wl-card" data-f="waitlist" id="wlBox" novalidate>
-      <h2>Auf die Warteliste</h2>
-      <div class="field"><label class="label" for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
-      <div class="field"><label class="label" for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
-      <div class="field"><label class="label" for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000" placeholder="z. B. Keys in einer Band, wir wollen mit Click und Playback spielen"></textarea></div>
+  if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
+      <div class="place"><b>${me.position}</b><span>dein Platz auf der Warteliste</span></div>
+      ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
+      <p class="muted">Danke, ${esc(firstName(me.name))}. Sobald dein Platz frei wird, bekommst du eine Mail. Unter diesem Link siehst du jederzeit, wo du stehst:</p>
+      <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
+  else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
+  else box = `<form class="wl-form" data-f="waitlist" id="wlBox" novalidate>
+      <div class="form-grid">
+        <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
+        <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
+      </div>
+      <div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
       ${CONFIG.priceTotal ? `<label class="inline-check consent" for="wlPrice"><input class="check" id="wlPrice" name="price" type="checkbox" style="margin:0">
         <span>Der Preis von ${esc(CONFIG.priceTotal)}${CONFIG.priceInstallments ? " (oder " + esc(CONFIG.priceInstallments) + ")" : ""} passt für mich.</span></label>` : ""}
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
-        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Ich kann das jederzeit per Mail widerrufen.${CONFIG.datenschutzUrl ? ` Mehr in der <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutzerklärung</a>.` : ""}</span></label>
-      <button class="btn primary" type="submit">Platz sichern</button>
+        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
+      <button class="btn-ink" type="submit">Auf die Warteliste</button>
     </form>`;
+  const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [];
   $("#app").innerHTML = `<div class="landing">
-    <div class="landing-top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>
-      <button class="btn small" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <div class="landing-grid">
-      <div class="pitch">
-        <span class="label" style="color:var(--accent-hi)">Erste Runde · Nur ${CONFIG.waitlistSpots} Plätze</span>
-        <h1 class="hero">Playback, Click und Cues, die auf der Bühne einfach laufen.</h1>
-        <p class="lead">1:1-Coaching und Videokurs für Bands und Artists, die mit Ableton Live und AbleSet live spielen. Vom ersten Rig bis zur Show.</p>
-        <div class="card" style="gap:10px"><span class="label">Erste Runde</span>${spotsMeter()}${count}${earlyBirdLine()}<p class="muted" style="font-size:14px">${esc(CONFIG.launchText)} Die Plätze vergebe ich in der Reihenfolge der Warteliste.</p></div>
-        ${CONFIG.priceTotal ? `<div class="card price-card"><span class="label">Dein Paket</span>
-          <div class="price"><b>${esc(CONFIG.priceTotal)}</b>${CONFIG.priceInstallments ? `<span class="muted">oder ${esc(CONFIG.priceInstallments)}</span>` : ""}</div>
-          <ul class="incl">${(CONFIG.packageItems || []).map(i => `<li>${esc(i)}</li>`).join("")}</ul></div>` : ""}
-        <ul class="perks">
-          <li><b>1:1-Sessions</b><span>Wir bauen dein Rig gemeinsam auf und lösen genau deine Probleme.</span></li>
-          <li><b>Videokurs</b><span>Von Stems und Click über In-Ear-Routing bis AbleSet und Showtag, Schritt für Schritt.</span></li>
-          <li><b>Begleitung bis zur Show</b><span>Notizen, Aufgaben und Antworten auf deine Fragen, alles an einem Ort.</span></li>
-        </ul>
+    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <section class="l-sec" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
+      <div>
+        <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
+        <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
+        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
+        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
       </div>
-      <div class="wl-col">${box}</div>
-    </div></div>`;
+      ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
+        <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
+        <ol>${sl.map((t, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${esc(t)}</li>`).join("")}</ol>
+        <div class="sl-foot">Zugabe: deine erste Show</div>
+        <span class="stamp">Nur ${CONFIG.waitlistSpots} Plätze</span>
+      </div></div>` : ""}
+    </div></div></section>
+    <section class="l-sec alt"><div class="l-inner">
+      <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
+      <div class="features">
+        <div><h3>1:1-Sessions</h3><p>Wir bauen dein Setup gemeinsam auf und lösen genau die Probleme, die du gerade hast.</p></div>
+        <div><h3>Videokurs</h3><p>Stems, Click, Cues, In-Ear-Routing, AbleSet und Showtag. Schritt für Schritt, in deinem Tempo.</p></div>
+        <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
+      </div>
+    </div></section>
+    ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
+      <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceTotal)}</div>${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}</div>
+      <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
+    </div></div></section>` : ""}
+    <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
+      <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich ein und sieh sofort, auf welchem Platz du stehst. Wenn dein Platz frei wird, bekommst du eine Mail.</p></div>
+      <div class="wl-box">${box}</div>
+    </div></div></section>
+  </div>`;
 }
 
 /* ---------- Auth-Ansichten ---------- */
 function renderAuth() {
   $("#bar").hidden = true;
   const v = S.ui.recovery ? "recovery" : S.authView;
-  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>`;
+  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</div>`;
   let body = "";
   if (v === "login") body = `<form class="login card" data-f="login" novalidate>${head}
       <div class="field"><label class="label" for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
@@ -259,6 +280,7 @@ function renderChrome() {
 
 function render() {
   renderFoot();
+  document.body.classList.remove("is-landing");
   if (S.ui.recovery) return renderAuth();
   if (!S.session) return S.showAuth ? renderAuth() : renderLanding();
   if (!S.me) {
@@ -625,6 +647,8 @@ const A = {
   authView: el => { S.authView = el.dataset.v; render(); },
   goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
   goLanding: async () => { S.showAuth = false; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
+  toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
+  toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
   copyPlace: () => {
     const t = $("#placeUrl").textContent, ok = () => toast("Link kopiert.");
     const fail = () => { const r = document.createRange(); r.selectNodeContents($("#placeUrl")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Link markiert. Jetzt kopieren."); };
