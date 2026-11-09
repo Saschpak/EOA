@@ -70,11 +70,10 @@ window.CONFIG = {
   videoUrl: "media/intro.mp4",
   photoUrl: "media/intro-poster.jpg", // Vorschaubild fürs Video
   aboutPoints: [
-    "Seit 20 Jahren Drummer, seit rund 11 Jahren live auf der Bühne",
-    "Aushilfe am Schlagzeug für Kontra K und Oliver Tree",
-    "Musical Direction und Playback für Kleo mit K",
-    "Von der Partyband-Bühne auf dem Oktoberfest bis zu Festivals wie dem Open Flair",
-    "Auf Tour, zuletzt mit Kleo mit K als Support auf der Julia-Meladin-Tour"
+    "Seit 20\u00a0Jahren Drummer, seit rund 11\u00a0Jahren live auf der Bühne",
+    "Musical Direction und Playback für Kleo\u00a0mit\u00a0K und Simon\u00a0Will",
+    "Von der Partyband-Bühne auf dem Oktoberfest bis zu Festivals wie dem Open\u00a0Flair",
+    "Auf Tour, zuletzt mit Kleo\u00a0mit\u00a0K als Support auf der Julia\u2011Meladin\u2011Tour"
   ],
 
   // Stimmen von Teilnehmern. Erscheinen erst, wenn hier Einträge stehen.

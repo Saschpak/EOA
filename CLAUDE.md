@@ -44,4 +44,4 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 - Eigener Mail-Versand (Resend als SMTP in Supabase) und deutsche Mail-Vorlagen einrichten.
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
 - Intro-Video (`site/media/intro.mp4`, Website-Schnitt ohne Plätze-Angabe und ohne Instagram-Aufruf) und Stichpunkte über Sascha sind drin. Noch offen: Stimmen, Geschenk-PDF (Ableton-Shortcuts), Bild für `heroImage`. Vorschau mit Platzhaltern unter `#vorschau`.
-- Noch zu bestätigen: Schreibweise „Simon Will & die Creators“ (Woodwalkers 2) und die „Toni“-Tour, bevor sie in `aboutPoints` kommen.
+- Kontra K und Oliver Tree bewusst NICHT nennen (Wunsch des Coachs). Simon Will ist drin; Woodwalkers-2-Bezug und „Toni“-Tour noch unbestätigt.
