@@ -176,12 +176,21 @@ function roundText() {
   const st = (S.wl && S.wl.stats) || {};
   const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
   let t = `Nur ${n} Plätze in der ersten Runde. ${esc(CONFIG.launchText)}`;
-  if (CONFIG.earlyBirdBonus && st.early_bird_slots != null) {
-    t += st.early_bird_left > 0
-      ? ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu, <b>noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}</b>.`
-      : "";
-  }
+  if (CONFIG.earlyBirdBonus && st.early_bird_slots != null && st.early_bird_left > 0)
+    t += ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
   return t;
+}
+const ebActive = () => { const st = (S.wl && S.wl.stats) || {}; return !!(CONFIG.earlyBirdPriceHeadline && st.early_bird_slots != null && st.early_bird_left > 0); };
+function ebText() {
+  const parts = [CONFIG.earlyBirdDeal, CONFIG.earlyBirdBonus && "plus " + CONFIG.earlyBirdBonus].filter(Boolean);
+  return parts.join(" ");
+}
+function priceBlock() {
+  const st = (S.wl && S.wl.stats) || {};
+  if (ebActive()) return `<div class="price" style="margin-top:12px"><s>${esc(CONFIG.earlyBirdPriceWas)}</s>${esc(CONFIG.earlyBirdPriceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>
+      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} auf der Warteliste: <b>${esc(CONFIG.earlyBirdDeal)}</b>. Noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}.</span></p>
+      <p class="price-sub">Danach ${esc(CONFIG.priceHeadline)} ${esc(CONFIG.priceHeadlineNote || "")}. ${esc(CONFIG.priceDetail || "")}</p>`;
+  return `<div class="price" style="margin-top:12px">ab ${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
 }
 
 function landingExtras() {
@@ -223,7 +232,7 @@ function renderLanding() {
   let box;
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
       <div class="place"><b>${me.position}</b><span>dein Platz auf der Warteliste</span></div>
-      ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
+      ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird gesichert</span><span>Du zahlst ${esc(ebText())}.</span></p>` : ""}
       <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in den nächsten Tagen per Mail bei dir für einen Termin.</p>`}
       ${giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>` : ""}
@@ -257,6 +266,7 @@ function renderLanding() {
         <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
         <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
+        ${ebActive() ? `<p class="hero-eb"><span class="eb-tag">Early-Bird</span>${esc(CONFIG.earlyBirdMonthly)} für die ersten ${S.wl.stats.early_bird_slots}</p>` : ""}
       </div>
       ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
         <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
@@ -276,7 +286,7 @@ function renderLanding() {
     </div></section>
     ${X.about}${X.voices}
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
-      <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}</div>
+      <div><span class="eyebrow">Erste Runde</span>${priceBlock()}</div>
       <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
     </div></div></section>` : ""}
     ${X.faq}
@@ -550,7 +560,7 @@ function adminWaitlist() {
         <div class="field"><label class="label" for="wa-t">Nachricht (optional)</label><textarea id="wa-t" name="note"></textarea></div>
         <p class="muted" style="font-size:13px">Die Person kommt ans Ende der Warteliste. Trag nur Leute ein, die zugestimmt haben, auf die Liste zu kommen.</p>
         <div class="actions"><button class="btn primary small" type="submit">Hinzufügen</button></div></form>` : ""}
-      ${li ? `<div class="notice">${esc(li.name)} ist eingeladen.${li.early ? ` <b>Early-Bird:</b> ${CONFIG.earlyBirdExtraSessions ? `${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket.` : `denk an ${esc(CONFIG.earlyBirdBonus)}.`}` : ""} Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
+      ${li ? `<div class="notice">${esc(li.name)} ist eingeladen.${li.early ? ` <b>Early-Bird:</b> ${esc(ebText())}${CONFIG.earlyBirdExtraSessions ? ` (${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket)` : ""}.` : ""} Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a></div>` : ""}
     </div>
     ${waiting.length ? waiting.map((w, i) => row(w, i)).join("") : `<p class="empty">Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier.</p>`}
     ${invited.length ? `<span class="label group-label">Eingeladen</span>${invited.map(w => row(w)).join("")}` : ""}

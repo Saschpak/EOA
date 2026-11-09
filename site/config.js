@@ -15,17 +15,23 @@ window.CONFIG = {
   waitlistSpots: 6,           // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
   launchText: "Die erste Runde startet im Januar.",
-  earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 3 bekommen (Anzahl steht in der Datenbank)
-  earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
+  // Early-Bird-Preis für die ersten Anmeldungen (Anzahl steht in der Datenbank).
+  // Wird angezeigt, solange Early-Bird-Plätze frei sind. Leer lassen = kein Early-Bird-Preis.
+  earlyBirdPriceHeadline: "200\u00a0€",
+  earlyBirdPriceWas: "240\u00a0€",
+  earlyBirdDeal: "800\u00a0€ statt 960\u00a0€",          // Gesamtpreis für Early-Birds
+  earlyBirdMonthly: "200\u00a0€ statt 240\u00a0€ im Monat",
+  earlyBirdBonus: "",          // optional zusätzlich ein Bonus, z. B. "eine zusätzliche 1:1-Session"
+  earlyBirdExtraSessions: 0,   // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
   // Kennenlerngespräch nach dem Eintragen (Calendly-Link). Leer lassen, solange es keinen gibt.
   introCallUrl: "",
   introCallMinutes: 20,
 
   // Preis und Paket der ersten Runde (Startseite)
-  priceHeadline: "ab 240 €",
+  priceHeadline: "240\u00a0€",
   priceHeadlineNote: "im Monat",
-  priceDetail: "4 Monate à 240 € oder 960 € einmalig. Alle Details besprechen wir im Kennenlerngespräch.",
+  priceDetail: "4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Alle Details besprechen wir im Kennenlerngespräch.",
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
     ["Videokurs", "12 Monate Zugang"],
@@ -63,7 +69,7 @@ window.CONFIG = {
     ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Was genau für dein Setup passt, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
     ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
-    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240 € oder 960 € einmalig. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
+    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
   ],
 
   // Kursname, wie er im Kursbereich oben steht

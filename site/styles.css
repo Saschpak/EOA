@@ -353,6 +353,10 @@ video.about-media{aspect-ratio:auto;max-height:620px;background:#000}
 .pack{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:start}
 @media (max-width:760px){.pack{grid-template-columns:1fr;gap:24px}}
 .price{font-size:clamp(60px,9vw,96px);font-weight:800;font-stretch:72%;line-height:.95;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.price s{font-size:.45em;font-weight:600;color:var(--muted);text-decoration-thickness:3px;text-decoration-color:var(--accent-hi);margin-right:14px;vertical-align:.35em}
+.eb-line{display:flex;gap:10px;align-items:baseline;font-size:15px;margin-top:14px;line-height:1.45}
+.eb-line b{font-weight:750}
+.hero-eb{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:14px;font-weight:600}
 .price small{font-size:.28em;font-weight:600;font-stretch:90%;color:var(--muted);margin-left:10px;letter-spacing:0}
 .price-sub{font-size:16px;color:var(--muted);margin-top:12px;max-width:26em;line-height:1.5}
 .form-note{font-size:13.5px;color:var(--muted);text-align:center;margin-top:-2px}
