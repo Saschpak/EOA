@@ -8,7 +8,7 @@ Dieses Repo enthält zwei Dinge:
 ## Plattform: Aufbau
 
 - `site/index.html`, `site/app.js`, `site/styles.css`: statische Single-Page-App ohne Build-Schritt. `supabase-js` liegt unter `site/vendor/`, Schriften (Archivo, JetBrains Mono, OFL) unter `site/fonts/`.
-- `site/config.js`: **alle Inhalte und Einstellungen der Startseite** (Preis, Paket, Plätze, Early-Bird, Setlist, „Kennst du das?“, Über mich, Stimmen, FAQ, Geschenk-PDF, Calendly-Links, Impressum- und Datenschutz-Links). Texte bevorzugt hier ändern, nicht in `app.js`.
+- `site/config.js`: **alle Inhalte und Einstellungen der Startseite** (Preis, Paket, Plätze, Early-Bird, Kurs-Übersicht, „Kennst du das?“, Über mich, Stimmen, FAQ, Geschenk-PDF, Calendly-Links, Impressum- und Datenschutz-Links). Texte bevorzugt hier ändern, nicht in `app.js`.
 - `supabase/migrations/`: Datenbankschema. Die Supabase-GitHub-Integration spielt neue Dateien beim Merge auf `main` automatisch ins Produktionsprojekt ein. Eingespielte Migrationen nie ändern, immer eine neue Datei mit Zeitstempel anlegen.
 - `supabase/email-vorlagen/`: deutsche Auth-Mail-Texte zum Einfügen im Supabase-Dashboard.
 - `rechtliches-entwurf/`: Entwürfe für Impressum und Datenschutz mit Platzhaltern `[[…]]`. Erst nach `site/` verschieben und verlinken (`impressumUrl`, `datenschutzUrl` in `config.js`), wenn alle Platzhalter gefüllt sind.
@@ -18,7 +18,8 @@ Dieses Repo enthält zwei Dinge:
 
 Wenn sich am Kurs oder am Angebot etwas ändert (Module, Lektionen, Paketinhalt, Preis, Anzahl 1:1s, Kurszugang, Startdatum, Plätze), **immer auch die Startseite prüfen und anpassen**, vor allem in `site/config.js`:
 
-- `setlist`: Stationen des Kurses auf der Setlist-Grafik
+- `courseModules`, `courseIntro`, `courseFinale`: Kurs-Übersicht „Der Kurs: vom leeren Projekt bis auf die Bühne“ (Modul + kurze Beschreibung). Muss zu den Modulen im Admin passen.
+- `heroImage`: optionales Bild rechts neben der Überschrift (z. B. Screenshot des eigenen Sets oder Bühnenfoto)
 - `packageItems`, `priceHeadline`, `priceDetail`: Paket und Preis
 - `earlyBirdPriceHeadline`, `earlyBirdPriceWas`, `earlyBirdDeal`, `earlyBirdMonthly`: Early-Bird-Preis (durchgestrichen), sichtbar solange Early-Bird-Plätze frei sind. Der Early-Bird gilt für die ersten Buchungen: Er wird beim „Einladen“ im Admin (Zusage nach dem Kennenlerngespräch) vergeben, nicht beim Eintragen auf die Warteliste
 - `faq`: besonders „Welche Ausstattung brauche ich?“, „Brauche ich AbleSet?“, „Wie läuft die Bezahlung?“

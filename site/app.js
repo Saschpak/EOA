@@ -283,38 +283,39 @@ function renderLanding() {
       ${giftFile ? `<p class="gift-note"><span class="eb-tag">Geschenk</span>${esc(CONFIG.giftTitle)} bekommst du direkt nach dem Eintragen.</p>` : ""}
       <p class="form-note">Kein Kauf, keine Verpflichtung. Bevor du dich entscheidest, sprechen wir kostenlos ${CONFIG.introCallMinutes || 20} Minuten über dein Setup.</p>
     </form>`;
-  const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [], X = landingExtras();
+  const pk = CONFIG.packageItems || [], X = landingExtras();
   const signed = !!(me && me.status);
   const sp = spotsInfo();
   $("#app").innerHTML = `<div class="landing">
     ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
     ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `Noch <b>${sp.free} von ${sp.n}</b> Plätzen frei` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Unverbindlich eintragen</a></div></div>`}
     <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="l-sec" id="hero" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
+    <section class="l-sec" id="hero" style="padding-top:48px"><div class="l-inner"><div class="${CONFIG.heroImage ? "hero-grid" : "hero-solo"}">
       <div>
         <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
-        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
-        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
+        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein komplettes Set, vom leeren Projekt bis auf die Bühne, mit meinen Templates und Workflows.</p>
+        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#kurs" data-a="toKurs">Was ist drin?</a></div>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
         ${ebActive() ? `<p class="hero-eb"><span class="eb-tag">Early-Bird</span>${esc(CONFIG.earlyBirdMonthly)} für die ersten ${S.wl.stats.early_bird_slots} Buchungen</p>` : ""}
       </div>
-      ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
-        <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
-        <ol>${sl.map((t, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${esc(t)}</li>`).join("")}</ol>
-        <div class="sl-foot">Zugabe: deine erste Show</div>
-        <span class="stamp">Nur ${CONFIG.waitlistSpots} Plätze</span>
-      </div></div>` : ""}
+      ${CONFIG.heroImage ? `<div><img class="hero-img" src="${esc(CONFIG.heroImage)}" alt=""></div>` : ""}
     </div></div></section>
     ${X.pain}
     <section class="l-sec alt"><div class="l-inner">
       <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
       <div class="features">
         <div><h3>1:1-Sessions</h3><p>Wir bauen dein Setup gemeinsam auf und lösen genau die Probleme, die du gerade hast.</p></div>
-        <div><h3>Videokurs</h3><p>Stems, Click, Cues, In-Ear-Routing, AbleSet und Showtag. Schritt für Schritt, in deinem Tempo.</p></div>
+        <div><h3>Videokurs</h3><p>Ich baue vor deinen Augen ein komplettes Live-Set auf. Mit meinen Templates und Max for Live Devices kannst du sofort mitmachen.</p></div>
         <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
       </div>
     </div></section>
+    ${(CONFIG.courseModules || []).length ? `<section class="l-sec" id="kurs"><div class="l-inner">
+      <h2 class="big">Der Kurs: vom leeren Projekt bis auf die Bühne.</h2>
+      ${CONFIG.courseIntro ? `<p class="lead" style="font-size:18px">${esc(CONFIG.courseIntro)}</p>` : ""}
+      <ol class="modules">${CONFIG.courseModules.map((m, i) => `<li><span class="mnum">${String(i + 1).padStart(2, "0")}</span><div><b>${esc(m[0])}</b><span>${esc(m[1])}</span></div></li>`).join("")}</ol>
+      ${CONFIG.courseFinale ? `<p class="finale">${esc(CONFIG.courseFinale)}</p>` : ""}
+    </div></section>` : ""}
     ${X.about}${X.voices}
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
       <div><span class="eyebrow">Erste Runde</span>${priceBlock()}</div>
@@ -793,6 +794,7 @@ const A = {
   authView: el => { S.authView = el.dataset.v; render(); },
   goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
   goLanding: async () => { S.showAuth = false; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
+  toKurs: () => { const el = $("#kurs") || $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
   statRange: el => { S.ui.statRange = +el.dataset.v; render(); },
