@@ -19,8 +19,8 @@ window.CONFIG = {
   // Wird angezeigt, solange Early-Bird-Plätze frei sind. Leer lassen = kein Early-Bird-Preis.
   earlyBirdPriceHeadline: "200\u00a0€",
   earlyBirdPriceWas: "240\u00a0€",
-  earlyBirdDeal: "800\u00a0€ statt 960\u00a0€",          // Gesamtpreis für Early-Birds
-  earlyBirdMonthly: "200\u00a0€ statt 240\u00a0€ im Monat",
+  earlyBirdDeal: "800\u00a0€ statt 960\u00a0€ insgesamt",          // Gesamtpreis für Early-Birds
+  earlyBirdMonthly: "4 Monate à 200\u00a0€ statt 240\u00a0€",
   earlyBirdBonus: "",          // optional zusätzlich ein Bonus, z. B. "eine zusätzliche 1:1-Session"
   earlyBirdExtraSessions: 0,   // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
@@ -30,11 +30,11 @@ window.CONFIG = {
 
   // Preis und Paket der ersten Runde (Startseite)
   priceHeadline: "240\u00a0€",
-  priceHeadlineNote: "im Monat",
-  priceDetail: "4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Alle Preise inkl. 19\u00a0% MwSt. Alle Details besprechen wir im Kennenlerngespräch.",
+  priceHeadlineNote: "im Monat · für 4\u00a0Monate",
+  priceDetail: "Regulär 240\u00a0€ im Monat. Insgesamt 960\u00a0€, in 4 Monatsraten oder einmalig. Danach keine weiteren Kosten. Alle Preise inkl. 19\u00a0% MwSt.",
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
-    ["Videokurs", "12 Monate Zugang"],
+    ["Videokurs", "12 Monate Zugang inklusive"],
     ["Templates & Max for Live Devices", "sofort startklar"],
     ["Begleitung", "Fragen, Notizen, Aufgaben"]
   ],
@@ -91,7 +91,7 @@ window.CONFIG = {
     ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Geräte wie ein SPD-SX, MIDI-Controller oder Lichtsoftware sind optional. Was für dein Setup sinnvoll ist, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
     ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
-    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig, jeweils inklusive 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
+    ["Wie läuft die Bezahlung?", "Insgesamt 960\u00a0€: entweder 4 Monate à 240\u00a0€ oder einmalig. Danach entstehen keine weiteren Kosten, auch nicht für die 12 Monate Kurszugang. Alle Preise inkl. 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
   ],
 
   // Kursname, wie er im Kursbereich oben steht

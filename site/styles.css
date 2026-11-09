@@ -375,7 +375,7 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .eb-line{display:flex;gap:10px;align-items:baseline;font-size:15px;margin-top:14px;line-height:1.45}
 .eb-line b{font-weight:750}
 .hero-eb{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:14px;font-weight:600}
-.price small{font-size:.28em;font-weight:600;font-stretch:90%;color:var(--muted);margin-left:10px;letter-spacing:0}
+.price small{display:inline-block;font-size:clamp(14px,.28em,21px);font-weight:600;font-stretch:90%;color:var(--muted);margin-left:10px;letter-spacing:0;line-height:1.2;vertical-align:baseline}
 .price-sub{font-size:16px;color:var(--muted);margin-top:12px;max-width:26em;line-height:1.5}
 .form-note{font-size:13.5px;color:var(--muted);text-align:center;margin-top:-2px}
 .incl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;width:100%}
