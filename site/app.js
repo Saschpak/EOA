@@ -895,7 +895,10 @@ const F = {
     if (!name) return toast("Bitte gib deinen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
     if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
-    const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim(), p_source: S.src || visitSource() }));
+    const args = { p_name: name, p_email: email, p_note: f.note.value.trim() };
+    let res = await sb.rpc("join_waitlist", { ...args, p_source: S.src || visitSource() });
+    if (res.error && /PGRST202|Could not find the function/.test((res.error.code || "") + res.error.message)) res = await sb.rpc("join_waitlist", args);
+    const r = await run(Promise.resolve(res));
     if (!r) return;
     const d = r.data;
     if (d.already) {
