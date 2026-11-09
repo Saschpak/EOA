@@ -78,6 +78,8 @@ async function load() {
     const [pr, inv, wl] = await Promise.all([q("profiles", "*", [["created_at"]]), q("invites", "*", [["created_at"]]), q("waitlist", "*", [["created_at"], ["id"]])]);
     for (const r of [pr, inv, wl]) if (r.error) throw r.error;
     D.profiles = pr.data; D.invites = inv.data; D.waitlist = wl.data;
+    const vs = await q("visit_stats", "*", [["day"]]);
+    D.visits = vs.error ? [] : vs.data;
     const eb = await sb.rpc("waitlist_early_bird_slots");
     D.ebSlots = eb.error ? 3 : eb.data;
   }
@@ -87,6 +89,7 @@ async function refreshMe() {
   const { data, error } = await sb.from("profiles").select("*").eq("id", S.session.user.id).maybeSingle();
   if (error) throw error;
   S.me = data;
+  if (data && data.role === "coach") { try { localStorage.setItem("pc-notrack", "1"); } catch (e) { /* egal */ } }
 }
 async function reload() {
   try { await refreshMe(); if (S.me) await load(); render(); }
@@ -139,6 +142,28 @@ const WL_KEY = "pc-waitlist-token";
 const wlGet = () => { try { return localStorage.getItem(WL_KEY); } catch (e) { return null; } };
 const wlSet = t => { try { localStorage.setItem(WL_KEY, t); } catch (e) { /* egal */ } };
 const placeLink = t => location.origin + location.pathname + "#platz-" + t;
+
+/* Besucherzählung: ohne Cookies, nur Tag, Quelle, Gerätetyp */
+function visitSource() {
+  const q = new URLSearchParams(location.search);
+  const p = q.get("von") || q.get("utm_source");
+  if (p) return p;
+  let host = "";
+  try { host = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : ""; } catch (e) { host = ""; }
+  if (!host || host === location.hostname) return "direkt";
+  const map = [[/instagram/, "instagram"], [/facebook|fb\./, "facebook"], [/tiktok/, "tiktok"], [/youtube|youtu\.be/, "youtube"], [/google\./, "google"], [/linktr\.ee/, "linktree"], [/saschpak\.de$/, "saschpak.de"], [/t\.co$|twitter|x\.com/, "x"]];
+  const m = map.find(([re]) => re.test(host));
+  return m ? m[1] : host;
+}
+let tracked = false;
+function trackVisit() {
+  if (tracked || S.preview) return;
+  tracked = true;
+  try { if (localStorage.getItem("pc-notrack")) return; } catch (e) { /* egal */ }
+  S.src = visitSource();
+  const device = (window.matchMedia && matchMedia("(max-width: 760px)").matches) || /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "mobil" : "desktop";
+  sb.rpc("track_visit", { p_source: S.src, p_device: device }).then(() => {}, () => {});
+}
 
 async function loadLanding() {
   const token = S.ui.wlToken || wlGet();
@@ -508,8 +533,8 @@ const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
-  const body = { home: adminHome, warteliste: adminWaitlist, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews }[S.ui.tab]();
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const body = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews }[S.ui.tab]();
   return `<section class="view">
     <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-a="tab" data-v="${k}" aria-selected="${S.ui.tab === k}">${t}</button>`).join("")}</div>
@@ -540,6 +565,53 @@ function adminHome() {
   return `<div class="stats">${[[st.length, "Schüler"], [week.length, "Termine in 7 Tagen"], [openQ.length, "Offene Fragen"], [st.filter(p => p.invited).reduce((a, p) => a + Math.max(0, leftFor(p)), 0), "Offene 1:1s gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
     <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div><button class="btn small" type="button" ${t.a}>${t.btn}</button></div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
     <div class="card"><h2>Nächste Termine</h2><div>${up.length ? up.map(b => { const t = fmtTs(b.starts_at); return `<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(t.date)} ${t.time}</span><span><b>${esc(profileName(b.user_id))}</b>${b.topic ? " · " + esc(b.topic) : ""}</span></div><button class="btn small quiet" type="button" data-a="openUser" data-id="${b.user_id}">Schüler öffnen</button></div>`; }).join("") : `<p class="empty">Keine Termine gebucht.</p>`}</div></div>`;
+}
+
+function adminStats() {
+  const range = S.ui.statRange || 30, days = [];
+  for (let i = range - 1; i >= 0; i--) days.push(addDays(today(), -i));
+  const first = days[0];
+  const visits = (S.D.visits || []).filter(v => v.day >= first);
+  const wl = (S.D.waitlist || []).filter(w => iso(new Date(w.created_at)) >= first);
+  const perDay = days.map(d => ({ d, v: visits.filter(x => x.day === d).reduce((a, x) => a + x.views, 0), s: wl.filter(w => iso(new Date(w.created_at)) === d).length }));
+  const totV = perDay.reduce((a, x) => a + x.v, 0), totS = wl.length;
+  const mob = visits.filter(x => x.device === "mobil").reduce((a, x) => a + x.views, 0);
+  const booked = (S.D.waitlist || []).filter(w => w.status === "invited").length;
+  const pct = (a, b) => b ? (Math.round(a / b * 1000) / 10).toString().replace(".", ",") + " %" : "–";
+  const srcs = {};
+  visits.forEach(x => { (srcs[x.source] = srcs[x.source] || { v: 0, s: 0 }).v += x.views; });
+  wl.forEach(w => { const k = w.source || "unbekannt"; (srcs[k] = srcs[k] || { v: 0, s: 0 }).s += 1; });
+  const srcRows = Object.entries(srcs).sort((a, b) => b[1].v - a[1].v || b[1].s - a[1].s);
+  // Säulendiagramm
+  const W = 760, H = 220, pl = 36, pr = 8, pt = 12, pb = 26, cw = W - pl - pr, ch = H - pt - pb;
+  const maxV = Math.max(1, ...perDay.map(x => x.v));
+  const step = maxV <= 5 ? 1 : maxV <= 10 ? 2 : maxV <= 25 ? 5 : maxV <= 50 ? 10 : maxV <= 100 ? 20 : Math.pow(10, Math.floor(Math.log10(maxV))) * (maxV / Math.pow(10, Math.floor(Math.log10(maxV))) > 5 ? 2 : 1);
+  const top = Math.ceil(maxV / step) * step, ticks = [];
+  for (let t = 0; t <= top; t += step) ticks.push(t);
+  const slot = cw / days.length, bw = Math.max(2, Math.min(24, slot - 2));
+  const y = v => pt + ch - v / top * ch;
+  const labelEvery = days.length <= 7 ? 1 : days.length <= 31 ? 7 : 14;
+  const bars = perDay.map((x, i) => {
+    const cx = pl + slot * i + slot / 2, h = x.v / top * ch, r = Math.min(4, bw / 2, h);
+    const yTop = pt + ch - h, x0 = cx - bw / 2;
+    const path = h > 0 ? `M${x0},${pt + ch} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + bw - r} Q${x0 + bw},${yTop} ${x0 + bw},${yTop + r} V${pt + ch} Z` : "";
+    const tip = `${WD[pd(x.d).getDay()].slice(0, 2)}, ${fmt(x.d)} · ${x.v} ${x.v === 1 ? "Besuch" : "Besuche"} · ${x.s} ${x.s === 1 ? "Eintrag" : "Einträge"}`;
+    return `<g class="bar" tabindex="0" data-tip="${esc(tip)}" aria-label="${esc(tip)}"><rect x="${pl + slot * i}" y="${pt}" width="${slot}" height="${ch}" fill="transparent"/>${path ? `<path d="${path}" fill="var(--btn)"/>` : ""}${(days.length - 1 - i) % labelEvery === 0 ? `<text x="${cx}" y="${H - 8}" text-anchor="middle">${fmt(x.d)}</text>` : ""}</g>`;
+  }).join("");
+  const grid = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
+  const base = location.origin + location.pathname;
+  return `<div class="tabs" role="tablist" aria-label="Zeitraum">${[[7, "7 Tage"], [30, "30 Tage"], [90, "90 Tage"]].map(([v, t]) => `<button type="button" data-a="statRange" data-v="${v}" aria-selected="${range === v}">${t}</button>`).join("")}</div>
+    <div class="stats">${[[totV.toLocaleString("de-DE"), "Besuche"], [totS, "Einträge Warteliste"], [pct(totS, totV), "Eintragsquote"], [booked, "Buchungen gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
+    <div class="card"><div class="book-head"><h2>Besuche pro Tag</h2><span class="muted" style="font-size:13px">${totV ? `${pct(mob, totV)} vom Handy` : ""}</span></div>
+      ${totV ? `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Besuche pro Tag in den letzten ${range} Tagen">${grid}${bars}</svg><div class="chart-tip" id="chartTip" hidden></div></div>
+      <details class="tbl"><summary>Als Tabelle anzeigen</summary><div class="table-wrap"><table><thead><tr><th>Tag</th><th>Besuche</th><th>Einträge</th></tr></thead><tbody>${perDay.slice().reverse().map(x => `<tr><td>${fmtY(x.d)}</td><td>${x.v}</td><td>${x.s}</td></tr>`).join("")}</tbody></table></div></details>`
+      : `<p class="empty">Noch keine Besuche in diesem Zeitraum. Sobald jemand die Startseite öffnet, erscheint er hier. Deine eigenen Besuche als Coach werden auf diesem Gerät nicht mitgezählt.</p>`}
+    </div>
+    <div class="card"><h2>Woher kommen die Leute?</h2>
+      ${srcRows.length ? `<div class="table-wrap" style="background:var(--bg)"><table><thead><tr><th>Quelle</th><th>Besuche</th><th>Einträge</th><th>Quote</th></tr></thead><tbody>${srcRows.map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.v}</td><td>${x.s}</td><td>${pct(x.s, x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Noch keine Daten.</p>`}
+      <p class="muted" style="font-size:14px">Damit du siehst, was funktioniert, häng an deine Links eine Quelle an. Instagram gibt die Herkunft oft nicht weiter.</p>
+      <div class="src-links">${["story", "reel", "bio", "whatsapp"].map(k => `<div class="copyrow"><code>${esc(base)}?von=${k}</code><button class="btn small" type="button" data-a="copyText" data-t="${esc(base)}?von=${k}">Kopieren</button></div>`).join("")}</div>
+    </div>`;
 }
 
 function adminWaitlist() {
@@ -723,6 +795,8 @@ const A = {
   goLanding: async () => { S.showAuth = false; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
+  statRange: el => { S.ui.statRange = +el.dataset.v; render(); },
+  copyText: el => { const t = el.dataset.t; try { navigator.clipboard.writeText(t).then(() => toast("Link kopiert."), () => toast(t)); } catch (e) { toast(t); } },
   copyPlace: () => {
     const t = $("#placeUrl").textContent, ok = () => toast("Link kopiert.");
     const fail = () => { const r = document.createRange(); r.selectNodeContents($("#placeUrl")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Link markiert. Jetzt kopieren."); };
@@ -821,7 +895,7 @@ const F = {
     if (!name) return toast("Bitte gib deinen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
     if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
-    const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim() }));
+    const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim(), p_source: S.src || visitSource() }));
     if (!r) return;
     const d = r.data;
     if (d.already) {
@@ -944,6 +1018,20 @@ document.addEventListener("click", e => {
   const fn = A[el.dataset.a];
   if (fn) { e.preventDefault(); fn(el, e); }
 });
+function showTip(g) {
+  const tip = $("#chartTip"), wrap = g && g.closest(".chart-wrap");
+  if (!tip || !wrap) return;
+  tip.textContent = g.dataset.tip; tip.hidden = false;
+  const r = g.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+  const x = Math.min(Math.max(r.left + r.width / 2 - w.left, 80), w.width - 80);
+  tip.style.left = x + "px"; tip.style.top = "0px";
+  document.querySelectorAll(".chart .bar.on").forEach(b => b.classList.remove("on")); g.classList.add("on");
+}
+function hideTip() { const tip = $("#chartTip"); if (tip) tip.hidden = true; document.querySelectorAll(".chart .bar.on").forEach(b => b.classList.remove("on")); }
+document.addEventListener("pointerover", e => { const g = e.target.closest && e.target.closest(".chart .bar"); if (g) showTip(g); });
+document.addEventListener("pointerleave", e => { if (e.target.classList && e.target.classList.contains("chart")) hideTip(); }, true);
+document.addEventListener("focusin", e => { const g = e.target.closest && e.target.closest(".chart .bar"); if (g) showTip(g); else hideTip(); });
+
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter") return;
   const tr = e.target.closest && e.target.closest("tr[data-a]");
@@ -998,7 +1086,7 @@ function route() {
     if (m) { S.ui.wlToken = m[1]; wlSet(m[1]); S.showAuth = false; loadLanding().then(render); return; }
     S.showAuth = h === "login";
     if (h === "vorschau") S.preview = true;
-    if (!S.showAuth) { loadLanding().then(render); return; }
+    if (!S.showAuth) { trackVisit(); loadLanding().then(render); return; }
     render(); return;
   }
   S.view = VIEWS.includes(h) ? h : "start";
