@@ -618,7 +618,7 @@ function adminStats() {
   }).join("");
   const grid = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
   const base = location.origin + location.pathname;
-  return `<div class="tabs" role="tablist" aria-label="Zeitraum">${[[7, "7 Tage"], [30, "30 Tage"], [90, "90 Tage"]].map(([v, t]) => `<button type="button" data-a="statRange" data-v="${v}" aria-selected="${range === v}">${t}</button>`).join("")}</div>
+  return `<p class="live-note"><span class="live-dot" aria-hidden="true"></span>Live: aktualisiert sich alle 15 Sekunden</p><div class="tabs" role="tablist" aria-label="Zeitraum">${[[7, "7 Tage"], [30, "30 Tage"], [90, "90 Tage"]].map(([v, t]) => `<button type="button" data-a="statRange" data-v="${v}" aria-selected="${range === v}">${t}</button>`).join("")}</div>
     <div class="stats">${[[totV.toLocaleString("de-DE"), "Besuche"], [totS, "Einträge Warteliste"], [pct(totS, totV), "Eintragsquote"], [booked, "Buchungen gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
     <div class="card"><div class="book-head"><h2>Besuche pro Tag</h2><span class="muted" style="font-size:13px">${totV ? `${pct(mob, totV)} vom Handy` : ""}</span></div>
       ${totV ? `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Besuche pro Tag in den letzten ${range} Tagen">${grid}${bars}</svg><div class="chart-tip" id="chartTip" hidden></div></div>
@@ -1200,6 +1200,32 @@ function route() {
   render(); window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", route);
+
+/* ---------- Admin aktualisiert sich selbst ---------- */
+let liveBusy = false;
+const liveSig = () => { const D = S.D || {}; return JSON.stringify([D.visits, D.waitlist, D.questions, D.profiles, D.invites, D.mailLog]); };
+async function liveRefresh() {
+  if (liveBusy || document.hidden || !S.session || !S.me || S.me.role !== "coach" || S.view !== "admin" || !S.D) return;
+  const ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; // nicht beim Tippen stören
+  if (S.ui.wlMail || S.ui.wlEdit || S.ui.wlAdd || S.ui.confirm || S.ui.editLesson || S.ui.editNews) return;
+  liveBusy = true;
+  try {
+    const before = liveSig(), known = new Set((S.D.waitlist || []).map(w => w.id));
+    await refreshMe(); if (!S.me) return;
+    await load();
+    if (liveSig() === before || S.view !== "admin") return;
+    const fresh = (S.D.waitlist || []).filter(w => !known.has(w.id));
+    const open = [...document.querySelectorAll("#app details")].map(d => d.open), y = window.scrollY;
+    render();
+    document.querySelectorAll("#app details").forEach((d, i) => { if (open[i]) d.open = true; });
+    window.scrollTo(0, y);
+    if (fresh.length) toast(fresh.length === 1 ? "Neu auf der Warteliste: " + fresh[0].full_name : fresh.length + " neue Einträge auf der Warteliste");
+  } catch (e) { /* nächster Versuch beim nächsten Takt */ }
+  finally { liveBusy = false; }
+}
+setInterval(liveRefresh, 15000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) liveRefresh(); });
 
 /* ---------- Start ---------- */
 sb.auth.onAuthStateChange((event, session) => {
