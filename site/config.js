@@ -8,8 +8,8 @@ window.CONFIG = {
   calendlyUrl: "",
 
   // Links zu Impressum und Datenschutzerklärung (z. B. auf saschpak.de)
-  impressumUrl: "",
-  datenschutzUrl: "",
+  impressumUrl: "impressum.html",
+  datenschutzUrl: "datenschutz.html",
 
   // Warteliste auf der Startseite
   waitlistSpots: 6,           // Plätze in der ersten Runde
