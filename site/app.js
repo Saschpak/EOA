@@ -147,6 +147,21 @@ async function loadLanding() {
   S.wl = { stats: st.data || { waiting: 0, invited: 0 }, me: me.data || null, token: me.data ? token : null };
 }
 
+let stickyObs;
+function setupSticky() {
+  if (stickyObs) { stickyObs.disconnect(); stickyObs = null; }
+  const bar = $("#stickyCta"), hero = $("#hero"), wl = $("#warteliste");
+  if (!bar || !hero || !wl || !("IntersectionObserver" in window)) return;
+  const vis = { hero: true, wl: false };
+  stickyObs = new IntersectionObserver(es => {
+    es.forEach(e => { vis[e.target === hero ? "hero" : "wl"] = e.isIntersecting; });
+    const show = !vis.hero && !vis.wl;
+    bar.classList.toggle("show", show); bar.setAttribute("aria-hidden", String(!show));
+    const a = bar.querySelector("a"); if (a) a.tabIndex = show ? 0 : -1;
+  }, { threshold: 0 });
+  stickyObs.observe(hero); stickyObs.observe(wl);
+}
+
 function spotsInfo() {
   const st = (S.wl && S.wl.stats) || {}, n = CONFIG.waitlistSpots, taken = Math.min(n, st.invited || 0);
   return { n, taken, free: n - taken };
@@ -170,9 +185,13 @@ function roundText() {
 }
 
 function landingExtras() {
-  const pains = CONFIG.painPoints || [], pts = CONFIG.aboutPoints || [], tst = CONFIG.testimonials || [], faq = CONFIG.faq || [];
+  const pv = S.preview;
+  const pains = CONFIG.painPoints || [], faq = CONFIG.faq || [];
+  let pts = CONFIG.aboutPoints || [], tst = CONFIG.testimonials || [];
+  if (pv && !pts.length) pts = ["[Stichpunkt 1, z. B. wie lange du schon live spielst]", "[Stichpunkt 2, z. B. mit welchen Bands oder Artists]", "[Stichpunkt 3, z. B. wie viele Shows]"];
+  if (pv && !tst.length) tst = [{ quote: "[Zitat einer Person, der du geholfen hast]", name: "[Vorname]", role: "[Instrument oder Band]" }, { quote: "[Zweites Zitat]", name: "[Vorname]", role: "[Instrument oder Band]" }];
   const hasAbout = CONFIG.videoUrl || CONFIG.photoUrl || pts.length;
-  const media = CONFIG.videoUrl
+  const media = pv && !CONFIG.videoUrl && !CONFIG.photoUrl ? `<div class="about-media ph">[Dein Video]</div>` : CONFIG.videoUrl
     ? `<video class="about-media" src="${esc(CONFIG.videoUrl)}" ${CONFIG.photoUrl ? `poster="${esc(CONFIG.photoUrl)}"` : ""} controls playsinline preload="metadata"></video>`
     : CONFIG.photoUrl ? `<img class="about-media" src="${esc(CONFIG.photoUrl)}" alt="${esc(CONFIG.aboutTitle || "")}">` : "";
   return {
@@ -198,6 +217,7 @@ function landingExtras() {
 
 function renderLanding() {
   $("#bar").hidden = true;
+  const giftFile = CONFIG.giftFile || (S.preview ? "#" : "");
   document.body.classList.add("is-landing");
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
   let box;
@@ -206,7 +226,7 @@ function renderLanding() {
       ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
       <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in den nächsten Tagen per Mail bei dir für einen Termin.</p>`}
-      ${CONFIG.giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(CONFIG.giftFile)}" download>Herunterladen</a></div>` : ""}
+      ${giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit, auf welchem Platz du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
@@ -215,18 +235,22 @@ function renderLanding() {
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       </div>
-      <div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div>
+      <details class="note-toggle"><summary>+ Nachricht hinzufügen (optional)</summary><div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade?</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div></details>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
         <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
       <button class="btn-ink" type="submit">Unverbindlich auf die Warteliste</button>
-      ${CONFIG.giftFile ? `<p class="gift-note"><span class="eb-tag">Geschenk</span>${esc(CONFIG.giftTitle)} bekommst du direkt nach dem Eintragen.</p>` : ""}
+      ${giftFile ? `<p class="gift-note"><span class="eb-tag">Geschenk</span>${esc(CONFIG.giftTitle)} bekommst du direkt nach dem Eintragen.</p>` : ""}
       <p class="form-note">Kein Kauf, keine Verpflichtung. Bevor du dich entscheidest, sprechen wir kostenlos ${CONFIG.introCallMinutes || 20} Minuten über dein Setup.</p>
     </form>`;
   const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [], X = landingExtras();
+  const signed = !!(me && me.status);
+  const sp = spotsInfo();
   $("#app").innerHTML = `<div class="landing">
+    ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
+    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `Noch <b>${sp.free} von ${sp.n}</b> Plätzen frei` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Unverbindlich eintragen</a></div></div>`}
     <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="l-sec" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
+    <section class="l-sec" id="hero" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
       <div>
         <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
@@ -261,6 +285,7 @@ function renderLanding() {
       <div class="wl-box">${box}</div>
     </div></div></section>
   </div>`;
+  setupSticky();
 }
 
 /* ---------- Auth-Ansichten ---------- */
@@ -954,6 +979,7 @@ function route() {
     const m = /^platz-([0-9a-f-]{36})$/.exec(h);
     if (m) { S.ui.wlToken = m[1]; wlSet(m[1]); S.showAuth = false; loadLanding().then(render); return; }
     S.showAuth = h === "login";
+    if (h === "vorschau") S.preview = true;
     if (!S.showAuth) { loadLanding().then(render); return; }
     render(); return;
   }
