@@ -11,7 +11,7 @@ Dieses Repo enthält zwei Dinge:
 - `site/config.js`: **alle Inhalte und Einstellungen der Startseite** (Preis, Paket, Plätze, Early-Bird, Kurs-Übersicht, „Kennst du das?“, Über mich, Stimmen, FAQ, Geschenk-PDF, Calendly-Links, Impressum- und Datenschutz-Links). Texte bevorzugt hier ändern, nicht in `app.js`.
 - `supabase/migrations/`: Datenbankschema. Die Supabase-GitHub-Integration spielt neue Dateien beim Merge auf `main` automatisch ins Produktionsprojekt ein. Eingespielte Migrationen nie ändern, immer eine neue Datei mit Zeitstempel anlegen.
 - `supabase/email-vorlagen/`: deutsche Auth-Mail-Texte zum Einfügen im Supabase-Dashboard.
-- `rechtliches-entwurf/`: Entwürfe für Impressum und Datenschutz mit Platzhaltern `[[…]]`. Erst nach `site/` verschieben und verlinken (`impressumUrl`, `datenschutzUrl` in `config.js`), wenn alle Platzhalter gefüllt sind.
+- `site/impressum.html`, `site/datenschutz.html`: Impressum (Sascha Pakai, § 5 DDG, keine Steuernummer veröffentlichen) und Datenschutzerklärung, verlinkt über `impressumUrl`/`datenschutzUrl`. Bei neuen Diensten (Bunny, Calendly, Resend, Stripe) die Datenschutzerklärung ergänzen.
 - `plattform/prototyp.html`: alter Klick-Prototyp, nur zur Referenz.
 
 ## Wichtige Regel: Startseite mit dem Angebot synchron halten
@@ -39,7 +39,7 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 
 ## Offene Punkte (Stand November 2026)
 
-- Impressum-Angaben und Supabase-Region fehlen noch, danach Impressum und Datenschutz veröffentlichen.
+- Impressum und Datenschutz sind online (Stand November 2026). Der Coach muss die Auftragsverarbeitungsverträge mit Netlify und Supabase noch abschließen.
 - Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
 - Eigener Mail-Versand (Resend als SMTP in Supabase) und deutsche Mail-Vorlagen einrichten.
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
