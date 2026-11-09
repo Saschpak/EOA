@@ -314,7 +314,7 @@ body.is-landing main{max-width:none;padding:0 0 40px}
 .about.no-media{grid-template-columns:1fr}
 @media (max-width:760px){.about{grid-template-columns:1fr;gap:24px}}
 .about-media{width:100%;max-width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:var(--r-lg);background:var(--bg-2);display:block}
-video.about-media{aspect-ratio:auto;max-height:620px;background:#000}
+video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;object-fit:cover;background:#000;margin-inline:auto}
 .about-pts{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
 .about-pts li{font-size:18px;line-height:1.4;padding-left:22px;position:relative}
 .about-pts li::before{content:"";position:absolute;left:0;top:.55em;width:8px;height:8px;border-radius:2px;background:var(--accent-hi)}
