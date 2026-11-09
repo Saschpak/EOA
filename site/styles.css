@@ -345,7 +345,10 @@ video.about-media{aspect-ratio:auto;max-height:620px;background:#000}
 
 /* Paket */
 .spots-box{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
-.spots{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;max-width:460px}
+.spots{display:grid;grid-template-columns:repeat(var(--n,10),minmax(0,1fr));gap:6px;max-width:min(100%,calc(var(--n,10) * 52px))}
+.spots .eb-bracket{grid-row:1;font-size:12px;font-weight:700;color:var(--accent);padding:0 2px 6px;border-bottom:2px solid var(--accent-hi);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spots i{grid-row:2}
+.spots i.eb{background:var(--accent-soft)}
 .spots i{height:28px;border-radius:5px;border:2px solid var(--accent-hi);background:transparent}
 .spots i.taken{background:var(--line-2);border-color:var(--line-2)}
 .spots-cap{font-size:15px;color:var(--muted)}
