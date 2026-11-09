@@ -1,4 +1,4 @@
-/* Playback Coaching – Schüleransicht und Admin-Bereich */
+/* Playback Masterclass – Schüleransicht und Admin-Bereich */
 (function () {
 "use strict";
 
@@ -289,10 +289,10 @@ function renderLanding() {
   $("#app").innerHTML = `<div class="landing">
     ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
     ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `Noch <b>${sp.free} von ${sp.n}</b> Plätzen frei` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Unverbindlich eintragen</a></div></div>`}
-    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
     <section class="l-sec" id="hero" style="padding-top:48px"><div class="l-inner"><div class="${CONFIG.heroImage ? "hero-grid" : "hero-solo"}">
       <div>
-        <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
+        <span class="eyebrow">von Saschpak · 1:1-Coaching + Videokurs für Ableton Live &amp; AbleSet</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein komplettes Set, vom leeren Projekt bis auf die Bühne, mit meinen Templates und Workflows.</p>
         <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#kurs" data-a="toKurs">Was ist drin?</a></div>
@@ -334,7 +334,7 @@ function renderLanding() {
 function renderAuth() {
   $("#bar").hidden = true;
   const v = S.ui.recovery ? "recovery" : S.authView;
-  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</div>`;
+  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</div>`;
   let body = "";
   if (v === "login") body = `<form class="login card" data-f="login" novalidate>${head}
       <div class="field"><label class="label" for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
@@ -618,7 +618,7 @@ function adminStats() {
 function adminWaitlist() {
   const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited"), removed = all.filter(w => w.status === "removed");
   const li = S.ui.lastInvite;
-  const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Platz im Playback Coaching")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Platz im Playback Coaching ist frei! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
+  const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Platz in der Playback Masterclass")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Platz in der Playback Masterclass ist frei! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
   const del = w => confirmBtn("wldel:" + w.id, "Löschen", `data-a="wlDelete" data-id="${w.id}"`);
   const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
       <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
