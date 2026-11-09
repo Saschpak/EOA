@@ -170,7 +170,10 @@ function spotsInfo() {
 }
 function spotsMeter() {
   const { n, taken, free } = spotsInfo();
-  return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Plätzen frei">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : ""}"></i>`).join("")}</div>
+  const st = (S.wl && S.wl.stats) || {}, ebN = ebActive() ? Math.min(n, st.early_bird_slots || 0) : 0;
+  return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Plätzen frei${ebN ? `, die ersten ${ebN} zum Early-Bird-Preis` : ""}" style="--n:${n}">
+      ${ebN ? `<span class="eb-bracket" style="grid-column:1 / ${ebN + 1}">Early-Bird · ${esc(CONFIG.earlyBirdPriceHeadline)}/Monat</span>` : ""}
+      ${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : i < ebN ? "eb" : ""}"></i>`).join("")}</div>
     <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Plätzen frei` : `Alle ${n} Plätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
 }
 
