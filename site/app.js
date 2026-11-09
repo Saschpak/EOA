@@ -78,6 +78,8 @@ async function load() {
     const [pr, inv, wl] = await Promise.all([q("profiles", "*", [["created_at"]]), q("invites", "*", [["created_at"]]), q("waitlist", "*", [["created_at"], ["id"]])]);
     for (const r of [pr, inv, wl]) if (r.error) throw r.error;
     D.profiles = pr.data; D.invites = inv.data; D.waitlist = wl.data;
+    const eb = await sb.rpc("waitlist_early_bird_slots");
+    D.ebSlots = eb.error ? 3 : eb.data;
   }
   S.D = D;
 }
@@ -177,7 +179,7 @@ function roundText() {
   const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
   let t = `Nur ${n} Plätze in der ersten Runde. ${esc(CONFIG.launchText)}`;
   if (CONFIG.earlyBirdBonus && st.early_bird_slots != null && st.early_bird_left > 0)
-    t += ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
+    t += ` Die ersten ${st.early_bird_slots} Buchungen bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
   return t;
 }
 const ebActive = () => { const st = (S.wl && S.wl.stats) || {}; return !!(CONFIG.earlyBirdPriceHeadline && st.early_bird_slots != null && st.early_bird_left > 0); };
@@ -188,7 +190,7 @@ function ebText() {
 function priceBlock() {
   const st = (S.wl && S.wl.stats) || {};
   if (ebActive()) return `<div class="price" style="margin-top:12px"><s>${esc(CONFIG.earlyBirdPriceWas)}</s>${esc(CONFIG.earlyBirdPriceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>
-      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} auf der Warteliste: <b>${esc(CONFIG.earlyBirdDeal)}</b>. Noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}.</span></p>
+      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>. Noch ${st.early_bird_left} von ${st.early_bird_slots} frei.</span></p>
       <p class="price-sub">Danach ${esc(CONFIG.priceHeadline)} ${esc(CONFIG.priceHeadlineNote || "")}. ${esc(CONFIG.priceDetail || "")}</p>`;
   return `<div class="price" style="margin-top:12px">ab ${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
 }
@@ -232,7 +234,8 @@ function renderLanding() {
   let box;
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
       <div class="place"><b>${me.position}</b><span>dein Platz auf der Warteliste</span></div>
-      ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird gesichert</span><span>Du zahlst ${esc(ebText())}.</span></p>` : ""}
+      ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
+        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
       <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in den nächsten Tagen per Mail bei dir für einen Termin.</p>`}
       ${giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>` : ""}
@@ -266,7 +269,7 @@ function renderLanding() {
         <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
         <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
-        ${ebActive() ? `<p class="hero-eb"><span class="eb-tag">Early-Bird</span>${esc(CONFIG.earlyBirdMonthly)} für die ersten ${S.wl.stats.early_bird_slots}</p>` : ""}
+        ${ebActive() ? `<p class="hero-eb"><span class="eb-tag">Early-Bird</span>${esc(CONFIG.earlyBirdMonthly)} für die ersten ${S.wl.stats.early_bird_slots} Buchungen</p>` : ""}
       </div>
       ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
         <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
@@ -551,7 +554,7 @@ function adminWaitlist() {
       ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
       <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : `<span class="muted" style="font-size:13px">${S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? "registriert" : "noch nicht registriert"}</span>`}
         <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
-  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Plätze in der ersten Runde</span></div>
+  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Plätze in der ersten Runde${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
       <div><button class="btn small" type="button" data-a="wlAddOpen">${S.ui.wlAdd ? "Formular schließen" : "Person hinzufügen"}</button></div>
       ${S.ui.wlAdd ? `<form data-f="wlAdd" novalidate style="display:flex;flex-direction:column;gap:10px">
@@ -751,13 +754,15 @@ const A = {
   relock: async el => { await run(sb.from("module_unlocks").delete().eq("user_id", S.ui.user).eq("module_id", el.dataset.id)); reload(); },
   wlInvite: async el => {
     const w = S.D.waitlist.find(x => x.id === el.dataset.id);
-    const pack = (S.ui.wlPack == null ? 4 : S.ui.wlPack) + (w.early_bird ? (CONFIG.earlyBirdExtraSessions || 0) : 0);
+    const ebSlots = S.D.ebSlots || 3, ebUsed = S.D.waitlist.filter(x => x.early_bird && x.id !== w.id).length;
+    const giveEb = !!CONFIG.earlyBirdPriceHeadline && (w.early_bird || ebUsed < ebSlots);
+    const pack = (S.ui.wlPack == null ? 4 : S.ui.wlPack) + (giveEb ? (CONFIG.earlyBirdExtraSessions || 0) : 0);
     if (!S.D.profiles.some(p => p.email.toLowerCase() === w.email)) {
       const r = await run(sb.from("invites").upsert({ email: w.email, full_name: w.full_name, package_total: pack, course_access: true }));
       if (!r) return;
     }
-    const r2 = await run(sb.from("waitlist").update({ status: "invited" }).eq("id", w.id), w.full_name + " ist eingeladen.");
-    if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email, early: w.early_bird };
+    const r2 = await run(sb.from("waitlist").update({ status: "invited", early_bird: giveEb }).eq("id", w.id), w.full_name + " ist eingeladen.");
+    if (r2) S.ui.lastInvite = { name: w.full_name, email: w.email, early: giveEb };
     reload();
   },
   wlDelete: async el => {
@@ -821,7 +826,7 @@ const F = {
       return;
     }
     wlSet(d.token); S.ui.wlToken = d.token;
-    await loadLanding(); render(); toast("Du bist auf Platz " + d.position + "." + (d.early_bird ? " Early-Bird gesichert!" : ""));
+    await loadLanding(); render(); toast("Du bist auf Platz " + d.position + ".");
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
   },
   myName: async f => {
