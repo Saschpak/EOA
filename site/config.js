@@ -35,11 +35,27 @@ window.CONFIG = {
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
     ["Videokurs", "12 Monate Zugang"],
+    ["Templates & Max for Live Devices", "sofort startklar"],
     ["Begleitung", "Fragen, Notizen, Aufgaben"]
   ],
 
-  // Die Setlist auf der Startseite (Stationen des Kurses)
-  setlist: ["Rig aufbauen", "Stems & Session", "Click & Cues", "In-Ear-Routing", "AbleSet", "Showtag"],
+  // Kurs-Übersicht auf der Startseite: [Modul, kurze Beschreibung]
+  courseModules: [
+    ["Grundlagen & Setup", "Ableton-Basics, mein Setup und warum, Alternativen"],
+    ["Stems", "Was sie sind, woher du sie bekommst, auch als Coverband"],
+    ["Projektaufbau & Templates", "Meine Struktur, Projekt-Templates, Max for Live Devices"],
+    ["Tempo & Click", "Tempo erkennen, Clicktracks bauen und routen"],
+    ["Sections & Songstruktur", "Songs sauber gliedern, Sprünge vorbereiten"],
+    ["AbleSet", "Setlist, Canvas für jedes Bandmitglied, Workflows mit Claude"],
+    ["Ohne AbleSet", "Loops und Section-Sprünge direkt in Ableton"],
+    ["MIDI-Automation", "SPD-SX, Drum-Pads, Controller, Live-Vocal-Processing wie Autotune"],
+    ["Licht", "Timecode und Lightkey, so wie in einer echten Show"],
+    ["Medleys & große Projekte", "Mehrere Songs in einem Projekt, Übergänge"],
+    ["Redundanz & Bühne", "Zwei Rechner, Rack, Equipment, Vor- und Nachteile"]
+  ],
+  courseIntro: "Etwa zehn Module. Ich zeige dir dabei nicht nur das Wie, sondern auch, warum ich es so mache.",
+  courseFinale: "Zugabe: dein komplettes Set, bühnenfertig.",
+  heroImage: "",       // optional: Bild rechts neben der Überschrift, z. B. "media/set.jpg"
 
   // "Kennst du das?" auf der Startseite
   painPoints: [
@@ -64,9 +80,10 @@ window.CONFIG = {
 
   // Häufige Fragen
   faq: [
+    ["Bekomme ich Vorlagen, mit denen ich direkt starten kann?", "Ja. Du bekommst meine Projekt-Templates und Max for Live Devices, mit denen ich selbst arbeite. Damit kannst du sofort loslegen, statt bei null anzufangen."],
     ["Ich bin kein Technik-Typ. Schaffe ich das?", "Ja. Genau dafür ist das Coaching da. Wir gehen Schritt für Schritt vor, in deinem Tempo, und bauen nur das, was du für deine Show wirklich brauchst."],
-    ["Brauche ich AbleSet?", "Nicht zwingend. AbleSet ist ein Baustein im Kurs, weil es Setlists auf der Bühne sehr einfach macht. Ob es für dich Sinn ergibt, klären wir im Kennenlerngespräch."],
-    ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Was genau für dein Setup passt, besprechen wir im Gespräch, bevor du etwas kaufst."],
+    ["Brauche ich AbleSet?", "Nein. Ich zeige dir beides: wie du mit AbleSet arbeitest und wie du alles komplett ohne löst, inklusive Loops und Section-Sprüngen direkt in Ableton."],
+    ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Geräte wie ein SPD-SX, MIDI-Controller oder Lichtsoftware sind optional. Was für dein Setup sinnvoll ist, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
     ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
     ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
