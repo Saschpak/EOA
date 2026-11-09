@@ -247,6 +247,19 @@ td .sub{display:block;font-size:12.5px;color:var(--muted)}
 .news-admin p{color:var(--muted);max-width:70ch;white-space:pre-line}
 .eb-tag{flex:none;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:5px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
 .back{align-self:flex-start}
+.chart-wrap{position:relative;padding-top:40px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart line{stroke:var(--line);stroke-width:1}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--font-ui)}
+.chart .bar{cursor:default;outline:none}
+.chart .bar path{transition:opacity .15s}
+.chart:hover .bar path,.chart:focus-within .bar path{opacity:.45}
+.chart .bar.on path{opacity:1}
+.chart-tip{position:absolute;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none}
+.tbl summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;margin-top:4px}
+.tbl .table-wrap{margin-top:10px}
+.src-links{display:flex;flex-direction:column;gap:8px}
+.src-links code{font-family:var(--font-mono);font-size:12px;background:var(--bg);border-radius:var(--r);padding:8px 10px;flex:1;min-width:0;word-break:break-all}
 
 /* =========================================================
    Startseite
