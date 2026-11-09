@@ -14,13 +14,18 @@ window.CONFIG = {
   // Warteliste auf der Startseite
   waitlistSpots: 10,          // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
-  launchText: "Die erste Runde startet im Dezember.",
+  launchText: "Die erste Runde startet im Januar.",
   earlyBirdBonus: "eine zusätzliche 1:1-Session", // was die ersten 5 bekommen
   earlyBirdExtraSessions: 1,  // so viele 1:1s bekommen Early-Birds beim Einladen automatisch dazu
 
-  // Preis und Paket der ersten Runde (Startseite und Wartelisten-Formular)
-  priceTotal: "960 €",
-  priceInstallments: "4 × 240 € monatlich",
+  // Kennenlerngespräch nach dem Eintragen (Calendly-Link). Leer lassen, solange es keinen gibt.
+  introCallUrl: "",
+  introCallMinutes: 20,
+
+  // Preis und Paket der ersten Runde (Startseite)
+  priceHeadline: "ab 240 €",
+  priceHeadlineNote: "im Monat",
+  priceDetail: "4 Monate à 240 € oder 960 € einmalig. Alle Details besprechen wir im Kennenlerngespräch.",
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
     ["Videokurs", "12 Monate Zugang"],

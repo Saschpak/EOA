@@ -303,7 +303,9 @@ body.is-landing main{max-width:none;padding:0 0 40px}
 .pack{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:start}
 @media (max-width:760px){.pack{grid-template-columns:1fr;gap:24px}}
 .price{font-size:clamp(60px,9vw,96px);font-weight:800;font-stretch:72%;line-height:.95;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.price-sub{font-size:18px;color:var(--muted);margin-top:8px}
+.price small{font-size:.28em;font-weight:600;font-stretch:90%;color:var(--muted);margin-left:10px;letter-spacing:0}
+.price-sub{font-size:16px;color:var(--muted);margin-top:12px;max-width:26em;line-height:1.5}
+.form-note{font-size:13.5px;color:var(--muted);text-align:center;margin-top:-2px}
 .incl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;width:100%}
 .incl li{display:flex;justify-content:space-between;gap:16px;padding:15px 0;border-top:1px solid var(--line);font-size:17px;font-weight:600}
 .incl li:last-child{border-bottom:1px solid var(--line)}

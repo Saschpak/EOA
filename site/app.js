@@ -177,7 +177,9 @@ function renderLanding() {
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
       <div class="place"><b>${me.position}</b><span>dein Platz auf der Warteliste</span></div>
       ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
-      <p class="muted">Danke, ${esc(firstName(me.name))}. Sobald dein Platz frei wird, bekommst du eine Mail. Unter diesem Link siehst du jederzeit, wo du stehst:</p>
+      <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
+      ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in den nächsten Tagen per Mail bei dir für einen Termin.</p>`}
+      <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit, auf welchem Platz du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
   else box = `<form class="wl-form" data-f="waitlist" id="wlBox" novalidate>
@@ -187,11 +189,10 @@ function renderLanding() {
       </div>
       <div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      ${CONFIG.priceTotal ? `<label class="inline-check consent" for="wlPrice"><input class="check" id="wlPrice" name="price" type="checkbox" style="margin:0">
-        <span>Der Preis von ${esc(CONFIG.priceTotal)}${CONFIG.priceInstallments ? " (oder " + esc(CONFIG.priceInstallments) + ")" : ""} passt für mich.</span></label>` : ""}
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
         <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
-      <button class="btn-ink" type="submit">Auf die Warteliste</button>
+      <button class="btn-ink" type="submit">Unverbindlich auf die Warteliste</button>
+      <p class="form-note">Kein Kauf, keine Verpflichtung. Bevor du dich entscheidest, sprechen wir kostenlos ${CONFIG.introCallMinutes || 20} Minuten über dein Setup.</p>
     </form>`;
   const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [];
   $("#app").innerHTML = `<div class="landing">
@@ -201,7 +202,7 @@ function renderLanding() {
         <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
-        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
+        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
       </div>
       ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
@@ -219,12 +220,12 @@ function renderLanding() {
         <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
       </div>
     </div></section>
-    ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
-      <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceTotal)}</div>${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}</div>
+    ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
+      <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}</div>
       <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
     </div></div></section>` : ""}
     <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
-      <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich ein und sieh sofort, auf welchem Platz du stehst. Wenn dein Platz frei wird, bekommst du eine Mail.</p></div>
+      <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich unverbindlich ein. Danach sprechen wir kostenlos über dein Setup, und du entscheidest in Ruhe, ob du dabei bist.</p></div>
       <div class="wl-box">${box}</div>
     </div></div></section>
   </div>`;
@@ -744,7 +745,6 @@ const F = {
     const name = f.name.value.trim(), email = f.email.value.trim();
     if (!name) return toast("Bitte gib deinen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
-    if (f.price && !f.price.checked) return toast("Bitte bestätige, dass der Preis für dich passt. Die Warteliste ist für alle, die wirklich starten möchten.", true);
     if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
     const r = await run(sb.rpc("join_waitlist", { p_name: name, p_email: email, p_note: f.note.value.trim() }));
     if (!r) return;
