@@ -31,7 +31,7 @@ window.CONFIG = {
   // Preis und Paket der ersten Runde (Startseite)
   priceHeadline: "240\u00a0€",
   priceHeadlineNote: "im Monat",
-  priceDetail: "4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Alle Details besprechen wir im Kennenlerngespräch.",
+  priceDetail: "4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Alle Preise inkl. 19\u00a0% MwSt. Alle Details besprechen wir im Kennenlerngespräch.",
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
     ["Videokurs", "12 Monate Zugang"],
@@ -91,7 +91,7 @@ window.CONFIG = {
     ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Geräte wie ein SPD-SX, MIDI-Controller oder Lichtsoftware sind optional. Was für dein Setup sinnvoll ist, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
     ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
-    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
+    ["Wie läuft die Bezahlung?", "Entweder 4 Monate à 240\u00a0€ oder 960\u00a0€ einmalig, jeweils inklusive 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
   ],
 
   // Kursname, wie er im Kursbereich oben steht
