@@ -290,7 +290,16 @@ body.is-landing main{max-width:none;padding:0 0 40px}
 .stamp{position:absolute;right:-14px;bottom:-22px;transform:rotate(-8deg);border:2px solid var(--btn);color:var(--btn);background:#fff;border-radius:6px;padding:5px 10px;font-weight:800;font-stretch:74%;font-size:15px;text-transform:uppercase;letter-spacing:.03em}
 @media (max-width:480px){.stamp{right:8px}}
 
+.hero-spots{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:14px;color:var(--muted)}
+.hero-spots .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-hi);box-shadow:0 0 0 4px var(--accent-soft)}
+
 /* Paket */
+.spots-box{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.spots{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;max-width:460px}
+.spots i{height:28px;border-radius:5px;border:2px solid var(--accent-hi);background:transparent}
+.spots i.taken{background:var(--line-2);border-color:var(--line-2)}
+.spots-cap{font-size:15px;color:var(--muted)}
+.spots-cap b{color:var(--fg);font-weight:750}
 .pack{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:start}
 @media (max-width:760px){.pack{grid-template-columns:1fr;gap:24px}}
 .price{font-size:clamp(60px,9vw,96px);font-weight:800;font-stretch:72%;line-height:.95;letter-spacing:-.02em;font-variant-numeric:tabular-nums}

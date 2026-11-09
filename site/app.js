@@ -147,10 +147,20 @@ async function loadLanding() {
   S.wl = { stats: st.data || { waiting: 0, invited: 0 }, me: me.data || null, token: me.data ? token : null };
 }
 
+function spotsInfo() {
+  const st = (S.wl && S.wl.stats) || {}, n = CONFIG.waitlistSpots, taken = Math.min(n, st.invited || 0);
+  return { n, taken, free: n - taken };
+}
+function spotsMeter() {
+  const { n, taken, free } = spotsInfo();
+  return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Plätzen frei">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : ""}"></i>`).join("")}</div>
+    <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Plätzen frei` : `Alle ${n} Plätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
+}
+
 function roundText() {
   const st = (S.wl && S.wl.stats) || {};
   const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
-  let t = `Nur <b>${n} Plätze</b> in der ersten Runde${free < n ? `, davon noch <b>${free}</b> frei` : ""}. ${esc(CONFIG.launchText)}`;
+  let t = `Nur ${n} Plätze in der ersten Runde. ${esc(CONFIG.launchText)}`;
   if (CONFIG.earlyBirdBonus && st.early_bird_slots != null) {
     t += st.early_bird_left > 0
       ? ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu, <b>noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}</b>.`
@@ -192,6 +202,7 @@ function renderLanding() {
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
         <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Plätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
       </div>
       ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
         <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
@@ -210,7 +221,7 @@ function renderLanding() {
     </div></section>
     ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
       <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceTotal)}</div>${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}</div>
-      <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
+      <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
     </div></div></section>` : ""}
     <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
       <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich ein und sieh sofort, auf welchem Platz du stehst. Wenn dein Platz frei wird, bekommst du eine Mail.</p></div>
