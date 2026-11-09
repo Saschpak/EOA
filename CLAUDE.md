@@ -20,6 +20,7 @@ Wenn sich am Kurs oder am Angebot etwas ändert (Module, Lektionen, Paketinhalt,
 
 - `setlist`: Stationen des Kurses auf der Setlist-Grafik
 - `packageItems`, `priceHeadline`, `priceDetail`: Paket und Preis
+- `earlyBirdPriceHeadline`, `earlyBirdPriceWas`, `earlyBirdDeal`, `earlyBirdMonthly`: Early-Bird-Preis (durchgestrichen), sichtbar solange Early-Bird-Plätze frei sind
 - `faq`: besonders „Welche Ausstattung brauche ich?“, „Brauche ich AbleSet?“, „Wie läuft die Bezahlung?“
 - `painPoints` und die drei Bausteine in `renderLanding()` in `app.js`
 - `launchText`, `waitlistSpots`, `earlyBirdBonus`, `earlyBirdExtraSessions` (die Anzahl der Early-Birds steht in der Datenbankfunktion `waitlist_early_bird_slots`, Änderung nur per neuer Migration)
