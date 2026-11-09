@@ -3,7 +3,7 @@
 Dieses Repo enthält zwei Dinge:
 
 1. **Drum Sheet Editor** (`index.html` im Hauptverzeichnis, dazu die MP3s): Der Besitzer nutzt ihn aktiv. Nicht verschieben, nicht löschen. Er wird über die bestehende Netlify-Seite `darling-biscuit-788a7b` und die Vercel-Projekte aus dem Hauptverzeichnis veröffentlicht. Es darf keine `netlify.toml` im Hauptverzeichnis geben, die das ändert.
-2. **Playback Coaching Plattform** (`site/` und `supabase/`): live unter `https://coaching.saschpak.de` (Netlify-Projekt `deluxe-rabanadas-926740`, Publish directory `site`).
+2. **Playback Masterclass von Saschpak** (Coaching-Plattform, `site/` und `supabase/`): live unter `https://coaching.saschpak.de` (Netlify-Projekt `deluxe-rabanadas-926740`, Publish directory `site`).
 
 ## Plattform: Aufbau
 
@@ -43,4 +43,5 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 - Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
 - Eigener Mail-Versand (Resend als SMTP in Supabase) und deutsche Mail-Vorlagen einrichten.
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
-- Inhalte für Über mich (Video, Foto, Stichpunkte), Stimmen und Geschenk-PDF (Ableton-Shortcuts) kommen vom Coach. Vorschau mit Platzhaltern unter `#vorschau`.
+- Intro-Video (`site/media/intro.mp4`, Website-Schnitt ohne Plätze-Angabe und ohne Instagram-Aufruf) und Stichpunkte über Sascha sind drin. Noch offen: Stimmen, Geschenk-PDF (Ableton-Shortcuts), Bild für `heroImage`. Vorschau mit Platzhaltern unter `#vorschau`.
+- Noch zu bestätigen: Schreibweise „Simon Will & die Creators“ (Woodwalkers 2) und die „Toni“-Tour, bevor sie in `aboutPoints` kommen.

@@ -69,7 +69,13 @@ window.CONFIG = {
   aboutTitle: "Hi, ich bin Sascha.",
   videoUrl: "media/intro.mp4",
   photoUrl: "media/intro-poster.jpg", // Vorschaubild fürs Video
-  aboutPoints: [],     // z. B. ["Seit 10 Jahren live mit Ableton unterwegs", "Playback für …"]
+  aboutPoints: [
+    "Seit 20 Jahren Drummer, seit rund 11 Jahren live auf der Bühne",
+    "Aushilfe am Schlagzeug für Kontra K und Oliver Tree",
+    "Musical Direction und Playback für Kleo mit K",
+    "Von der Partyband-Bühne auf dem Oktoberfest bis zu Festivals wie dem Open Flair",
+    "Auf Tour, zuletzt mit Kleo mit K als Support auf der Julia-Meladin-Tour"
+  ],
 
   // Stimmen von Teilnehmern. Erscheinen erst, wenn hier Einträge stehen.
   testimonials: [],    // z. B. [{ quote: "…", name: "Lena", role: "Keys, Bandname" }]
