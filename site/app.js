@@ -147,83 +147,71 @@ async function loadLanding() {
   S.wl = { stats: st.data || { waiting: 0, invited: 0 }, me: me.data || null, token: me.data ? token : null };
 }
 
-function spotsMeter() {
-  const n = CONFIG.waitlistSpots, taken = Math.min(n, (S.wl && S.wl.stats.invited) || 0);
-  return `<div class="spots" aria-label="${taken} von ${n} Plätzen vergeben">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "on" : ""}"></i>`).join("")}</div>
-    <span class="spots-cap">${taken} von ${n} Plätzen vergeben</span>`;
-}
-
-function earlyBirdLine() {
-  const st = S.wl && S.wl.stats;
-  if (!st || st.early_bird_slots == null || !CONFIG.earlyBirdBonus) return "";
-  const left = st.early_bird_left, n = st.early_bird_slots;
-  return left > 0
-    ? `<p class="eb"><span class="eb-tag">Early-Bird</span><span>Die ersten ${n} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu. <b>Noch ${left} ${left === 1 ? "Platz" : "Plätze"} frei.</b></span></p>`
-    : `<p class="eb off"><span class="eb-tag">Early-Bird</span><span>Alle Early-Bird-Plätze sind vergeben.</span></p>`;
+function roundText() {
+  const st = (S.wl && S.wl.stats) || {};
+  const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
+  let t = `Nur <b>${n} Plätze</b> in der ersten Runde${free < n ? `, davon noch <b>${free}</b> frei` : ""}. ${esc(CONFIG.launchText)}`;
+  if (CONFIG.earlyBirdBonus && st.early_bird_slots != null) {
+    t += st.early_bird_left > 0
+      ? ` Die ersten ${st.early_bird_slots} auf der Warteliste bekommen ${esc(CONFIG.earlyBirdBonus)} dazu, <b>noch ${st.early_bird_left} ${st.early_bird_left === 1 ? "Platz" : "Plätze"}</b>.`
+      : "";
+  }
+  return t;
 }
 
 function renderLanding() {
   $("#bar").hidden = true;
   document.body.classList.add("is-landing");
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
-  const waiting = w.stats.waiting;
-  const count = waiting >= CONFIG.waitlistShowCountFrom ? `<span class="spots-cap">${waiting} Personen stehen schon auf der Warteliste.</span>` : "";
-  const sl = CONFIG.setlist || [];
   let box;
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
-      <div class="place"><b>${me.position}</b><span>dein Platz<br>auf der Warteliste</span></div>
-      ${me.early_bird && CONFIG.earlyBirdBonus ? `<p class="eb"><span class="eb-tag">Early-Bird</span><span>Gesichert: ${esc(CONFIG.earlyBirdBonus)} gibt's obendrauf.</span></p>` : ""}
-      <p>Hey ${esc(firstName(me.name))}, du stehst drauf. Wenn ein Platz für dich frei wird, melde ich mich per Mail.</p>
-      <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen aktuellen Platz:</p>
+      <div class="place"><b>${me.position}</b><span>Dein Platz auf der Warteliste</span></div>
+      ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
+      <p class="muted">Danke, ${esc(firstName(me.name))}. Sobald dein Platz frei wird, bekommst du eine Mail. Unter diesem Link siehst du jederzeit, wo du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
-  else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><h2>Du bist dabei.</h2><p>Dein Platz ist frei. Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><div><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div></div>`;
+  else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:21px;font-weight:600">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
   else box = `<form class="wl-form" data-f="waitlist" id="wlBox" novalidate>
       <div class="form-grid">
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       </div>
-      <div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000" placeholder="z. B. Keys in einer Band, wir wollen mit Click und Playback spielen"></textarea></div>
+      <div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade? (optional)</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
       ${CONFIG.priceTotal ? `<label class="inline-check consent" for="wlPrice"><input class="check" id="wlPrice" name="price" type="checkbox" style="margin:0">
         <span>Der Preis von ${esc(CONFIG.priceTotal)}${CONFIG.priceInstallments ? " (oder " + esc(CONFIG.priceInstallments) + ")" : ""} passt für mich.</span></label>` : ""}
       <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
-        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Ich kann das jederzeit per Mail widerrufen.${CONFIG.datenschutzUrl ? ` Mehr in der <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutzerklärung</a>.` : ""}</span></label>
-      <div><button class="btn-ink" type="submit">Platz auf der Warteliste sichern →</button></div>
+        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
+      <button class="btn-ink" type="submit">Auf die Warteliste</button>
     </form>`;
   const pk = CONFIG.packageItems || [];
   $("#app").innerHTML = `<div class="landing">
-    <div class="landing-top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>
-      <button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="landing-hero">
-      <div>
-        <span class="kicker">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
-        <h1 class="hero">Playback, Click und Cues, die auf der Bühne <em>einfach laufen.</em></h1>
-        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Rig so, dass du an der Show nicht mehr an die Technik denken musst.</p>
-        <div class="hero-cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste →</a><span class="spots-cap">${esc(CONFIG.launchText)}</span></div>
+    <div class="l-nav"><span class="logo">Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <section class="l-sec"><div class="l-inner">
+      <span class="eyebrow">Coaching für Ableton Live und AbleSet</span>
+      <h1 class="hero">Playback, das auf der Bühne einfach läuft.</h1>
+      <p class="lead">Persönliches 1:1-Coaching und ein Videokurs für Bands und Artists, die live mit Laptop spielen.</p>
+      <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="more" href="#paket" data-a="toPaket">Zum Paket ›</a></div>
+    </div></section>
+    <section class="l-sec alt"><div class="l-inner" style="max-width:960px">
+      <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
+      <div class="features">
+        <div><h3>1:1-Sessions</h3><p>Wir bauen dein Setup gemeinsam auf und lösen genau die Probleme, die du gerade hast.</p></div>
+        <div><h3>Videokurs</h3><p>Stems, Click, Cues, In-Ear-Routing, AbleSet und Showtag. Schritt für Schritt, in deinem Tempo.</p></div>
+        <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
       </div>
-      ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte als Setlist">
-        <div class="sl-head"><span>PLAYBACK COACHING</span><span>RUNDE 1</span></div>
-        <ol>${sl.map((t, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${esc(t)}</li>`).join("")}</ol>
-        <div class="encore">Zugabe: deine erste Show</div>
-        <span class="scribble">nur ${CONFIG.waitlistSpots} Plätze!</span>
-      </div></div>` : ""}
-    </section>
-    <section class="rows">
-      ${CONFIG.priceTotal ? `<div class="row"><span class="row-k">Das Paket</span><div class="row-v">
-        <div class="price"><b>${esc(CONFIG.priceTotal)}</b>${CONFIG.priceInstallments ? `<span>oder ${esc(CONFIG.priceInstallments)}</span>` : ""}</div>
-        ${pk.length ? `<ul class="incl">${pk.map(i => { const m = /^(\S+(?:\s×\s\S+)?|\d+\s\S+)\s(.*)$/.exec(i); return `<li>${m ? `<b>${esc(m[1])}</b>${esc(m[2])}` : esc(i)}</li>`; }).join("")}</ul>` : ""}
-      </div></div>` : ""}
-      <div class="row"><span class="row-k">Erste Runde</span><div class="row-v">${spotsMeter()}${count}${earlyBirdLine()}<p class="muted" style="font-size:15px">Ich vergebe die Plätze in der Reihenfolge der Warteliste.</p></div></div>
-      <div class="row"><span class="row-k">So läuft's</span><div class="row-v"><div class="offer">
-        <div><h3>1:1-Sessions</h3><p>Wir bauen dein Rig gemeinsam auf und lösen genau deine Probleme, nicht die aus einem Lehrbuch.</p></div>
-        <div><h3>Videokurs</h3><p>Von Stems und Click über In-Ear-Routing bis AbleSet und Showtag. In deinem Tempo, so oft du willst.</p></div>
-        <div><h3>Bis zur Show</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
-      </div></div></div>
-    </section>
-    <section class="wl" id="warteliste">
-      <div class="wl-intro"><h2>Auf die Warteliste.</h2><p>Trag dich ein und sieh sofort, auf welchem Platz du stehst. Wenn dein Platz frei wird, bekommst du eine Mail.</p></div>
-      <div>${box}</div>
-    </section>
+    </div></section>
+    ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner">
+      <span class="eyebrow">Erste Runde</span>
+      <div class="price">${esc(CONFIG.priceTotal)}</div>
+      ${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}
+      ${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
+      <p class="round">${roundText()}</p>
+    </div></section>` : ""}
+    <section class="l-sec alt" id="warteliste"><div class="l-inner">
+      <h2 class="big">Sichere dir deinen Platz.</h2>
+      <p class="lead" style="font-size:19px">Trag dich ein und sieh sofort, auf welchem Platz du stehst.</p>
+      <div class="wl-box">${box}</div>
+    </div></section>
   </div>`;
 }
 
@@ -231,7 +219,7 @@ function renderLanding() {
 function renderAuth() {
   $("#bar").hidden = true;
   const v = S.ui.recovery ? "recovery" : S.authView;
-  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>PLAYBACK COACHING</div>`;
+  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</div>`;
   let body = "";
   if (v === "login") body = `<form class="login card" data-f="login" novalidate>${head}
       <div class="field"><label class="label" for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
@@ -644,6 +632,7 @@ const A = {
   authView: el => { S.authView = el.dataset.v; render(); },
   goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
   goLanding: async () => { S.showAuth = false; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
+  toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
   copyPlace: () => {
     const t = $("#placeUrl").textContent, ok = () => toast("Link kopiert.");

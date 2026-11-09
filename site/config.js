@@ -22,13 +22,10 @@ window.CONFIG = {
   priceTotal: "960 €",
   priceInstallments: "4 × 240 € monatlich",
   packageItems: [
-    "4 × 1:1 Sessions, verteilt über 4 Monate",
-    "12 Monate Zugang zum Videokurs",
-    "1 Plattform für Fragen, Notizen und Aufgaben"
+    ["1:1-Sessions", "4, verteilt über 4 Monate"],
+    ["Videokurs", "12 Monate Zugang"],
+    ["Begleitung", "Fragen, Notizen, Aufgaben"]
   ],
-
-  // Die Setlist auf der Startseite (Stationen des Kurses)
-  setlist: ["Rig aufbauen", "Stems & Session", "Click & Cues", "In-Ear-Routing", "AbleSet & Setlist", "Showtag"],
 
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
