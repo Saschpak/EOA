@@ -157,6 +157,7 @@ function visitSource() {
   const m = map.find(([re]) => re.test(host));
   return m ? m[1] : host;
 }
+const noTrack = () => { try { return !!localStorage.getItem("pc-notrack"); } catch (e) { return false; } };
 let tracked = false;
 function trackVisit() {
   if (tracked || S.preview) return;
@@ -629,6 +630,12 @@ function adminStats() {
       ${srcRows.length ? `<div class="table-wrap" style="background:var(--bg)"><table><thead><tr><th>Quelle</th><th>Besuche</th><th>Einträge</th><th>Quote</th></tr></thead><tbody>${srcRows.map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.v}</td><td>${x.s}</td><td>${pct(x.s, x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Noch keine Daten.</p>`}
       <p class="muted" style="font-size:14px">Damit du siehst, was funktioniert, häng an deine Links eine Quelle an. Instagram gibt die Herkunft oft nicht weiter.</p>
       <div class="src-links">${["story", "reel", "bio", "whatsapp"].map(k => `<div class="copyrow"><code>${esc(base)}?von=${k}</code><button class="btn small" type="button" data-a="copyText" data-t="${esc(base)}?von=${k}">Kopieren</button></div>`).join("")}</div>
+    </div>
+    <div class="card"><h2>Eigene Besuche</h2>
+      <p class="muted" style="font-size:14px">${noTrack() ? "Dieses Gerät wird nicht mitgezählt. " : ""}Öffne diesen Link einmal auf jedem Gerät, mit dem du dir die Seite ansiehst. Danach zählen deine Besuche dort nicht mehr mit. Instagram und WhatsApp haben eigene Browser: Öffne den Link am besten auch dort einmal, zum Beispiel indem du ihn dir selbst schickst.</p>
+      <div class="copyrow"><code>${esc(base)}#nicht-zaehlen</code><button class="btn small" type="button" data-a="copyText" data-t="${esc(base)}#nicht-zaehlen">Kopieren</button></div>
+      <div class="actions" style="align-items:center">${confirmBtn("vsdirekt", "Nur „direkt“ zurücksetzen", `data-a="statReset" data-v="direkt"`)}${confirmBtn("vsall", "Alle Besuche zurücksetzen", `data-a="statReset" data-v=""`)}</div>
+      <p class="muted" style="font-size:13px">Zurücksetzen löscht nur die gezählten Besuche. Die Warteliste bleibt unverändert.</p>
     </div>`;
 }
 
@@ -840,6 +847,12 @@ const A = {
   toKurs: () => { const el = $("#kurs") || $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
+  statReset: async el => {
+    let q = sb.from("visit_stats").delete();
+    q = el.dataset.v ? q.eq("source", el.dataset.v) : q.gte("day", "2000-01-01");
+    const r = await run(q, el.dataset.v ? "Besuche mit Quelle „direkt“ zurückgesetzt." : "Alle Besuche zurückgesetzt.");
+    S.ui.confirm = null; if (r) reload(); else render();
+  },
   statRange: el => { S.ui.statRange = +el.dataset.v; render(); },
   copyText: el => { const t = el.dataset.t; try { navigator.clipboard.writeText(t).then(() => toast("Link kopiert."), () => toast(t)); } catch (e) { toast(t); } },
   copyPlace: () => {
@@ -1189,6 +1202,12 @@ function route() {
     }
     const u = /^abmelden-([0-9a-f-]{36})$/.exec(h);
     if (u) { S.showAuth = false; S.ui.unsub = { token: u[1], done: null }; render(); return; }
+    if (h === "nicht-zaehlen") {
+      try { localStorage.setItem("pc-notrack", "1"); } catch (e) { /* egal */ }
+      tracked = true; history.replaceState(null, "", location.pathname);
+      loadLanding().then(() => { render(); toast("Erledigt: Deine Besuche auf diesem Gerät werden nicht mehr gezählt."); });
+      return;
+    }
     if (h === "registrieren") { S.showAuth = true; S.authView = "register"; render(); return; }
     S.showAuth = h === "login";
     if (h === "vorschau") S.preview = true;
