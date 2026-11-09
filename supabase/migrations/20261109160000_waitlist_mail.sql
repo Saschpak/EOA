@@ -172,6 +172,10 @@ begin
       'Warteliste öffnen', (c->>'site') || '#admin', '')
   )));
   return new;
+exception when others then
+  -- Eine Störung beim Mailversand darf den Eintrag nie verhindern
+  raise warning 'Wartelisten-Mail fehlgeschlagen: %', sqlerrm;
+  return new;
 end;
 $$;
 
