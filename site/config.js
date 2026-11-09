@@ -67,8 +67,8 @@ window.CONFIG = {
 
   // Über dich. Der Abschnitt erscheint, sobald videoUrl, photoUrl oder aboutPoints gefüllt sind.
   aboutTitle: "Hi, ich bin Sascha.",
-  videoUrl: "",        // z. B. "media/intro.mp4" (Datei in site/media/ ablegen)
-  photoUrl: "",        // z. B. "media/sascha.jpg" (dient auch als Vorschaubild fürs Video)
+  videoUrl: "media/intro.mp4",
+  photoUrl: "media/intro-poster.jpg", // Vorschaubild fürs Video
   aboutPoints: [],     // z. B. ["Seit 10 Jahren live mit Ableton unterwegs", "Playback für …"]
 
   // Stimmen von Teilnehmern. Erscheinen erst, wenn hier Einträge stehen.
