@@ -40,7 +40,7 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 
 ## Offene Punkte (Stand November 2026)
 
-- Impressum und Datenschutz sind online (Stand November 2026). Der Coach muss die Auftragsverarbeitungsverträge mit Netlify und Supabase noch abschließen.
+- Impressum und Datenschutz sind online (Stand November 2026). AV-Verträge: Resend unterschrieben, Supabase und Netlify gelten automatisch über die Nutzungsbedingungen (PDFs beim Coach abgelegt, Stand November 2026).
 - Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
 - Wartelisten-Mails laufen über Resend (Domain saschpak.de verifiziert). Noch offen: Resend auch als SMTP für die Konto-Mails in Supabase eintragen und die deutschen Vorlagen einfügen. AV-Vertrag mit Resend ist unterschrieben (November 2026).
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
