@@ -165,11 +165,11 @@ function renderLanding() {
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
   let box;
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
-      <div class="place"><b>${me.position}</b><span>Dein Platz auf der Warteliste</span></div>
+      <div class="place"><b>${me.position}</b><span>dein Platz auf der Warteliste</span></div>
       ${me.early_bird && CONFIG.earlyBirdBonus ? `<span class="eb-tag">Early-Bird: ${esc(CONFIG.earlyBirdBonus)} inklusive</span>` : ""}
       <p class="muted">Danke, ${esc(firstName(me.name))}. Sobald dein Platz frei wird, bekommst du eine Mail. Unter diesem Link siehst du jederzeit, wo du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div></div>`;
-  else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:21px;font-weight:600">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
+  else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Platz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
   else box = `<form class="wl-form" data-f="waitlist" id="wlBox" novalidate>
       <div class="form-grid">
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
@@ -183,16 +183,24 @@ function renderLanding() {
         <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
       <button class="btn-ink" type="submit">Auf die Warteliste</button>
     </form>`;
-  const pk = CONFIG.packageItems || [];
+  const pk = CONFIG.packageItems || [], sl = CONFIG.setlist || [];
   $("#app").innerHTML = `<div class="landing">
-    <div class="l-nav"><span class="logo">Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="l-sec"><div class="l-inner">
-      <span class="eyebrow">Coaching für Ableton Live und AbleSet</span>
-      <h1 class="hero">Playback, das auf der Bühne einfach läuft.</h1>
-      <p class="lead">Persönliches 1:1-Coaching und ein Videokurs für Bands und Artists, die live mit Laptop spielen.</p>
-      <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="more" href="#paket" data-a="toPaket">Zum Paket ›</a></div>
-    </div></section>
-    <section class="l-sec alt"><div class="l-inner" style="max-width:960px">
+    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Coaching</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <section class="l-sec" style="padding-top:48px"><div class="l-inner"><div class="hero-grid">
+      <div>
+        <span class="eyebrow">1:1-Coaching + Videokurs · Ableton Live &amp; AbleSet</span>
+        <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
+        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein Setup so, dass du an der Show nicht mehr an die Technik denken musst.</p>
+        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Auf die Warteliste</a><a class="btn-line" href="#paket" data-a="toPaket">Was ist drin?</a></div>
+      </div>
+      ${sl.length ? `<div class="setlist-wrap"><div class="setlist" aria-label="Kursinhalte">
+        <div class="sl-head"><span>SETLIST</span><span>RUNDE 1</span></div>
+        <ol>${sl.map((t, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${esc(t)}</li>`).join("")}</ol>
+        <div class="sl-foot">Zugabe: deine erste Show</div>
+        <span class="stamp">Nur ${CONFIG.waitlistSpots} Plätze</span>
+      </div></div>` : ""}
+    </div></div></section>
+    <section class="l-sec alt"><div class="l-inner">
       <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
       <div class="features">
         <div><h3>1:1-Sessions</h3><p>Wir bauen dein Setup gemeinsam auf und lösen genau die Probleme, die du gerade hast.</p></div>
@@ -200,18 +208,14 @@ function renderLanding() {
         <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
       </div>
     </div></section>
-    ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner">
-      <span class="eyebrow">Erste Runde</span>
-      <div class="price">${esc(CONFIG.priceTotal)}</div>
-      ${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}
-      ${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
-      <p class="round">${roundText()}</p>
-    </div></section>` : ""}
-    <section class="l-sec alt" id="warteliste"><div class="l-inner">
-      <h2 class="big">Sichere dir deinen Platz.</h2>
-      <p class="lead" style="font-size:19px">Trag dich ein und sieh sofort, auf welchem Platz du stehst.</p>
+    ${CONFIG.priceTotal ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
+      <div><span class="eyebrow">Erste Runde</span><div class="price" style="margin-top:12px">${esc(CONFIG.priceTotal)}</div>${CONFIG.priceInstallments ? `<p class="price-sub">oder ${esc(CONFIG.priceInstallments)}</p>` : ""}</div>
+      <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
+    </div></div></section>` : ""}
+    <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
+      <div><h2 class="big">Sichere dir deinen Platz.</h2><p class="lead">Trag dich ein und sieh sofort, auf welchem Platz du stehst. Wenn dein Platz frei wird, bekommst du eine Mail.</p></div>
       <div class="wl-box">${box}</div>
-    </div></section>
+    </div></div></section>
   </div>`;
 }
 

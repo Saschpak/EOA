@@ -27,6 +27,9 @@ window.CONFIG = {
     ["Begleitung", "Fragen, Notizen, Aufgaben"]
   ],
 
+  // Die Setlist auf der Startseite (Stationen des Kurses)
+  setlist: ["Rig aufbauen", "Stems & Session", "Click & Cues", "In-Ear-Routing", "AbleSet", "Showtag"],
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };
