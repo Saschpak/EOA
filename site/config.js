@@ -14,6 +14,7 @@ window.CONFIG = {
   // Warteliste auf der Startseite
   waitlistSpots: 6,           // Plätze in der ersten Runde
   waitlistShowCountFrom: 5,   // Anzahl Wartender erst ab dieser Zahl anzeigen
+  waitlistShowPlaceFrom: 10,  // genaue Nummer auf der Warteliste erst ab hier zeigen (Website). In Mails: public.waitlist_show_place()
   launchText: "Die erste Runde startet im Januar.",
   // Early-Bird-Preis für die ersten Anmeldungen (Anzahl steht in der Datenbank).
   // Wird angezeigt, solange Early-Bird-Plätze frei sind. Leer lassen = kein Early-Bird-Preis.

@@ -143,6 +143,8 @@ const pctFor = p => { const t = allLessons().length; return t ? Math.round(allLe
 const WL_KEY = "pc-waitlist-token";
 const wlGet = () => { try { return localStorage.getItem(WL_KEY); } catch (e) { return null; } };
 const wlSet = t => { try { localStorage.setItem(WL_KEY, t); } catch (e) { /* egal */ } };
+// Genaue Nummer erst ab dieser Position zeigen (kleine Zahlen wirken nach „hier ist nichts los“)
+const showPlace = n => n != null && n >= (CONFIG.waitlistShowPlaceFrom || 1);
 const placeLink = t => location.origin + location.pathname + "#platz-" + t;
 
 /* Besucherzählung: ohne Cookies, nur Tag, Quelle, Gerätetyp */
@@ -277,7 +279,8 @@ function renderLanding() {
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
   let box;
   if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
-      <div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>
+      ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
+        : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den Ersten auf der Warteliste und bekommst als Erstes ein Kennenlerngespräch.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
         : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
@@ -285,7 +288,7 @@ function renderLanding() {
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
       ${giftFile ? (me.confirmed === false ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}: Sobald du deinen Eintrag bestätigt hast, kannst du es hier herunterladen und bekommst es per Mail.</span></div>`
         : `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>`) : ""}
-      <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit, auf welcher Nummer du stehst:</p>
+      <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand auf der Warteliste:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Teilnehmerplatz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
@@ -675,7 +678,7 @@ function wlMailCard(waiting) {
     : `<form data-f="wlMail" novalidate style="display:flex;flex-direction:column;gap:10px">
         <div class="field"><label class="label" for="wm-s">Betreff</label><input id="wm-s" name="subject" type="text" maxlength="150" value="${esc(d.subject)}" placeholder="z. B. Neuigkeiten zum Start im Januar"></div>
         <div class="field"><label class="label" for="wm-b">Text</label><textarea id="wm-b" name="body" rows="7" placeholder="Hey {vorname}, …">${esc(d.body)}</textarea></div>
-        <p class="muted" style="font-size:13px">Platzhalter: <code>{vorname}</code> und <code>{nr}</code> (Nummer auf der Warteliste). Unter jeder Mail stehen automatisch die aktuelle Nummer und ein Abmelde-Link.</p>
+        <p class="muted" style="font-size:13px">Platzhalter: <code>{vorname}</code> und <code>{nr}</code> (echte Nummer auf der Warteliste, unter Platz 10 lieber weglassen). Unter jeder Mail stehen automatisch der Stand (ab Platz 10 mit Nummer) und ein Abmelde-Link.</p>
         <label class="inline-check" for="wm-o"><input class="check" id="wm-o" name="only" type="checkbox" ${d.only ? "checked" : ""} style="margin:0">Nur an bestätigte Einträge (${conf})</label>
         <div class="actions"><button class="btn primary small" type="submit">Weiter</button></div></form>`;
   return `<div class="card"><div class="book-head"><h2>Mails</h2>${ready === true ? `<span class="ok-tag">Mailversand aktiv</span>` : ""}</div>
@@ -992,11 +995,11 @@ const F = {
     if (!r) return;
     const d = r.data;
     if (d.already) {
-      toast(d.status === "waiting" ? "Diese E-Mail-Adresse steht schon auf der Warteliste, Nr. " + d.position + "." : d.status === "invited" ? "Du bist schon eingeladen! Registriere dich mit dieser E-Mail-Adresse." : "Diese E-Mail-Adresse steht nicht mehr auf der Warteliste. Schreib mir, wenn du wieder drauf möchtest.");
+      toast(d.status === "waiting" ? "Diese E-Mail-Adresse steht schon auf der Warteliste" + (showPlace(d.position) ? ", Nr. " + d.position : "") + "." : d.status === "invited" ? "Du bist schon eingeladen! Registriere dich mit dieser E-Mail-Adresse." : "Diese E-Mail-Adresse steht nicht mehr auf der Warteliste. Schreib mir, wenn du wieder drauf möchtest.");
       return;
     }
     wlSet(d.token); S.ui.wlToken = d.token;
-    await loadLanding(); render(); toast("Du bist Nr. " + d.position + " auf der Warteliste.");
+    await loadLanding(); render(); toast(showPlace(d.position) ? "Du bist Nr. " + d.position + " auf der Warteliste." : "Du bist auf der Warteliste.");
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
   },
   myName: async f => {
@@ -1187,7 +1190,7 @@ function route() {
         await loadLanding(); render();
         if (res.error) toast(errText(res.error), true);
         else if (!res.data) toast("Dieser Link ist nicht mehr gültig.", true);
-        else { toast(res.data.status === "waiting" ? "Danke, dein Eintrag ist bestätigt. Du bist Nr. " + res.data.position + " auf der Warteliste." : "Danke, dein Eintrag ist bestätigt."); const box = $("#wlBox"); if (box) box.scrollIntoView({ block: "center" }); }
+        else { toast(res.data.status === "waiting" ? (showPlace(res.data.position) ? "Danke, dein Eintrag ist bestätigt. Du bist Nr. " + res.data.position + " auf der Warteliste." : "Danke, dein Eintrag ist bestätigt.") : "Danke, dein Eintrag ist bestätigt."); const box = $("#wlBox"); if (box) box.scrollIntoView({ block: "center" }); }
       });
       return;
     }
