@@ -79,7 +79,7 @@ window.CONFIG = {
   // Stimmen von Teilnehmern. Erscheinen erst, wenn hier Einträge stehen.
   testimonials: [],    // z. B. [{ quote: "…", name: "Lena", role: "Keys, Bandname" }]
 
-  // Geschenk nach dem Eintragen. Erscheint erst, wenn giftFile gesetzt ist.
+  // Geschenk nach dem Bestätigen des Eintrags (Website und Mail). Erscheint erst, wenn giftFile gesetzt ist.
   giftTitle: "Meine Ableton-Shortcuts als PDF",
   giftFile: "downloads/ableton-shortcuts.pdf", // Quelle zum Bearbeiten: plattform/geschenk/ableton-shortcuts.html
 

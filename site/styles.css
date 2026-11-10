@@ -414,3 +414,29 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:livepulse 2s ease-in-out infinite}
 @keyframes livepulse{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
+
+/* Startseite kompakt: Formular und Video oben */
+.hero-sec{padding-top:36px;padding-bottom:64px}
+.hero2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:64px;align-items:start}
+.hero2.no-video{grid-template-columns:minmax(0,760px)}
+@media (max-width:860px){.hero2{grid-template-columns:1fr;gap:40px}}
+.hero2 .hero{margin:12px 0 14px}
+.hero-main .wl-box{margin-top:26px;background:var(--bg-2);max-width:580px;padding:22px}
+.hero-video{width:100%;max-width:320px;aspect-ratio:9/16;object-fit:cover;border-radius:var(--r-lg);background:#000;display:block;margin-inline:auto}
+@media (max-width:860px){.hero-video{max-width:300px}}
+.consent-note{font-size:12.5px;color:var(--muted);line-height:1.45}
+.wl-form .form-note{text-align:left;margin-top:0}
+.mods-toggle{margin-top:20px}
+.mods-toggle summary{cursor:pointer;font-weight:650;color:var(--accent);list-style:none;font-size:16px}
+.mods-toggle summary::-webkit-details-marker{display:none}
+.mods-toggle summary::before{content:"+ "}
+.mods-toggle[open] summary::before{content:"– "}
+.lsteps-h{font-size:20px;font-weight:750;font-stretch:84%}
+.lsteps{list-style:none;margin:14px 0 0;padding:0;counter-reset:st;display:flex;flex-direction:column}
+.lsteps li{counter-increment:st;display:grid;grid-template-columns:36px minmax(0,1fr);gap:2px 10px;padding:14px 0;border-top:1px solid var(--line)}
+.lsteps li:last-child{border-bottom:1px solid var(--line)}
+.lsteps li::before{content:counter(st,decimal-leading-zero);font-family:var(--font-mono);font-size:12.5px;color:var(--accent);grid-row:span 2;padding-top:4px}
+.lsteps b{font-size:17px;font-weight:700}
+.lsteps span{color:var(--muted);font-size:15px;line-height:1.45}
+.final-cta .l-inner{align-items:flex-start}
+@media (max-width:760px){.l-sec{padding-top:56px;padding-bottom:56px}.hero-sec{padding-top:24px}}

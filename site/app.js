@@ -283,7 +283,8 @@ function renderLanding() {
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
       <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
-      ${giftFile ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>` : ""}
+      ${giftFile ? (me.confirmed === false ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}: Sobald du deinen Eintrag bestätigt hast, kannst du es hier herunterladen und bekommst es per Mail.</span></div>`
+        : `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>`) : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit, auf welcher Nummer du stehst:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
@@ -293,57 +294,48 @@ function renderLanding() {
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       </div>
-      <details class="note-toggle"><summary>+ Nachricht hinzufügen (optional)</summary><div class="field"><label for="wlNote">Was spielst du, und wo hakt es gerade?</label><textarea id="wlNote" name="note" maxlength="1000"></textarea></div></details>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="inline-check consent" for="wlConsent"><input class="check" id="wlConsent" name="consent" type="checkbox" style="margin:0">
-        <span>Ich bin einverstanden, dass meine Angaben gespeichert werden, damit ich über den Start informiert werde. Widerruf jederzeit per Mail.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</span></label>
-      <button class="btn-ink" type="submit">Unverbindlich auf die Warteliste</button>
-      ${giftFile ? `<p class="gift-note"><span class="eb-tag">Geschenk</span>${esc(CONFIG.giftTitle)} bekommst du direkt nach dem Eintragen.</p>` : ""}
-      <p class="form-note">Kein Kauf, keine Verpflichtung. Bevor du dich entscheidest, sprechen wir kostenlos ${CONFIG.introCallMinutes || 20} Minuten über dein Setup.</p>
+      <button class="btn-ink" type="submit">Kostenlos auf die Warteliste</button>
+      <p class="form-note">Unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.${giftFile ? ` Als Dankeschön gibt’s ${esc(CONFIG.giftTitle.replace(/^Meine /, "meine "))}.` : ""}</p>
+      <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dich per Mail über den Start informiere. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
     </form>`;
   const pk = CONFIG.packageItems || [], X = landingExtras();
   const signed = !!(me && me.status);
   const sp = spotsInfo();
+  const round = `${sp.free > 0 ? `${sp.n} Teilnehmerplätze` : "Erste Runde ausgebucht"} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}`;
+  const video = CONFIG.videoUrl ? `<video class="hero-video" src="${esc(CONFIG.videoUrl)}" ${CONFIG.photoUrl ? `poster="${esc(CONFIG.photoUrl)}"` : ""} controls playsinline preload="metadata"></video>` : "";
+  const mods = CONFIG.courseModules || [], pts = CONFIG.aboutPoints || [];
   $("#app").innerHTML = `<div class="landing">
     ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
-    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `Noch <b>${sp.free} von ${sp.n}</b> Teilnehmerplätzen frei` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Unverbindlich eintragen</a></div></div>`}
+    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `${sp.n} Teilnehmerplätze ${esc(CONFIG.launchText.replace(/^Die erste Runde startet im /, "ab ").replace(/\.$/, ""))}` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Kostenlos eintragen</a></div></div>`}
     <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="l-sec" id="hero" style="padding-top:48px"><div class="l-inner"><div class="${CONFIG.heroImage ? "hero-grid" : "hero-solo"}">
-      <div>
-        <span class="eyebrow">von Saschpak · 1:1-Coaching + Videokurs für Ableton Live &amp; AbleSet</span>
+    <section class="l-sec hero-sec" id="hero"><div class="l-inner"><div class="hero2${video ? "" : " no-video"}">
+      <div class="hero-main">
+        <span class="eyebrow">von Saschpak · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
-        <p class="lead">Für Bands und Artists, die live mit Laptop spielen. Wir bauen dein komplettes Set, vom leeren Projekt bis auf die Bühne, mit meinen Templates und Workflows.</p>
-        <div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Unverbindlich eintragen</a><a class="btn-line" href="#kurs" data-a="toKurs">Was ist drin?</a></div>
-        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${(() => { const x = spotsInfo(); return x.free > 0 ? `Noch ${x.free} von ${x.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"; })()} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</p>
-        ${ebActive() ? `<p class="hero-eb"><span class="eb-tag">Early-Bird</span>${esc(CONFIG.earlyBirdMonthly)} für die ersten ${S.wl.stats.early_bird_slots} Buchungen</p>` : ""}
+        <p class="lead">Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set, mit meinen Templates und Workflows.</p>
+        <div class="wl-box" id="warteliste">${box}</div>
       </div>
-      ${CONFIG.heroImage ? `<div><img class="hero-img" src="${esc(CONFIG.heroImage)}" alt=""></div>` : ""}
+      ${video ? `<div class="hero-side">${video}</div>` : ""}
     </div></div></section>
-    ${X.pain}
-    <section class="l-sec alt"><div class="l-inner">
-      <h2 class="big">Vom ersten Rig bis zur ersten Show.</h2>
-      <div class="features">
-        <div><h3>1:1-Sessions</h3><p>Wir bauen dein Setup gemeinsam auf und lösen genau die Probleme, die du gerade hast.</p></div>
-        <div><h3>Videokurs</h3><p>Ich baue vor deinen Augen ein komplettes Live-Set auf. Mit meinen Templates und Max for Live Devices kannst du sofort mitmachen.</p></div>
-        <div><h3>Begleitung</h3><p>Notizen, Aufgaben und Antworten auf deine Fragen. Alles an einem Ort, bis der erste Song live läuft.</p></div>
+    <section class="l-sec alt" id="kurs"><div class="l-inner"><div class="pack">
+      <div><h2 class="big">Das bekommst du.</h2></div>
+      <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
+        ${mods.length ? `<details class="mods-toggle"><summary>Alle ${mods.length} Kursmodule ansehen</summary>${CONFIG.courseIntro ? `<p class="muted" style="margin-top:12px">${esc(CONFIG.courseIntro)}</p>` : ""}<ol class="modules">${mods.map((m, i) => `<li><span class="mnum">${String(i + 1).padStart(2, "0")}</span><div><b>${esc(m[0])}</b><span>${esc(m[1])}</span></div></li>`).join("")}</ol>${CONFIG.courseFinale ? `<p class="finale">${esc(CONFIG.courseFinale)}</p>` : ""}</details>` : ""}
       </div>
-    </div></section>
-    ${(CONFIG.courseModules || []).length ? `<section class="l-sec" id="kurs"><div class="l-inner">
-      <h2 class="big">Der Kurs: vom leeren Projekt bis auf die Bühne.</h2>
-      ${CONFIG.courseIntro ? `<p class="lead" style="font-size:18px">${esc(CONFIG.courseIntro)}</p>` : ""}
-      <ol class="modules">${CONFIG.courseModules.map((m, i) => `<li><span class="mnum">${String(i + 1).padStart(2, "0")}</span><div><b>${esc(m[0])}</b><span>${esc(m[1])}</span></div></li>`).join("")}</ol>
-      ${CONFIG.courseFinale ? `<p class="finale">${esc(CONFIG.courseFinale)}</p>` : ""}
-    </div></section>` : ""}
-    ${X.about}${X.voices}
+    </div></div></section>
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
-      <div><span class="eyebrow">Erste Runde</span>${priceBlock()}</div>
-      <div>${spotsMeter()}${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}<p class="round">${roundText()}</p></div>
+      <div><span class="eyebrow">Erste Runde · ${sp.n} Teilnehmerplätze</span>${priceBlock()}</div>
+      <div><h3 class="lsteps-h">So läuft es ab</h3><ol class="lsteps">
+        <li><b>Eintragen</b><span>Kostenlos und unverbindlich.</span></li>
+        <li><b>Kennenlerngespräch</b><span>${CONFIG.introCallMinutes || 20} Minuten über dein Setup und deine Shows. Ich melde mich in der Reihenfolge der Warteliste.</span></li>
+        <li><b>Entscheiden</b><span>Erst wenn du zusagst, wird es verbindlich.</span></li>
+      </ol></div>
     </div></div></section>` : ""}
+    ${pts.length ? `<section class="l-sec alt"><div class="l-inner"><div class="about no-media"><div><h2 class="big">${esc(CONFIG.aboutTitle || "Über mich")}</h2><ul class="about-pts">${pts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div></div></div></section>` : ""}
+    ${X.voices}
     ${X.faq}
-    <section class="l-sec alt" id="warteliste"><div class="l-inner"><div class="wl-grid">
-      <div><h2 class="big">Trag dich auf die Warteliste ein.</h2><p class="lead">Unverbindlich und kostenlos. Ich melde mich in der Reihenfolge der Warteliste für ein Kennenlerngespräch. Danach entscheidest du in Ruhe, ob du einen der ${CONFIG.waitlistSpots} Teilnehmerplätze möchtest.</p></div>
-      <div class="wl-box">${box}</div>
-    </div></div></section>
+    ${signed ? "" : `<section class="l-sec alt final-cta"><div class="l-inner"><h2 class="big">Bereit für deine nächste Show?</h2><p class="lead">Trag dich ein, und wir sprechen kostenlos über dein Setup.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Kostenlos eintragen</a></div></div></section>`}
   </div>`;
   setupSticky();
 }
@@ -671,7 +663,7 @@ function adminWaitlist() {
     ${removed.length ? `<span class="label group-label">Von der Liste genommen</span>${removed.map(w => row(w)).join("")}` : ""}`;
 }
 
-const MAIL_KIND = { bestaetigung: "Bestätigung", coach_info: "Info an dich", einladung: "Einladung", rundmail: "Rundmail" };
+const MAIL_KIND = { geschenk: "Geschenk", bestaetigung: "Bestätigung", coach_info: "Info an dich", einladung: "Einladung", rundmail: "Rundmail" };
 function wlMailCard(waiting) {
   const ready = S.D.mailReady, unconf = waiting.filter(w => !w.confirmed_at).length, conf = waiting.length - unconf;
   const d = S.ui.wlMailDraft || { subject: "", body: "", only: true }, chk = S.ui.wlMailCheck;
@@ -993,8 +985,7 @@ const F = {
     const name = f.name.value.trim(), email = f.email.value.trim();
     if (!name) return toast("Bitte gib deinen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
-    if (!f.consent.checked) return toast("Bitte bestätige die Einwilligung, damit ich dich informieren darf.", true);
-    const args = { p_name: name, p_email: email, p_note: f.note.value.trim() };
+    const args = { p_name: name, p_email: email, p_note: f.note ? f.note.value.trim() : "" };
     let res = await sb.rpc("join_waitlist", { ...args, p_source: S.src || visitSource() });
     if (res.error && /PGRST202|Could not find the function/.test((res.error.code || "") + res.error.message)) res = await sb.rpc("join_waitlist", args);
     const r = await run(Promise.resolve(res));
