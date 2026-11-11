@@ -349,15 +349,16 @@ function renderLanding() {
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Teilnehmerplatz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
   else box = `<form class="wl-form" data-f="waitlist" id="wlBox" data-step="formular" novalidate>
+      ${giftFile && !gh ? `<div class="gift-inline">${CONFIG.giftPreview ? `<img src="${esc(CONFIG.giftPreview)}" alt="" width="72" height="102">` : ""}<div><span class="eb-tag">Gratis dazu</span><b>${esc(CONFIG.giftTitle)}</b><span>Bekommst du nach dem Eintragen per Mail.</span></div></div>` : ""}
       <div class="form-grid">
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       </div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <button class="btn-ink" type="submit">${gh ? esc(CONFIG.giftButton || "PDF gratis holen") : "Kostenlos auf die Warteliste"}</button>
+      <button class="btn-ink" type="submit">${gh ? esc(CONFIG.giftButton || "PDF gratis holen") : giftFile ? "Eintragen und PDF holen" : "Kostenlos auf die Warteliste"}</button>
       ${gh ? `<p class="form-note">Du bekommst das PDF per Mail, sobald du deine Adresse bestätigt hast. Damit stehst du auch unverbindlich auf der Warteliste der Playback Masterclass und erfährst als Erstes, wenn es losgeht.</p>`
-        : `<p class="form-note">Unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.${giftFile ? ` Als Dankeschön gibt’s ${esc(CONFIG.giftTitle.replace(/^Meine /, "meine "))}.` : ""}</p>`}
-      <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dir ${gh ? "das PDF und Infos zur Playback Masterclass" : "Infos zum Start"} per Mail schicke. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
+        : `<p class="form-note">Kostenlos und unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.</p>`}
+      <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dir ${gh ? "das PDF und Infos zur Playback Masterclass" : giftFile ? "das PDF und Infos zum Start" : "Infos zum Start"} per Mail schicke. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
     </form>`;
   const pk = CONFIG.packageItems || [], X = landingExtras();
   const signed = !!(me && me.status);

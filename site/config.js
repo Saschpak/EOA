@@ -83,8 +83,8 @@ window.CONFIG = {
   // Geschenk nach dem Bestätigen des Eintrags (Website und Mail). Erscheint erst, wenn giftFile gesetzt ist.
   giftTitle: "Meine Ableton-Shortcuts als PDF",
   giftFile: "downloads/ableton-shortcuts.pdf", // Quelle zum Bearbeiten: plattform/geschenk/ableton-shortcuts.html
-  // Geschenk als Hauptaufruf oben auf der Startseite (false = Coaching-Überschrift wie vorher)
-  giftHero: true,
+  // true = Geschenk als Hauptaufruf oben; false = Coaching oben, Geschenk als Anreiz im Formular
+  giftHero: false,
   giftHeadline: "Meine Ableton-Shortcuts",
   giftHeadlineEm: "für die Bühne.",
   giftLead: "Die Tastenkürzel, die ich beim Bauen meiner Live-Sets ständig benutze. Als PDF für Mac und Windows, kostenlos.",

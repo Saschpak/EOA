@@ -456,3 +456,8 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 @media (max-width:860px){.gift-preview{max-width:220px}}
 #masterclass .hero2{align-items:start}
 #masterclass{border-top:1px solid var(--line)}
+.gift-inline{display:flex;gap:14px;align-items:center;padding:0 0 16px;border-bottom:1px solid var(--line)}
+.gift-inline img{flex:none;width:72px;height:auto;border-radius:4px;box-shadow:0 1px 0 var(--line),0 6px 18px rgba(0,0,0,.12);transform:rotate(-3deg);background:#fff}
+.gift-inline div{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.gift-inline b{font-size:16.5px;font-weight:750;line-height:1.25}
+.gift-inline span:not(.eb-tag){font-size:13.5px;color:var(--muted)}
