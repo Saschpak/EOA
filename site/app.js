@@ -80,6 +80,8 @@ async function load() {
     D.profiles = pr.data; D.invites = inv.data; D.waitlist = wl.data;
     const vs = await q("visit_stats", "*", [["day"]]);
     D.visits = vs.error ? [] : vs.data;
+    const fs = await q("funnel_stats", "*", [["day"]]);
+    D.funnel = fs.error ? null : fs.data;
     const eb = await sb.rpc("waitlist_early_bird_slots");
     D.ebSlots = eb.error ? 3 : eb.data;
     const [ml, mr] = await Promise.all([sb.rpc("mail_log_status"), sb.rpc("mail_ready")]);
@@ -181,6 +183,36 @@ function trackVisit() {
   S.src = visitSource();
   const device = (window.matchMedia && matchMedia("(max-width: 760px)").matches) || /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "mobil" : "desktop";
   sb.rpc("track_visit", { p_source: S.src, p_device: device }).then(() => {}, () => {});
+  S.funnel = { device, sent: {} };
+  setTimeout(() => step("zeit_10s"), 10000);
+  setTimeout(() => step("zeit_30s"), 30000);
+  window.addEventListener("scroll", () => {
+    if (!document.body.classList.contains("is-landing")) return;
+    const r = (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight;
+    if (r >= .5) step("scroll_50");
+    if (r >= .9) step("scroll_90");
+  }, { passive: true });
+}
+/* Anonyme Schritt-Zählung: jeder Schritt höchstens einmal pro Seitenaufruf */
+function step(name) {
+  const f = S.funnel;
+  if (!f || f.sent[name] || S.session) return;
+  f.sent[name] = true;
+  sb.rpc("track_step", { p_step: name, p_source: S.src, p_device: f.device }).then(() => {}, () => {});
+}
+let funnelObs;
+function setupFunnel() {
+  if (!S.funnel) return;
+  if (funnelObs) funnelObs.disconnect();
+  if ("IntersectionObserver" in window) {
+    funnelObs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) step(e.target.dataset.step); }), { threshold: .5 });
+    document.querySelectorAll("[data-step]").forEach(el => funnelObs.observe(el));
+  }
+  const v = $(".hero-video"); if (v) v.addEventListener("play", () => step("video"), { once: true });
+  const form = $("form[data-f=waitlist]");
+  if (form) { const t = () => step("tippen"); form.addEventListener("focusin", t, { once: true }); form.addEventListener("input", t, { once: true }); }
+  const m = $(".mods-toggle"); if (m) m.addEventListener("toggle", () => { if (m.open) step("module"); });
+  document.querySelectorAll(".faq details").forEach(d => d.addEventListener("toggle", () => { if (d.open) step("faq"); }));
 }
 
 async function loadLanding() {
@@ -305,7 +337,7 @@ function renderLanding() {
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Teilnehmerplatz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
-  else box = `<form class="wl-form" data-f="waitlist" id="wlBox" novalidate>
+  else box = `<form class="wl-form" data-f="waitlist" id="wlBox" data-step="formular" novalidate>
       <div class="form-grid">
         <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
@@ -341,7 +373,7 @@ function renderLanding() {
         ${mods.length ? `<details class="mods-toggle"><summary>Alle ${mods.length} Kursmodule ansehen</summary>${CONFIG.courseIntro ? `<p class="muted" style="margin-top:12px">${esc(CONFIG.courseIntro)}</p>` : ""}<ol class="modules">${mods.map((m, i) => `<li><span class="mnum">${String(i + 1).padStart(2, "0")}</span><div><b>${esc(m[0])}</b><span>${esc(m[1])}</span></div></li>`).join("")}</ol>${CONFIG.courseFinale ? `<p class="finale">${esc(CONFIG.courseFinale)}</p>` : ""}</details>` : ""}
       </div>
     </div></div></section>
-    ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
+    ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack" data-step="preis">
       <div><span class="eyebrow">Erste Runde · ${sp.n} Teilnehmerplätze</span>${priceBlock()}</div>
       <div>${spotsMeter()}<h3 class="lsteps-h" style="margin-top:28px">So läuft es ab</h3><ol class="lsteps">
         <li><b>Eintragen</b><span>Kostenlos und unverbindlich.</span></li>
@@ -355,6 +387,7 @@ function renderLanding() {
     ${signed ? "" : `<section class="l-sec alt final-cta"><div class="l-inner"><h2 class="big">Bereit für deine nächste Show?</h2><p class="lead">Trag dich ein, und wir sprechen kostenlos über dein Setup.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Kostenlos eintragen</a></div></div></section>`}
   </div>`;
   setupSticky();
+  setupFunnel();
 }
 
 /* ---------- Auth-Ansichten ---------- */
@@ -635,6 +668,7 @@ function adminStats() {
       <details class="tbl"><summary>Als Tabelle anzeigen</summary><div class="table-wrap"><table><thead><tr><th>Tag</th><th>Besuche</th><th>Einträge</th></tr></thead><tbody>${perDay.slice().reverse().map(x => `<tr><td>${fmtY(x.d)}</td><td>${x.v}</td><td>${x.s}</td></tr>`).join("")}</tbody></table></div></details>`
       : `<p class="empty">Noch keine Besuche in diesem Zeitraum. Sobald jemand die Startseite öffnet, erscheint er hier. Deine eigenen Besuche als Coach werden auf diesem Gerät nicht mitgezählt.</p>`}
     </div>
+    ${funnelCard(first, visits, wl, pct)}
     <div class="card"><h2>Woher kommen die Leute?</h2>
       ${srcRows.length ? `<div class="table-wrap" style="background:var(--bg)"><table><thead><tr><th>Quelle</th><th>Besuche</th><th>Einträge</th><th>Quote</th></tr></thead><tbody>${srcRows.map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.v}</td><td>${x.s}</td><td>${pct(x.s, x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Noch keine Daten.</p>`}
       <p class="muted" style="font-size:14px">Damit du siehst, was funktioniert, häng an deine Links eine Quelle an. Instagram gibt die Herkunft oft nicht weiter.</p>
@@ -646,6 +680,25 @@ function adminStats() {
       <div class="actions" style="align-items:center">${confirmBtn("vsdirekt", "Nur „direkt“ zurücksetzen", `data-a="statReset" data-v="direkt"`)}${confirmBtn("vsall", "Alle Besuche zurücksetzen", `data-a="statReset" data-v=""`)}</div>
       <p class="muted" style="font-size:13px">Zurücksetzen löscht nur die gezählten Besuche. Die Warteliste bleibt unverändert.</p>
     </div>`;
+}
+
+function funnelCard(first, visits, wl, pct) {
+  if (S.D.funnel == null) return "";
+  const src = S.ui.funnelSrc || "", rows = S.D.funnel.filter(x => x.day >= first && (!src || x.source === src));
+  const n = k => rows.filter(x => x.step === k).reduce((a, x) => a + x.n, 0);
+  const since = S.D.funnel.length ? S.D.funnel.reduce((a, x) => x.day < a ? x.day : a, S.D.funnel[0].day) : null;
+  const v = visits.filter(x => (!src || x.source === src) && (!since || x.day >= since)).reduce((a, x) => a + x.views, 0);
+  const signups = wl.filter(w => (!src || (w.source || "unbekannt") === src) && (!since || iso(new Date(w.created_at)) >= since)).length;
+  const main = [["Besuche", v], ["Länger als 10 Sekunden", n("zeit_10s")], ["Länger als 30 Sekunden", n("zeit_30s")], ["Formular gesehen", n("formular")], ["Angefangen zu tippen", n("tippen")], ["Auf „Eintragen“ getippt", n("abgeschickt")], ["Eingetragen", signups]];
+  const extra = [["Video gestartet", n("video")], ["Preis angesehen", n("preis")], ["Halbe Seite gescrollt", n("scroll_50")], ["Bis ans Ende gescrollt", n("scroll_90")], ["Kursmodule aufgeklappt", n("module")], ["FAQ geöffnet", n("faq")], ["Fehler beim Eintragen", n("fehler")]];
+  const srcs = [...new Set(S.D.funnel.map(x => x.source))].sort();
+  const bar = ([label, val]) => `<div class="fn-row"><span class="fn-l">${label}</span><span class="fn-bar"><i style="width:${v ? Math.min(100, val / v * 100) : 0}%"></i></span><span class="fn-n">${val}</span><span class="fn-p">${pct(val, v)}</span></div>`;
+  return `<div class="card"><div class="book-head"><h2>Wo springen die Leute ab?</h2><span class="muted" style="font-size:13px">${since ? "gemessen seit " + fmt(since) : ""}</span></div>
+    ${srcs.length > 1 ? `<div class="tabs" role="tablist" aria-label="Quelle">${[["", "Alle"], ...srcs.map(x => [x, x])].map(([k, t]) => `<button type="button" data-a="funnelSrc" data-v="${esc(k)}" aria-selected="${src === k}">${esc(t)}</button>`).join("")}</div>` : ""}
+    ${since ? `<div class="fn">${main.map(bar).join("")}</div><p class="label group-label" style="margin-top:6px">Was sie sich angesehen haben</p><div class="fn">${extra.map(bar).join("")}</div>`
+      : `<p class="empty">Ab jetzt wird anonym gezählt, wie weit Besucher auf der Startseite kommen: wie lange sie bleiben, ob sie das Formular sehen, anfangen zu tippen, das Video starten. Sobald die ersten Besuche da sind, erscheint hier die Auswertung.</p>`}
+    <p class="muted" style="font-size:13px">Prozent jeweils von allen Besuchen im Zeitraum. Ohne Cookies, nur Tagessummen.</p>
+  </div>`;
 }
 
 function adminWaitlist() {
@@ -858,11 +911,12 @@ const A = {
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
   statReset: async el => {
-    let q = sb.from("visit_stats").delete();
-    q = el.dataset.v ? q.eq("source", el.dataset.v) : q.gte("day", "2000-01-01");
-    const r = await run(q, el.dataset.v ? "Besuche mit Quelle „direkt“ zurückgesetzt." : "Alle Besuche zurückgesetzt.");
+    const del = t => { const q = sb.from(t).delete(); return el.dataset.v ? q.eq("source", el.dataset.v) : q.gte("day", "2000-01-01"); };
+    await del("funnel_stats");
+    const r = await run(del("visit_stats"), el.dataset.v ? "Besuche mit Quelle „direkt“ zurückgesetzt." : "Alle Besuche zurückgesetzt.");
     S.ui.confirm = null; if (r) reload(); else render();
   },
+  funnelSrc: el => { S.ui.funnelSrc = el.dataset.v || ""; render(); },
   statRange: el => { S.ui.statRange = +el.dataset.v; render(); },
   copyText: el => { const t = el.dataset.t; try { navigator.clipboard.writeText(t).then(() => toast("Link kopiert."), () => toast(t)); } catch (e) { toast(t); } },
   copyPlace: () => {
@@ -1000,14 +1054,15 @@ const F = {
   },
   waitlist: async f => {
     if (f.website.value) return; // Spam-Schutz
+    step("abgeschickt");
     const name = f.name.value.trim(), email = f.email.value.trim();
-    if (!name) return toast("Bitte gib deinen Namen ein.", true);
-    if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
+    if (!name) { step("fehler"); return toast("Bitte gib deinen Namen ein.", true); }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { step("fehler"); return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true); }
     const args = { p_name: name, p_email: email, p_note: f.note ? f.note.value.trim() : "" };
     let res = await sb.rpc("join_waitlist", { ...args, p_source: S.src || visitSource() });
     if (res.error && /PGRST202|Could not find the function/.test((res.error.code || "") + res.error.message)) res = await sb.rpc("join_waitlist", args);
     const r = await run(Promise.resolve(res));
-    if (!r) return;
+    if (!r) { step("fehler"); return; }
     const d = r.data;
     if (d.already) {
       toast(d.status === "waiting" ? "Diese E-Mail-Adresse steht schon auf der Warteliste" + (showPlace(d.position) ? ", Nr. " + d.position : "") + "." : d.status === "invited" ? "Du bist schon eingeladen! Registriere dich mit dieser E-Mail-Adresse." : "Diese E-Mail-Adresse steht nicht mehr auf der Warteliste. Schreib mir, wenn du wieder drauf möchtest.");
