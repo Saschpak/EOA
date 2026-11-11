@@ -20,6 +20,7 @@ const mmss = t => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart
 const parseDur = s => { const m = /^(\d{1,3}):([0-5]\d)$/.exec(String(s).trim()); return m ? (+m[1]) * 60 + (+m[2]) : null; };
 const lines = s => String(s || "").split("\n").map(x => x.trim()).filter(Boolean);
 const firstName = n => (n || "").trim().split(/\s+/)[0] || "";
+const wlName = w => (w.full_name || "").trim() || w.email;
 
 const LOCK = '<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.5" fill="currentColor"/><path d="M3.3 6V4.2a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
@@ -340,7 +341,7 @@ function renderLanding() {
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
         : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
-      <p>Danke, ${esc(firstName(me.name))}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
+      <p>Danke${firstName(me.name) ? ", " + esc(firstName(me.name)) : ""}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
       ${giftFile ? (me.confirmed === false ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}: Sobald du deinen Eintrag bestätigt hast, kannst du es hier herunterladen und bekommst es per Mail.</span></div>`
         : `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>`) : ""}
@@ -350,14 +351,11 @@ function renderLanding() {
   else if (me && me.status === "invited") box = `<div class="wl-status" id="wlBox"><p style="font-size:24px;font-weight:800;font-stretch:76%">Dein Teilnehmerplatz ist frei.</p><p class="muted">Registriere dich mit der E-Mail-Adresse, mit der du dich eingetragen hast.</p><button class="btn-ink" type="button" data-a="goAuth" data-v="register">Konto erstellen</button></div>`;
   else box = `<form class="wl-form" data-f="waitlist" id="wlBox" data-step="formular" novalidate>
       ${giftFile && !gh ? `<div class="gift-inline">${CONFIG.giftPreview ? `<img src="${esc(CONFIG.giftPreview)}" alt="" width="72" height="102">` : ""}<div><span class="eb-tag">Gratis dazu</span><b>${esc(CONFIG.giftTitle)}</b><span>Bekommst du nach dem Eintragen per Mail.</span></div></div>` : ""}
-      <div class="form-grid">
-        <div class="field"><label for="wlName">Name</label><input id="wlName" name="name" type="text" autocomplete="name" maxlength="100"></div>
-        <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
-      </div>
+      <div class="field"><label for="wlEmail">Deine E-Mail-Adresse</label><input id="wlEmail" name="email" type="email" autocomplete="email" inputmode="email" maxlength="200" placeholder="name@beispiel.de"></div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
       <button class="btn-ink" type="submit">${gh ? esc(CONFIG.giftButton || "PDF gratis holen") : "Kostenlos eintragen"}</button>
       ${gh ? `<p class="form-note">Du bekommst das PDF per Mail, sobald du deine Adresse bestätigt hast. Damit stehst du auch unverbindlich auf der Warteliste der Playback Masterclass und erfährst als Erstes, wenn es losgeht.</p>`
-        : `<p class="form-note">Kostenlos und unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.</p>`}
+        : `<p class="form-note"><b>Kein Spam.</b> Ich schreibe dir nur wegen des PDFs und zum Start. Kostenlos und unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.</p>`}
       <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dir ${gh ? "das PDF und Infos zur Playback Masterclass" : giftFile ? "das PDF und Infos zum Start" : "Infos zum Start"} per Mail schicke. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
     </form>`;
   const pk = CONFIG.packageItems || [], X = landingExtras();
@@ -398,7 +396,7 @@ function renderLanding() {
   $("#app").innerHTML = `<div class="landing">
     ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
     ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${gh ? "Gratis: " + esc(CONFIG.giftTitle.replace(/^Meine /, "meine ").replace(/ als PDF$/, "")) : sp.free > 0 ? `${sp.n} Teilnehmerplätze ${esc(CONFIG.launchText.replace(/^Die erste Runde startet im /, "ab ").replace(/\.$/, ""))}` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">${gh ? "PDF holen" : "Kostenlos eintragen"}</a></div></div>`}
-    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    <div class="l-nav"><span class="logo">Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
     ${heroHtml}
     <section class="l-sec alt" id="kurs"><div class="l-inner"><div class="pack">
       <div><h2 class="big">Das bekommst du.</h2></div>
@@ -737,7 +735,7 @@ function funnelCard(first, visits, wl, pct) {
 function adminWaitlist() {
   const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited"), removed = all.filter(w => w.status === "removed");
   const li = S.ui.lastInvite;
-  const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Teilnehmerplatz in der Playback Masterclass")}&body=${encodeURIComponent("Hey " + firstName(li.name) + ",\n\ndein Teilnehmerplatz in der Playback Masterclass ist bestätigt! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
+  const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Teilnehmerplatz in der Playback Masterclass")}&body=${encodeURIComponent((firstName(li.name) ? "Hey " + firstName(li.name) : "Hey") + ",\n\ndein Teilnehmerplatz in der Playback Masterclass ist bestätigt! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
   const del = w => confirmBtn("wldel:" + w.id, "Löschen", `data-a="wlDelete" data-id="${w.id}"`);
   const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
       <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
@@ -745,7 +743,7 @@ function adminWaitlist() {
       <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
       <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
-  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(w.full_name)}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
       ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
       <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
         <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
@@ -951,7 +949,7 @@ const A = {
   },
   toKurs: () => { const el = $("#kurs") || $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
-  toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
+  toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlEmail"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },
   statReset: async el => {
     const del = t => { const q = sb.from(t).delete(); return el.dataset.v ? q.eq("source", el.dataset.v) : q.gte("day", "2000-01-01"); };
     await del("funnel_stats");
@@ -1009,8 +1007,8 @@ const A = {
       const m = await sb.rpc("waitlist_send_invite", { p_id: w.id, p_extra: inviteExtra(giveEb) });
       mailed = !m.error && m.data > 0;
     }
-    toast(w.full_name + (mailed ? " ist eingeladen. Die Einladungs-Mail ist raus." : " ist eingeladen."));
-    S.ui.lastInvite = { name: w.full_name, email: w.email, early: giveEb, mailed };
+    toast(wlName(w) + (mailed ? " ist eingeladen. Die Einladungs-Mail ist raus." : " ist eingeladen."));
+    S.ui.lastInvite = { name: wlName(w), email: w.email, early: giveEb, mailed };
     reload();
   },
   wlUnsub: async () => {
@@ -1036,7 +1034,7 @@ const A = {
   },
   wlInviteMail: async el => {
     const w = S.D.waitlist.find(x => x.id === el.dataset.id);
-    const r = await run(sb.rpc("waitlist_send_invite", { p_id: w.id, p_extra: inviteExtra(w.early_bird) }), "Einladungs-Mail an " + w.full_name + " verschickt.");
+    const r = await run(sb.rpc("waitlist_send_invite", { p_id: w.id, p_extra: inviteExtra(w.early_bird) }), "Einladungs-Mail an " + wlName(w) + " verschickt.");
     if (r) reload();
   },
   wlDelete: async el => {
@@ -1097,8 +1095,7 @@ const F = {
   waitlist: async f => {
     if (f.website.value) return; // Spam-Schutz
     step("abgeschickt");
-    const name = f.name.value.trim(), email = f.email.value.trim();
-    if (!name) { step("fehler"); return toast("Bitte gib deinen Namen ein.", true); }
+    const name = f.name ? f.name.value.trim() : "", email = f.email.value.trim();
     if (!/^\S+@\S+\.\S+$/.test(email)) { step("fehler"); return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true); }
     const args = { p_name: name, p_email: email, p_note: f.note ? f.note.value.trim() : "" };
     let res = await sb.rpc("join_waitlist", { ...args, p_source: S.src || visitSource() });
@@ -1346,7 +1343,7 @@ async function liveRefresh() {
     render();
     document.querySelectorAll("#app details").forEach((d, i) => { if (open[i]) d.open = true; });
     window.scrollTo(0, y);
-    if (fresh.length) toast(fresh.length === 1 ? "Neu auf der Warteliste: " + fresh[0].full_name : fresh.length + " neue Einträge auf der Warteliste");
+    if (fresh.length) toast(fresh.length === 1 ? "Neu auf der Warteliste: " + wlName(fresh[0]) : fresh.length + " neue Einträge auf der Warteliste");
   } catch (e) { /* nächster Versuch beim nächsten Takt */ }
   finally { liveBusy = false; }
 }
