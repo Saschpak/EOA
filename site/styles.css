@@ -477,3 +477,22 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
   .hero2 .hero{margin-bottom:12px}
   .hero-main .hero-spots{margin-top:10px}
 }
+
+/* Startseite: eine Schrift (Archivo), vier Größen */
+.landing{--t-xl:clamp(40px,6vw,68px);--t-l:clamp(30px,4vw,44px);--t-m:17px;--t-s:14px}
+.landing .eyebrow,.landing .mnum,.landing .lsteps li::before,.landing .copyrow code{font-family:var(--font-ui);letter-spacing:0}
+.landing .eyebrow{font-size:var(--t-s);font-weight:600;color:var(--muted)}
+.landing .hero{font-size:var(--t-xl);font-stretch:72%}
+.landing .price,.landing .place b{font-size:var(--t-xl);font-stretch:72%}
+.landing .place-early b{font-size:var(--t-l)}
+.landing h2.big{font-size:var(--t-l);font-stretch:72%}
+.landing p,.landing li,.landing .lead,.landing .incl li,.landing .modules b,.landing .lsteps b,.landing .lsteps-h,.landing .finale,
+.landing .about-pts li,.landing .faq summary,.landing .faq p,.landing .gift-inline b,.landing .intro-strip b,.landing .mods-toggle summary,
+.landing .confirm-hint,.landing .btn-ink,.landing .btn-line,.landing input,.landing .logo,.landing .price small{font-size:var(--t-m)}
+.landing .lsteps-h,.landing .finale,.landing .modules b{font-stretch:100%;font-weight:700}
+.landing .modules li span:not(.mnum),.landing .lsteps span,.landing .form-note,.landing .consent-note,.landing .hero-spots,.landing .spots-cap,
+.landing .eb-line,.landing .price-sub,.landing .gift-inline span:not(.eb-tag),.landing .intro-strip span span,.landing .incl li span,
+.landing .field label,.landing .sticky-inner span,.landing .eb-tag,.landing .eb-bracket,.landing .lnk,.landing .mnum,.landing .lsteps li::before,
+.landing .copyrow code,.landing .wl-status .muted,.landing .preview-banner{font-size:var(--t-s)}
+.landing .faq summary::after{font-size:var(--t-l);line-height:1}
+.landing .eb-tag,.landing .eb-bracket{font-size:12px}
