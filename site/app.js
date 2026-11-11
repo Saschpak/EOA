@@ -386,9 +386,10 @@ function renderLanding() {
       ${video ? `<div class="hero-side">${video}</div>` : ""}
     </div></div></section>` : `<section class="l-sec hero-sec" id="hero"><div class="l-inner"><div class="hero2${video ? "" : " no-video"}">
       <div class="hero-main">
-        <span class="eyebrow">von Saschpak · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</span>
+        <span class="eyebrow">${esc(CONFIG.heroEyebrow || "von Saschpak")}</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
-        <p class="lead">Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set, mit meinen Templates und Workflows.</p>
+        ${video ? `<button class="intro-strip" type="button" data-a="playIntro">${CONFIG.photoUrl ? `<img src="${esc(CONFIG.photoUrl)}" alt="" width="54" height="96">` : ""}<span><b>${esc((CONFIG.aboutTitle || "Hi, ich bin Sascha.").replace(/\.$/, "."))}</b><span>${esc(CONFIG.introStripText || "")}</span></span><span class="play-ic" aria-hidden="true"></span></button>` : ""}
+        <p class="lead">${esc(CONFIG.heroLead || "")}</p>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
         <div class="wl-box" id="warteliste">${box}</div>
       </div>
@@ -939,6 +940,15 @@ const A = {
   goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
   reloadPage: () => location.reload(),
   goLanding: async () => { S.showAuth = false; S.ui.unsub = null; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
+  playIntro: () => {
+    const v = $(".hero-video"); if (!v) return;
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+    try {
+      if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+      else if (v.requestFullscreen) v.requestFullscreen().catch(() => v.scrollIntoView({ behavior: "smooth", block: "center" }));
+      else v.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (e) { v.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  },
   toKurs: () => { const el = $("#kurs") || $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toWaitlist: () => { const el = $("#warteliste"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); const f = $("#wlName"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); },

@@ -56,6 +56,9 @@ window.CONFIG = {
   ],
   courseIntro: "Etwa zehn Module. Ich zeige dir dabei nicht nur das Wie, sondern auch, warum ich es so mache.",
   courseFinale: "Zugabe: dein komplettes Set, bühnenfertig.",
+  heroEyebrow: "Mein 1:1-Coaching für dein Live-Setup",   // kleine Zeile über der Überschrift
+  heroLead: "Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set.",
+  introStripText: "In 90 Sekunden erkläre ich dir, worum es geht.",   // Video-Zeile am Handy unter der Überschrift
   heroImage: "",       // optional: Bild rechts neben der Überschrift, z. B. "media/set.jpg"
 
   // "Kennst du das?" auf der Startseite
