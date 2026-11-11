@@ -159,6 +159,7 @@ const WL_KEY = "pc-waitlist-token";
 const wlGet = () => { try { return localStorage.getItem(WL_KEY); } catch (e) { return null; } };
 const wlSet = t => { try { localStorage.setItem(WL_KEY, t); } catch (e) { /* egal */ } };
 // Genaue Nummer erst ab dieser Position zeigen (kleine Zahlen wirken nach „hier ist nichts los“)
+const giftHero = () => !!(CONFIG.giftFile && CONFIG.giftHero !== false);
 const showPlace = n => n != null && n >= (CONFIG.waitlistShowPlaceFrom || 1);
 const placeLink = t => location.origin + location.pathname + "#platz-" + t;
 
@@ -322,8 +323,18 @@ function renderLanding() {
   const giftFile = CONFIG.giftFile || (S.preview ? "#" : "");
   document.body.classList.add("is-landing");
   const w = S.wl || { stats: { waiting: 0, invited: 0 } }, me = w.me;
+  const gh = giftHero(), launch = esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "").replace(/\.$/, ""));
   let box;
-  if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
+  if (gh && me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
+      ${me.confirmed === false
+        ? `<div class="place place-early"><b>Check deine Mails.</b></div><p>Ich habe dir eine Mail geschickt. Bestätige deine Adresse über den Link darin, dann bekommst du das PDF. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>`
+        : `<div class="place place-early"><b>Hier ist dein PDF.</b></div><div class="actions"><a class="btn-ink" href="${esc(giftFile)}" download>PDF herunterladen</a></div>`}
+      <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : "Du stehst außerdem ganz vorne auf der Warteliste"} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}.</span></p>` : ""}
+      <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand:</p>
+      <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
+      <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
+  else if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
       ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
         : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den Ersten auf der Warteliste und bekommst als Erstes ein Kennenlerngespräch.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
@@ -343,9 +354,10 @@ function renderLanding() {
         <div class="field"><label for="wlEmail">E-Mail</label><input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="200"></div>
       </div>
       <div class="hp" aria-hidden="true"><label for="wlWebsite">Website</label><input id="wlWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <button class="btn-ink" type="submit">Kostenlos auf die Warteliste</button>
-      <p class="form-note">Unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.${giftFile ? ` Als Dankeschön gibt’s ${esc(CONFIG.giftTitle.replace(/^Meine /, "meine "))}.` : ""}</p>
-      <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dich per Mail über den Start informiere. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
+      <button class="btn-ink" type="submit">${gh ? esc(CONFIG.giftButton || "PDF gratis holen") : "Kostenlos auf die Warteliste"}</button>
+      ${gh ? `<p class="form-note">Du bekommst das PDF per Mail, sobald du deine Adresse bestätigt hast. Damit stehst du auch unverbindlich auf der Warteliste der Playback Masterclass und erfährst als Erstes, wenn es losgeht.</p>`
+        : `<p class="form-note">Unverbindlich: Erst sprechen wir ${CONFIG.introCallMinutes || 20} Minuten über dein Setup, dann entscheidest du.${giftFile ? ` Als Dankeschön gibt’s ${esc(CONFIG.giftTitle.replace(/^Meine /, "meine "))}.` : ""}</p>`}
+      <p class="consent-note">Mit dem Eintragen bist du einverstanden, dass ich deine Angaben speichere und dir ${gh ? "das PDF und Infos zur Playback Masterclass" : "Infos zum Start"} per Mail schicke. Abmelden geht jederzeit.${CONFIG.datenschutzUrl ? ` <a href="${esc(CONFIG.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</p>
     </form>`;
   const pk = CONFIG.packageItems || [], X = landingExtras();
   const signed = !!(me && me.status);
@@ -353,11 +365,25 @@ function renderLanding() {
   const round = `${sp.free > 0 ? `${sp.n} Teilnehmerplätze` : "Erste Runde ausgebucht"} · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}`;
   const video = CONFIG.videoUrl ? `<video class="hero-video" src="${esc(CONFIG.videoUrl)}" ${CONFIG.photoUrl ? `poster="${esc(CONFIG.photoUrl)}"` : ""} controls playsinline preload="metadata"></video>` : "";
   const mods = CONFIG.courseModules || [], pts = CONFIG.aboutPoints || [];
-  $("#app").innerHTML = `<div class="landing">
-    ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
-    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${sp.free > 0 ? `${sp.n} Teilnehmerplätze ${esc(CONFIG.launchText.replace(/^Die erste Runde startet im /, "ab ").replace(/\.$/, ""))}` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">Kostenlos eintragen</a></div></div>`}
-    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
-    <section class="l-sec hero-sec" id="hero"><div class="l-inner"><div class="hero2${video ? "" : " no-video"}">
+  const heroHtml = gh ? `<section class="l-sec hero-sec" id="hero"><div class="l-inner"><div class="hero2 gift-hero">
+      <div class="hero-main">
+        <span class="eyebrow">Gratis von Saschpak</span>
+        <h1 class="hero">${esc(CONFIG.giftHeadline)} <em>${esc(CONFIG.giftHeadlineEm)}</em></h1>
+        <p class="lead">${esc(CONFIG.giftLead)}</p>
+        <div class="wl-box" id="warteliste">${box}</div>
+      </div>
+      ${CONFIG.giftPreview ? `<div class="hero-side"><img class="gift-preview" src="${esc(CONFIG.giftPreview)}" alt="Vorschau: ${esc(CONFIG.giftTitle)}" width="720" height="1018"></div>` : ""}
+    </div></div></section>
+    <section class="l-sec" id="masterclass"><div class="l-inner"><div class="hero2${video ? "" : " no-video"}">
+      <div class="hero-main">
+        <span class="eyebrow">Und wenn du mehr willst · Start ${launch}</span>
+        <h2 class="big">Die Playback Masterclass: Playback, das auf der Bühne <em>einfach läuft.</em></h2>
+        <p class="lead" style="margin-top:14px">Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set, mit meinen Templates und Workflows.</p>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
+        <div class="cta"><a class="btn-line" href="#kurs" data-a="toKurs">Was ist drin?</a></div>
+      </div>
+      ${video ? `<div class="hero-side">${video}</div>` : ""}
+    </div></div></section>` : `<section class="l-sec hero-sec" id="hero"><div class="l-inner"><div class="hero2${video ? "" : " no-video"}">
       <div class="hero-main">
         <span class="eyebrow">von Saschpak · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
@@ -366,7 +392,12 @@ function renderLanding() {
         <div class="wl-box" id="warteliste">${box}</div>
       </div>
       ${video ? `<div class="hero-side">${video}</div>` : ""}
-    </div></div></section>
+    </div></div></section>`;
+  $("#app").innerHTML = `<div class="landing">
+    ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
+    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${gh ? "Gratis: " + esc(CONFIG.giftTitle.replace(/^Meine /, "meine ").replace(/ als PDF$/, "")) : sp.free > 0 ? `${sp.n} Teilnehmerplätze ${esc(CONFIG.launchText.replace(/^Die erste Runde startet im /, "ab ").replace(/\.$/, ""))}` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">${gh ? "PDF holen" : "Kostenlos eintragen"}</a></div></div>`}
+    <div class="l-nav"><span class="logo"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
+    ${heroHtml}
     <section class="l-sec alt" id="kurs"><div class="l-inner"><div class="pack">
       <div><h2 class="big">Das bekommst du.</h2></div>
       <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
@@ -376,7 +407,7 @@ function renderLanding() {
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack" data-step="preis">
       <div><span class="eyebrow">Erste Runde · ${sp.n} Teilnehmerplätze</span>${priceBlock()}</div>
       <div>${spotsMeter()}<h3 class="lsteps-h" style="margin-top:28px">So läuft es ab</h3><ol class="lsteps">
-        <li><b>Eintragen</b><span>Kostenlos und unverbindlich.</span></li>
+        <li><b>Eintragen</b><span>Kostenlos und unverbindlich${giftFile ? ", mit Gratis-PDF" : ""}.</span></li>
         <li><b>Kennenlerngespräch</b><span>${CONFIG.introCallMinutes || 20} Minuten über dein Setup und deine Shows. Ich melde mich in der Reihenfolge der Warteliste.</span></li>
         <li><b>Entscheiden</b><span>Erst wenn du zusagst, wird es verbindlich.</span></li>
       </ol></div>
@@ -384,7 +415,7 @@ function renderLanding() {
     ${pts.length ? `<section class="l-sec alt"><div class="l-inner"><div class="about no-media"><div><h2 class="big">${esc(CONFIG.aboutTitle || "Über mich")}</h2><ul class="about-pts">${pts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div></div></div></section>` : ""}
     ${X.voices}
     ${X.faq}
-    ${signed ? "" : `<section class="l-sec alt final-cta"><div class="l-inner"><h2 class="big">Bereit für deine nächste Show?</h2><p class="lead">Trag dich ein, und wir sprechen kostenlos über dein Setup.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Kostenlos eintragen</a></div></div></section>`}
+    ${signed ? "" : `<section class="l-sec alt final-cta"><div class="l-inner">${gh ? `<h2 class="big">Fang mit den Shortcuts an.</h2><p class="lead">Gratis als PDF, und du erfährst als Erstes, wenn die Masterclass startet.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">${esc(CONFIG.giftButton || "PDF gratis holen")}</a></div>` : `<h2 class="big">Bereit für deine nächste Show?</h2><p class="lead">Trag dich ein, und wir sprechen kostenlos über dein Setup.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Kostenlos eintragen</a></div>`}</div></section>`}
   </div>`;
   setupSticky();
   setupFunnel();
@@ -1069,7 +1100,7 @@ const F = {
       return;
     }
     wlSet(d.token); S.ui.wlToken = d.token;
-    await loadLanding(); render(); toast(showPlace(d.position) ? "Du bist Nr. " + d.position + " auf der Warteliste." : "Du bist auf der Warteliste.");
+    await loadLanding(); render(); toast(giftHero() ? "Fast geschafft: Schau in dein Postfach." : showPlace(d.position) ? "Du bist Nr. " + d.position + " auf der Warteliste." : "Du bist auf der Warteliste.");
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
   },
   myName: async f => {
@@ -1260,7 +1291,7 @@ function route() {
         await loadLanding(); render();
         if (res.error) toast(errText(res.error), true);
         else if (!res.data) toast("Dieser Link ist nicht mehr gültig.", true);
-        else { toast(res.data.status === "waiting" ? (showPlace(res.data.position) ? "Danke, dein Eintrag ist bestätigt. Du bist Nr. " + res.data.position + " auf der Warteliste." : "Danke, dein Eintrag ist bestätigt.") : "Danke, dein Eintrag ist bestätigt."); const box = $("#wlBox"); if (box) box.scrollIntoView({ block: "center" }); }
+        else { toast(res.data.status === "waiting" ? (giftHero() ? "Danke, deine Adresse ist bestätigt. Hier ist dein PDF." : showPlace(res.data.position) ? "Danke, dein Eintrag ist bestätigt. Du bist Nr. " + res.data.position + " auf der Warteliste." : "Danke, dein Eintrag ist bestätigt.") : "Danke, dein Eintrag ist bestätigt."); const box = $("#wlBox"); if (box) box.scrollIntoView({ block: "center" }); }
       });
       return;
     }

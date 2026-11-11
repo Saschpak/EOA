@@ -450,3 +450,9 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .fn-n{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
 .fn-p{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
 @media (max-width:560px){.fn-row{grid-template-columns:minmax(0,1fr) 40px 52px;row-gap:4px}.fn-bar{grid-column:1 / -1;grid-row:2}}
+.l-sec h2.big em{font-style:normal;color:var(--accent-hi)}
+@media (min-width:861px){.gift-hero{grid-template-columns:minmax(0,1fr) minmax(0,300px);align-items:center}}
+.gift-preview{display:block;width:100%;max-width:300px;height:auto;margin-inline:auto;border-radius:6px;box-shadow:0 1px 0 var(--line),0 18px 50px rgba(0,0,0,.14);transform:rotate(2deg)}
+@media (max-width:860px){.gift-preview{max-width:220px}}
+#masterclass .hero2{align-items:start}
+#masterclass{border-top:1px solid var(--line)}
