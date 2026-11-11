@@ -88,10 +88,23 @@ async function load() {
   S.D = D;
 }
 async function refreshMe() {
-  const { data, error } = await sb.from("profiles").select("*").eq("id", S.session.user.id).maybeSingle();
-  if (error) throw error;
-  S.me = data;
-  if (data && data.role === "coach") { try { localStorage.setItem("pc-notrack", "1"); } catch (e) { /* egal */ } }
+  // Wird die Sitzung gerade erneuert (z. B. nach dem Aufwachen des Handys), schickt supabase-js
+  // die Anfrage kurz ohne Anmeldung. Dann kommt "kein Profil" zurück, obwohl es eins gibt.
+  // Deshalb: Sitzung prüfen und ein paar Mal neu versuchen, bevor wir "Kein Zugang" zeigen.
+  for (let i = 0; i < 4; i++) {
+    const { data: sd } = await sb.auth.getSession();
+    const uid = sd && sd.session ? sd.session.user.id : S.session && S.session.user.id;
+    if (!uid) { S.me = null; return; }
+    const { data, error } = await sb.from("profiles").select("*").eq("id", uid).maybeSingle();
+    if (error) throw error;
+    if (data) {
+      S.me = data;
+      if (data.role === "coach") { try { localStorage.setItem("pc-notrack", "1"); } catch (e) { /* egal */ } }
+      return;
+    }
+    await new Promise(r => setTimeout(r, 500 * (i + 1)));
+  }
+  S.me = null;
 }
 async function reload() {
   try { await refreshMe(); if (S.me) await load(); render(); }
@@ -398,7 +411,7 @@ function render() {
   if (!S.session) return S.ui.unsub ? renderUnsub() : S.showAuth ? renderAuth() : renderLanding();
   if (!S.me) {
     $("#bar").hidden = true;
-    $("#app").innerHTML = `<div class="login-screen"><div class="login card"><h2>Kein Zugang</h2><p class="muted">Zu diesem Konto gibt es kein Profil mehr. Wende dich bitte an deinen Coach.</p><button class="btn" type="button" data-a="logout">Abmelden</button></div></div>`;
+    $("#app").innerHTML = `<div class="login-screen"><div class="login card"><h2>Kein Zugang</h2><p class="muted">Zu diesem Konto wurde kein Profil gefunden. Lade die Seite einmal neu. Bleibt die Meldung, wende dich bitte an deinen Coach.</p><div class="actions"><button class="btn primary" type="button" data-a="reloadPage">Neu laden</button><button class="btn" type="button" data-a="logout">Abmelden</button></div></div></div>`;
     return;
   }
   if (!S.D) { $("#app").innerHTML = `<div class="loading">Lädt …</div>`; return; }
@@ -838,6 +851,7 @@ function adminNews() {
 const A = {
   authView: el => { S.authView = el.dataset.v; render(); },
   goAuth: el => { S.showAuth = true; S.authView = el.dataset.v || "login"; history.replaceState(null, "", location.pathname + "#login"); render(); window.scrollTo(0, 0); },
+  reloadPage: () => location.reload(),
   goLanding: async () => { S.showAuth = false; S.ui.unsub = null; history.replaceState(null, "", location.pathname); await loadLanding(); render(); window.scrollTo(0, 0); },
   toKurs: () => { const el = $("#kurs") || $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
   toPaket: () => { const el = $("#paket"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); },
@@ -1225,7 +1239,8 @@ async function liveRefresh() {
   liveBusy = true;
   try {
     const before = liveSig(), known = new Set((S.D.waitlist || []).map(w => w.id));
-    await refreshMe(); if (!S.me) return;
+    const prevMe = S.me;
+    await refreshMe(); if (!S.me) { S.me = prevMe; return; }
     await load();
     if (liveSig() === before || S.view !== "admin") return;
     const fresh = (S.D.waitlist || []).filter(w => !known.has(w.id));
