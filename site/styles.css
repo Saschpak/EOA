@@ -461,3 +461,19 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .gift-inline div{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .gift-inline b{font-size:16.5px;font-weight:750;line-height:1.25}
 .gift-inline span:not(.eb-tag){font-size:13.5px;color:var(--muted)}
+.intro-strip{display:none;align-items:center;gap:12px;width:100%;max-width:520px;margin:2px 0 16px;padding:8px 14px 8px 8px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--bg);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.intro-strip img{flex:none;width:54px;height:72px;object-fit:cover;border-radius:8px;background:#000}
+.intro-strip > span:not(.play-ic){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.intro-strip b{font-size:16px;font-weight:750}
+.intro-strip span span{font-size:13.5px;color:var(--muted);line-height:1.35}
+.intro-strip .play-ic{flex:none;width:38px;height:38px;border-radius:50%;background:var(--btn);position:relative}
+.intro-strip .play-ic::after{content:"";position:absolute;left:15px;top:12px;border-left:12px solid var(--btn-fg);border-top:7px solid transparent;border-bottom:7px solid transparent}
+@media (max-width:860px){.intro-strip{display:flex}}
+@media (max-width:860px){
+  .hero-main .wl-box{margin-top:18px;padding:18px}
+  .hero-main .wl-form{gap:12px}
+  .gift-inline{padding-bottom:12px}
+  .gift-inline img{width:52px}
+  .hero2 .hero{margin-bottom:12px}
+  .hero-main .hero-spots{margin-top:10px}
+}
