@@ -441,3 +441,4 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .lsteps span{color:var(--muted);font-size:15px;line-height:1.45}
 .final-cta .l-inner{align-items:flex-start}
 @media (max-width:760px){.l-sec{padding-top:56px;padding-bottom:56px}.hero-sec{padding-top:24px}}
+.hero-main .hero-spots{margin-top:14px}

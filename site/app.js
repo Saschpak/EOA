@@ -330,6 +330,7 @@ function renderLanding() {
         <span class="eyebrow">von Saschpak · ${esc(CONFIG.launchText.replace(/^Die erste Runde startet /, "Start ").replace(/\.$/, ""))}</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         <p class="lead">Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set, mit meinen Templates und Workflows.</p>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
         <div class="wl-box" id="warteliste">${box}</div>
       </div>
       ${video ? `<div class="hero-side">${video}</div>` : ""}
@@ -342,7 +343,7 @@ function renderLanding() {
     </div></div></section>
     ${CONFIG.priceHeadline ? `<section class="l-sec" id="paket"><div class="l-inner"><div class="pack">
       <div><span class="eyebrow">Erste Runde · ${sp.n} Teilnehmerplätze</span>${priceBlock()}</div>
-      <div><h3 class="lsteps-h">So läuft es ab</h3><ol class="lsteps">
+      <div>${spotsMeter()}<h3 class="lsteps-h" style="margin-top:28px">So läuft es ab</h3><ol class="lsteps">
         <li><b>Eintragen</b><span>Kostenlos und unverbindlich.</span></li>
         <li><b>Kennenlerngespräch</b><span>${CONFIG.introCallMinutes || 20} Minuten über dein Setup und deine Shows. Ich melde mich in der Reihenfolge der Warteliste.</span></li>
         <li><b>Entscheiden</b><span>Erst wenn du zusagst, wird es verbindlich.</span></li>
