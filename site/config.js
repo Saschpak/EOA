@@ -30,6 +30,10 @@ window.CONFIG = {
   introCallMinutes: 20,
 
   // Preis und Paket der ersten Runde (Startseite)
+  // false = Preis wird auf der Startseite nicht genannt, sondern erst im Kennenlerngespräch (Test seit 12.11.2026)
+  showPrice: false,
+  priceHiddenText: "Den Preis und alle Details besprechen wir im kostenlosen Kennenlerngespräch. Du kannst einmalig oder in Monatsraten zahlen, und verbindlich wird es erst, wenn du zusagst.",
+  faqPaymentNoPrice: "Den Preis besprechen wir im kostenlosen Kennenlerngespräch, abgestimmt auf das, was du brauchst. Du kannst einmalig oder in Monatsraten zahlen. Gezahlt wird erst, wenn du nach dem Gespräch zusagst.",
   priceHeadline: "240\u00a0€",
   priceHeadlineNote: "im Monat · für 4\u00a0Monate",
   priceDetail: "Regulär 240\u00a0€ im Monat. Insgesamt 960\u00a0€, in 4 Monatsraten oder einmalig. Danach keine weiteren Kosten. Alle Preise inkl. 19\u00a0% MwSt.",
