@@ -249,7 +249,7 @@ function spotsMeter() {
   const { n, taken, free } = spotsInfo();
   const st = (S.wl && S.wl.stats) || {}, ebN = ebActive() ? Math.min(n, st.early_bird_slots || 0) : 0;
   return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Teilnehmerplätzen frei${ebN ? `, die ersten ${ebN} zum Early-Bird-Preis` : ""}" style="--n:${n}">
-      ${ebN ? `<span class="eb-bracket" style="grid-column:1 / ${ebN + 1}">Early-Bird · ${esc(CONFIG.earlyBirdPriceHeadline)}/Monat</span>` : ""}
+      ${ebN ? `<span class="eb-bracket" style="grid-column:1 / ${ebN + 1}">${pubPrice() ? `Early-Bird · ${esc(CONFIG.earlyBirdPriceHeadline)}/Monat` : "Early-Bird-Rabatt"}</span>` : ""}
       ${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : i < ebN ? "eb" : ""}"></i>`).join("")}</div>
     <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Teilnehmerplätzen frei` : `Alle ${n} Teilnehmerplätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
 }
@@ -262,6 +262,8 @@ function roundText() {
     t += ` Die ersten ${st.early_bird_slots} Buchungen bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
   return t;
 }
+const pubPrice = () => CONFIG.showPrice !== false;
+const ebShort = () => pubPrice() ? "zahlen " + ebText() : "bekommen einen Early-Bird-Rabatt";
 const ebActive = () => { const st = (S.wl && S.wl.stats) || {}; return !!(CONFIG.earlyBirdPriceHeadline && st.early_bird_slots != null && st.early_bird_left > 0); };
 function inviteExtra(eb) {
   if (!eb || !ebText()) return "";
@@ -272,6 +274,11 @@ function ebText() {
   return parts.join(" ");
 }
 function priceBlock() {
+  if (!pubPrice()) {
+    const st = (S.wl && S.wl.stats) || {};
+    return `<h2 class="big" style="margin-top:12px">Was kostet das?</h2><p class="price-sub" style="font-size:var(--t-m)">${esc(CONFIG.priceHiddenText || "")}</p>
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${st.early_bird_slots} Buchungen bekommen einen Rabatt. Noch ${st.early_bird_left} von ${st.early_bird_slots} frei.</span></p>` : ""}`;
+  }
   const st = (S.wl && S.wl.stats) || {};
   if (ebActive()) return `<div class="price" style="margin-top:12px"><s>${esc(CONFIG.earlyBirdPriceWas)}</s>${esc(CONFIG.earlyBirdPriceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "").split(" · ").join("<br>")}</small></div>
       <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>. Noch ${st.early_bird_left} von ${st.early_bird_slots} frei.</span></p>
@@ -305,7 +312,7 @@ function landingExtras() {
     </div></section>` : "",
     faq: faq.length ? `<section class="l-sec"><div class="l-inner">
       <h2 class="big">Häufige Fragen</h2>
-      <div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>
+      <div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(!pubPrice() && /Bezahlung/.test(q) && CONFIG.faqPaymentNoPrice ? CONFIG.faqPaymentNoPrice : a)}</p></details>`).join("")}</div>
     </div></section>` : ""
   };
 }
@@ -331,7 +338,7 @@ function renderLanding() {
         ? `<div class="place place-early"><b>Check deine Mails.</b></div><p>Ich habe dir eine Mail geschickt. Bestätige deine Adresse über den Link darin, dann bekommst du das PDF. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>`
         : `<div class="place place-early"><b>Hier ist dein PDF.</b></div><div class="actions"><a class="btn-ink" href="${esc(giftFile)}" download>PDF herunterladen</a></div>`}
       <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : "Du stehst außerdem ganz vorne auf der Warteliste"} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
-      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}.</span></p>` : ""}
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
@@ -339,7 +346,7 @@ function renderLanding() {
       ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
         : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den Ersten auf der Warteliste und bekommst als Erstes ein Kennenlerngespräch.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
-        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen zahlen ${esc(ebText())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
+        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
       <p>Danke${firstName(me.name) ? ", " + esc(firstName(me.name)) : ""}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
