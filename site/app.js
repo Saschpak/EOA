@@ -752,7 +752,7 @@ function adminWaitlist() {
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
   const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
       ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
-      <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
+      <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>${!w.confirmed_at && S.D.mailReady ? `<button class="btn small" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
         <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
   return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Teilnehmerplätze in der ersten Runde${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
@@ -1029,6 +1029,11 @@ const A = {
     const r = await run(sb.rpc("waitlist_resend_confirmations"));
     if (r) toast(r.data ? `${r.data} Bestätigungs-Mail${r.data === 1 ? "" : "s"} verschickt.` : "Alle Wartenden haben schon bestätigt.");
     S.ui.confirm = null; reload();
+  },
+  wlResendOne: async el => {
+    const w = S.D.waitlist.find(x => x.id === el.dataset.id);
+    const r = await run(sb.rpc("waitlist_resend_confirmation", { p_id: w.id }), "Bestätigungs-Mail an " + w.email + " verschickt.");
+    if (r) reload();
   },
   wlMailOpen: () => { S.ui.wlMail = !S.ui.wlMail; S.ui.wlMailCheck = null; render(); },
   wlMailBack: () => { S.ui.wlMailCheck = null; render(); },
