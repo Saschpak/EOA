@@ -745,7 +745,7 @@ function adminWaitlist() {
   const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Teilnehmerplatz in der Playback Masterclass")}&body=${encodeURIComponent((firstName(li.name) ? "Hey " + firstName(li.name) : "Hey") + ",\n\ndein Teilnehmerplatz in der Playback Masterclass ist bestätigt! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
   const del = w => confirmBtn("wldel:" + w.id, "Löschen", `data-a="wlDelete" data-id="${w.id}"`);
   const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
-      <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
+      <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name (optional)</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
       <div class="field"><label class="label" for="we-e-${w.id}">E-Mail</label><input id="we-e-${w.id}" name="email" type="email" value="${esc(w.email)}"></div></div>
       <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
       <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
@@ -758,7 +758,7 @@ function adminWaitlist() {
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
       <div><button class="btn small" type="button" data-a="wlAddOpen">${S.ui.wlAdd ? "Formular schließen" : "Person hinzufügen"}</button></div>
       ${S.ui.wlAdd ? `<form data-f="wlAdd" novalidate style="display:flex;flex-direction:column;gap:10px">
-        <div class="form-grid"><div class="field"><label class="label" for="wa-n">Name</label><input id="wa-n" name="name" type="text"></div>
+        <div class="form-grid"><div class="field"><label class="label" for="wa-n">Name (optional)</label><input id="wa-n" name="name" type="text"></div>
         <div class="field"><label class="label" for="wa-e">E-Mail</label><input id="wa-e" name="email" type="email"></div></div>
         <div class="field"><label class="label" for="wa-t">Nachricht (optional)</label><textarea id="wa-t" name="note"></textarea></div>
         <p class="muted" style="font-size:13px">Die Person kommt ans Ende der Warteliste. Trag nur Leute ein, die zugestimmt haben, auf die Liste zu kommen.</p>
@@ -1078,17 +1078,15 @@ const A = {
 const F = {
   wlEdit: async f => {
     const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
-    if (!name) return toast("Bitte gib einen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
     const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked }).eq("id", f.dataset.id), "Gespeichert.");
     if (r) { S.ui.wlEdit = null; reload(); }
   },
   wlAdd: async f => {
     const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
-    if (!name) return toast("Bitte gib einen Namen ein.", true);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
     if ((S.D.waitlist || []).some(w => w.email === email)) return toast("Diese E-Mail-Adresse steht schon auf der Warteliste.", true);
-    const r = await run(sb.from("waitlist").insert({ full_name: name, email, note: f.note.value.trim() }), name + " steht jetzt auf der Warteliste.");
+    const r = await run(sb.from("waitlist").insert({ full_name: name, email, note: f.note.value.trim() }), (name || email) + " steht jetzt auf der Warteliste.");
     if (r) { S.ui.wlAdd = false; reload(); }
   },
   wlMail: f => {
