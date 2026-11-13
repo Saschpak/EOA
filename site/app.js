@@ -161,7 +161,9 @@ const wlGet = () => { try { return localStorage.getItem(WL_KEY); } catch (e) { r
 const wlSet = t => { try { localStorage.setItem(WL_KEY, t); } catch (e) { /* egal */ } };
 // Genaue Nummer erst ab dieser Position zeigen (kleine Zahlen wirken nach „hier ist nichts los“)
 const giftHero = () => !!(CONFIG.giftFile && CONFIG.giftHero !== false);
-const showPlace = n => n != null && n >= (CONFIG.waitlistShowPlaceFrom || 1);
+const showPlace = n => !!CONFIG.waitlistShowPlaceFrom && n != null && n >= CONFIG.waitlistShowPlaceFrom;
+// Statt der genauen Nummer: "zu den ersten 10", "zu den ersten 20" …
+const placeBucket = n => Math.max(10, Math.ceil((n || 1) / 10) * 10);
 const placeLink = t => location.origin + location.pathname + "#platz-" + t;
 
 /* Besucherzählung: ohne Cookies, nur Tag, Quelle, Gerätetyp */
@@ -337,14 +339,14 @@ function renderLanding() {
       ${me.confirmed === false
         ? `<div class="place place-early"><b>Check deine Mails.</b></div><p>Ich habe dir eine Mail geschickt. Bestätige deine Adresse über den Link darin, dann bekommst du das PDF. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>`
         : `<div class="place place-early"><b>Hier ist dein PDF.</b></div><div class="actions"><a class="btn-ink" href="${esc(giftFile)}" download>PDF herunterladen</a></div>`}
-      <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : "Du stehst außerdem ganz vorne auf der Warteliste"} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
+      <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : `Du gehörst außerdem zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste`} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
       ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
   else if (me && me.status === "waiting") box = `<div class="wl-status" id="wlBox">
       ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
-        : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den Ersten auf der Warteliste und bekommst als Erstes ein Kennenlerngespräch.</p>`}
+        : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
         : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
