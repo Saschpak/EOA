@@ -319,7 +319,7 @@ function landingExtras() {
 
 function renderUnsub() {
   $("#bar").hidden = true;
-  const u = S.ui.unsub, head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</div>`;
+  const u = S.ui.unsub, head = `<div class="logo" style="justify-content:center;font-size:20px">Playback Masterclass</div>`;
   const body = u.done === true ? `<h2>Du bist abgemeldet.</h2><p class="muted">Du bekommst keine Mails mehr zur Warteliste. Falls du es dir anders überlegst, trag dich einfach wieder ein.</p>`
     : u.done === false ? `<h2>Nichts zu tun</h2><p class="muted">Dieser Eintrag steht nicht (mehr) auf der Warteliste.</p>`
     : `<h2>Von der Warteliste abmelden?</h2><p class="muted">Dein Eintrag wird von der Warteliste genommen, und du bekommst keine Mails mehr dazu.</p><button class="btn primary" type="button" data-a="wlUnsub">Ja, abmelden</button>`;
@@ -432,7 +432,7 @@ function renderLanding() {
 function renderAuth() {
   $("#bar").hidden = true;
   const v = S.ui.recovery ? "recovery" : S.authView;
-  const head = `<div class="logo" style="justify-content:center;font-size:20px"><span class="logo-mark" aria-hidden="true"><i style="height:40%"></i><i style="height:100%"></i><i style="height:65%"></i><i style="height:85%"></i></span>Playback Masterclass</div>`;
+  const head = `<div class="logo" style="justify-content:center;font-size:20px">Playback Masterclass</div>`;
   let body = "";
   if (v === "login") body = `<form class="login card" data-f="login" novalidate>${head}
       <div class="field"><label class="label" for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
