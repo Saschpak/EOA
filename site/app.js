@@ -396,7 +396,7 @@ function renderLanding() {
         <span class="eyebrow">${esc(CONFIG.heroEyebrow || "von Saschpak")}</span>
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         ${video ? `<button class="intro-strip" type="button" data-a="playIntro">${CONFIG.photoUrl ? `<img src="${esc(CONFIG.photoUrl)}" alt="" width="54" height="96">` : ""}<span><b>${esc((CONFIG.aboutTitle || "Hi, ich bin Sascha.").replace(/\.$/, "."))}</b><span>${esc(CONFIG.introStripText || "")}</span></span><span class="play-ic" aria-hidden="true"></span></button>` : ""}
-        <p class="lead">${esc(CONFIG.heroLead || "")}</p>
+        <p class="lead">${CONFIG.heroLeadStrong ? `<b class="lead-strong">${esc(CONFIG.heroLeadStrong)}</b> ` : ""}${esc(CONFIG.heroLead || "")}</p>
         <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
         <div class="wl-box" id="warteliste">${box}</div>
       </div>
@@ -409,7 +409,7 @@ function renderLanding() {
     ${heroHtml}
     <section class="l-sec alt" id="kurs"><div class="l-inner"><div class="pack">
       <div><h2 class="big">Das bekommst du.</h2></div>
-      <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
+      <div>${pk.length ? `<ul class="incl">${pk.map(i => Array.isArray(i) ? `<li>${esc(i[0])}<span>${esc(i[1])}</span></li>` : `<li>${esc(i)}</li>`).join("")}</ul>` : ""}${CONFIG.needText ? `<p class="need-note">${esc(CONFIG.needText).replace(/^([^:]+:)/, "<b>$1</b>")}</p>` : ""}
         ${mods.length ? `<details class="mods-toggle"><summary>Alle ${mods.length} Kursmodule ansehen</summary>${CONFIG.courseIntro ? `<p class="muted" style="margin-top:12px">${esc(CONFIG.courseIntro)}</p>` : ""}<ol class="modules">${mods.map((m, i) => `<li><span class="mnum">${String(i + 1).padStart(2, "0")}</span><div><b>${esc(m[0])}</b><span>${esc(m[1])}</span></div></li>`).join("")}</ol>${CONFIG.courseFinale ? `<p class="finale">${esc(CONFIG.courseFinale)}</p>` : ""}</details>` : ""}
       </div>
     </div></div></section>
