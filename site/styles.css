@@ -498,3 +498,6 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .landing .eb-tag,.landing .eb-bracket{font-size:12px}
 .stage-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
 .stage-row select,.stage-row input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px;max-width:100%}
+.lead .lead-strong{color:var(--fg);font-weight:650}
+.landing .need-note{font-size:var(--t-s);color:var(--muted);margin-top:14px}
+.need-note b{color:var(--fg);font-weight:650}

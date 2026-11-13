@@ -61,7 +61,9 @@ window.CONFIG = {
   courseIntro: "Etwa zehn Module. Ich zeige dir dabei nicht nur das Wie, sondern auch, warum ich es so mache.",
   courseFinale: "Zugabe: dein komplettes Set, bühnenfertig.",
   heroEyebrow: "Mein 1:1-Coaching für dein Live-Setup",   // kleine Zeile über der Überschrift
-  heroLead: "Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set.",
+  heroLeadStrong: "Egal, ob du bei null startest oder dein Setup schon läuft:",   // fett vor dem Einleitungstext
+  heroLead: "In 4 Monaten bauen wir zusammen dein Live-Set mit Ableton, genau da, wo du gerade stehst.",
+  needText: "Was du brauchst: einen Laptop mit Ableton Live. Mehr nicht. Alles andere besprechen wir, bevor du etwas kaufst.",
   introStripText: "In 90 Sekunden erkläre ich dir, worum es geht.",   // Video-Zeile am Handy unter der Überschrift
   heroImage: "",       // optional: Bild rechts neben der Überschrift, z. B. "media/set.jpg"
 
@@ -100,8 +102,8 @@ window.CONFIG = {
 
   // Häufige Fragen
   faq: [
-    ["Bekomme ich Vorlagen, mit denen ich direkt starten kann?", "Ja. Du bekommst meine Projekt-Templates und Max for Live Devices, mit denen ich selbst arbeite. Damit kannst du sofort loslegen, statt bei null anzufangen."],
     ["Ich bin kein Technik-Typ. Schaffe ich das?", "Ja. Genau dafür ist das Coaching da. Wir gehen Schritt für Schritt vor, in deinem Tempo, und bauen nur das, was du für deine Show wirklich brauchst."],
+    ["Bekomme ich Vorlagen, mit denen ich direkt starten kann?", "Ja. Du bekommst meine Projekt-Templates und Max for Live Devices, mit denen ich selbst arbeite. Damit kannst du sofort loslegen, statt bei null anzufangen."],
     ["Brauche ich AbleSet?", "Nein. Ich zeige dir beides: wie du mit AbleSet arbeitest und wie du alles komplett ohne löst, inklusive Loops und Section-Sprüngen direkt in Ableton."],
     ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Geräte wie ein SPD-SX, MIDI-Controller oder Lichtsoftware sind optional. Was für dein Setup sinnvoll ist, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
