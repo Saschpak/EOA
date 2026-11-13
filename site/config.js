@@ -111,6 +111,21 @@ window.CONFIG = {
     ["Wie läuft die Bezahlung?", "Insgesamt 960\u00a0€: entweder 4 Monate à 240\u00a0€ oder einmalig. Danach entstehen keine weiteren Kosten, auch nicht für die 12 Monate Kurszugang. Alle Preise inkl. 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
   ],
 
+  // Kursstart: Bis dahin sehen eingeloggte Teilnehmer statt des Kurses eine Startseite mit Countdown.
+  // Leer lassen = Kurs sofort sichtbar. Verschieben: einfach Datum und Uhrzeit ändern.
+  courseStart: "2027-01-30T18:00:00+01:00",
+  prelaunchSteps: [
+    ["Rechnung", "Die Rechnung bekommst du von mir per Mail."],
+    ["Erstes 1:1", "Wir machen zusammen den Termin für dein erstes 1:1 aus."],
+    ["Kursstart", "Zum Start schalte ich hier den Videokurs und meine Templates für dich frei."]
+  ],
+  prelaunchPrep: [
+    "Ableton Live installieren (am besten Version 12)",
+    "Audio-Interface und Kopfhörer bereitlegen",
+    "Einen Song aussuchen, den du live spielen willst (Stems, falls du welche hast)",
+    "Notieren, was bei deinen Shows gerade hakt"
+  ],
+
   // Kursname, wie er im Kursbereich oben steht
   courseTitle: "Playback Live-Rig"
 };

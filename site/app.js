@@ -491,11 +491,49 @@ function render() {
   if (!S.D) { $("#app").innerHTML = `<div class="loading">Lädt …</div>`; return; }
   if (S.view === "admin" && S.me.role !== "coach") S.view = "start";
   renderChrome();
-  const v = { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin }[S.view] || viewStart;
+  const pre = preLaunch() && S.me.role !== "coach" && (S.view === "start" || S.view === "kurs");
+  const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
   $("#app").innerHTML = v();
   afterRender();
 }
-function afterRender() { /* Platz für Fokus-Handling */ }
+let cdTimer;
+function afterRender() {
+  clearInterval(cdTimer);
+  const cd = $("[data-cd]");
+  if (!cd) return;
+  const end = new Date(cd.dataset.cd).getTime();
+  const tick = () => {
+    let t = Math.max(0, Math.floor((end - Date.now()) / 1000));
+    const v = { d: Math.floor(t / 86400), h: Math.floor(t % 86400 / 3600), m: Math.floor(t % 3600 / 60), s: t % 60 };
+    for (const k in v) { const el = cd.querySelector(`[data-u="${k}"]`); if (el) el.textContent = String(v[k]).padStart(2, "0"); }
+    if (t === 0) { clearInterval(cdTimer); if (S.view !== "bald") render(); }
+  };
+  tick(); cdTimer = setInterval(tick, 1000);
+}
+
+/* ---------- Vor dem Kursstart: Startseite mit Countdown ---------- */
+const preLaunch = () => !!CONFIG.courseStart && Date.now() < new Date(CONFIG.courseStart).getTime();
+function viewPrelaunch() {
+  const me = S.me, start = new Date(CONFIG.courseStart || Date.now());
+  const day = start.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
+  const time = start.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  const done = (() => { try { return JSON.parse(localStorage.getItem("pc-prep-" + me.id) || "[]"); } catch (e) { return []; } })();
+  const steps = CONFIG.prelaunchSteps || [], prep = CONFIG.prelaunchPrep || [], nw = (S.D.news || [])[0];
+  return `<section class="view prelaunch">
+    ${me.role === "coach" ? `<div class="notice">Vorschau: So sehen Teilnehmer ihre Startseite bis zum Kursstart. Das Datum stellst du in den Einstellungen unter <code>courseStart</code> ein.</div>` : ""}
+    <div class="intro"><span class="label">Playback Masterclass · Runde 1</span><h1>Schön, dass du dabei bist${me.full_name ? ", " + esc(firstName(me.full_name)) : ""}!</h1>
+      <p class="lead pl-lead">Am <b>${esc(day)}</b> um ${esc(time)} Uhr geht's los. Bis dahin bleibt der Kurs noch geschlossen.</p></div>
+    <div class="countdown" data-cd="${esc(CONFIG.courseStart || "")}" role="timer" aria-label="Zeit bis zum Kursstart">
+      ${[["d", "Tage"], ["h", "Stunden"], ["m", "Minuten"], ["s", "Sekunden"]].map(([u, t]) => `<div><b data-u="${u}">00</b><span>${t}</span></div>`).join("")}
+    </div>
+    <div class="two">
+      ${steps.length ? `<div class="card"><h2>So geht's weiter</h2><ol class="lsteps">${steps.map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join("")}</ol></div>` : ""}
+      ${prep.length ? `<div class="card"><h2>Bis dahin vorbereiten</h2><div class="prep">${prep.map((t, i) => `<label class="inline-check"><input class="check" type="checkbox" data-prep="${i}" ${done.includes(i) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div></div>` : ""}
+    </div>
+    ${nw ? `<a class="card" href="#news" style="text-decoration:none;color:inherit"><span class="label">Neu · ${fmt(nw.published_at)}</span><b>${esc(nw.title)}</b></a>` : ""}
+    <p class="muted" style="font-size:14px">Fragen bis dahin? Schreib mir einfach an <a href="mailto:info@saschpak.de">info@saschpak.de</a>.</p>
+  </section>`;
+}
 
 /* ---------- Schüler: Übersicht ---------- */
 function viewStart() {
@@ -648,6 +686,7 @@ function adminHome() {
   const week = up.filter(b => new Date(b.starts_at) <= new Date(Date.now() + 7 * 864e5));
   const todos = [];
   const wlW = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
+  if (preLaunch()) todos.push({ kind: "Vor dem Start", text: `Teilnehmer sehen bis zum Kursstart eine Startseite mit Countdown.`, a: `href="#bald"`, btn: "Ansehen", link: true });
   if (wlW) todos.push({ kind: "Warteliste", text: `${wlW} ${wlW === 1 ? "Person wartet" : "Personen warten"} auf ein Kennenlerngespräch.`, a: `data-a="tab" data-v="warteliste"`, btn: "Ansehen" });
   openQ.forEach(q => todos.push({ kind: "Frage", text: `${esc(profileName(q.user_id))}: ${q.lesson_id && getLesson(q.lesson_id) ? "Lektion „" + esc(getLesson(q.lesson_id).title) + "“" : "Allgemeine Frage"}`, a: `data-a="tab" data-v="fragen"`, btn: "Beantworten" }));
   st.forEach(p => {
@@ -664,7 +703,7 @@ function adminHome() {
     });
   });
   return `<div class="stats">${[[st.length, "Schüler"], [week.length, "Termine in 7 Tagen"], [openQ.length, "Offene Fragen"], [st.filter(p => p.invited).reduce((a, p) => a + Math.max(0, leftFor(p)), 0), "Offene 1:1s gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
-    <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div><button class="btn small" type="button" ${t.a}>${t.btn}</button></div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
+    <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div>${t.link ? `<a class="btn small" ${t.a}>${t.btn}</a>` : `<button class="btn small" type="button" ${t.a}>${t.btn}</button>`}</div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
     <div class="card"><h2>Nächste Termine</h2><div>${up.length ? up.map(b => { const t = fmtTs(b.starts_at); return `<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(t.date)} ${t.time}</span><span><b>${esc(profileName(b.user_id))}</b>${b.topic ? " · " + esc(b.topic) : ""}</span></div><button class="btn small quiet" type="button" data-a="openUser" data-id="${b.user_id}">Schüler öffnen</button></div>`; }).join("") : `<p class="empty">Keine Termine gebucht.</p>`}</div></div>`;
 }
 
@@ -1287,6 +1326,11 @@ document.addEventListener("change", async e => {
     if (r) reload(); else t.checked = !t.checked;
   } else if (t.dataset.wlpack != null) {
     const v = parseInt(t.value, 10); S.ui.wlPack = v >= 0 ? v : 4;
+  } else if (t.dataset.prep != null) {
+    const k = "pc-prep-" + S.me.id; let d = [];
+    try { d = JSON.parse(localStorage.getItem(k) || "[]"); } catch (e) { d = []; }
+    const i = +t.dataset.prep; d = t.checked ? [...new Set([...d, i])] : d.filter(x => x !== i);
+    try { localStorage.setItem(k, JSON.stringify(d)); } catch (e) { /* egal */ }
   } else if (t.dataset.stage) {
     const stage = t.value, patch = { contact_stage: stage, contact_at: new Date().toISOString() };
     await run(sb.from("waitlist").update(patch).eq("id", t.dataset.stage), "Kontakt-Status: " + stageLabel(stage)); reload();
@@ -1318,7 +1362,7 @@ document.addEventListener("change", async e => {
 $("#logout").addEventListener("click", () => A.logout());
 
 /* ---------- Navigation ---------- */
-const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin"];
+const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin", "bald"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
