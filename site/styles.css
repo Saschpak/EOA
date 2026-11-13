@@ -496,3 +496,5 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .landing .copyrow code,.landing .wl-status .muted,.landing .preview-banner{font-size:var(--t-s)}
 .landing .faq summary::after{font-size:var(--t-l);line-height:1}
 .landing .eb-tag,.landing .eb-bracket{font-size:12px}
+.stage-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.stage-row select,.stage-row input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px;max-width:100%}

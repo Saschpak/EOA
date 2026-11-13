@@ -739,6 +739,22 @@ function funnelCard(first, visits, wl, pct) {
   </div>`;
 }
 
+const STAGES = [["", "Noch nicht angeschrieben"], ["angefragt", "Termin angefragt"], ["termin", "Termin steht"], ["gefuehrt", "Gespräch geführt"], ["keine_antwort", "Keine Antwort"], ["abgesagt", "Abgesagt"], ["unzustellbar", "Mail kommt nicht an"]];
+const stageLabel = k => (STAGES.find(x => x[0] === k) || STAGES[0])[1];
+const toLocalInput = ts => { if (!ts) return ""; const d = new Date(ts); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+function stageTag(w) {
+  const k = w.contact_stage || "";
+  if (!k) return "";
+  const cls = k === "termin" || k === "gefuehrt" ? "ok-tag" : k === "unzustellbar" || k === "abgesagt" ? "err-tag" : "muted-tag";
+  const extra = k === "termin" && w.call_at ? (() => { const t = fmtTs(w.call_at); return ` ${t.wd} ${fmt(t.date)} ${t.time}`; })() : k === "angefragt" && w.contact_at ? ` ${fmt(w.contact_at)}` : "";
+  return `<span class="${cls}">${esc(stageLabel(k))}${esc(extra)}</span>`;
+}
+function stageControls(w) {
+  if (w.status !== "waiting" || !("contact_stage" in w)) return "";
+  return `<div class="stage-row"><label class="muted" for="st-${w.id}">Kontakt</label><select id="st-${w.id}" data-stage="${w.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${(w.contact_stage || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+    ${w.contact_stage === "termin" ? `<input type="datetime-local" data-callat="${w.id}" value="${toLocalInput(w.call_at)}" aria-label="Termin">` : ""}</div>`;
+}
+
 function adminWaitlist() {
   const all = S.D.waitlist || [], waiting = all.filter(w => w.status === "waiting"), invited = all.filter(w => w.status === "invited"), removed = all.filter(w => w.status === "removed");
   const li = S.ui.lastInvite;
@@ -748,13 +764,15 @@ function adminWaitlist() {
       <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name (optional)</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
       <div class="field"><label class="label" for="we-e-${w.id}">E-Mail</label><input id="we-e-${w.id}" name="email" type="email" value="${esc(w.email)}"></div></div>
       <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
+      ${"contact_note" in w ? `<div class="field"><label class="label" for="we-c-${w.id}">Notizen zum Kontakt (nur für dich)</label><textarea id="we-c-${w.id}" name="cnote">${esc(w.contact_note)}</textarea></div>` : ""}
       <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
-  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
-      ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}
+  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}${stageTag(w)}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+      ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="muted" style="white-space:pre-line;font-size:14px">${esc(w.contact_note)}</p>` : ""}
+      ${stageControls(w)}
       <div class="actions" style="align-items:center">${w.status === "waiting" ? `<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Einladen</button>${!w.confirmed_at && S.D.mailReady ? `<button class="btn small" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
         <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
-  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Teilnehmerplätze in der ersten Runde${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
+  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${(() => { const c = k => waiting.filter(w => w.contact_stage === k).length; return [["angefragt", "angefragt"], ["termin", "Termin steht"], ["gefuehrt", "geführt"]].map(([k, t]) => `${c(k)} ${t}`).join(" · "); })()} · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Teilnehmerplätze in der ersten Runde${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
       <div><button class="btn small" type="button" data-a="wlAddOpen">${S.ui.wlAdd ? "Formular schließen" : "Person hinzufügen"}</button></div>
       ${S.ui.wlAdd ? `<form data-f="wlAdd" novalidate style="display:flex;flex-direction:column;gap:10px">
@@ -1084,7 +1102,7 @@ const F = {
   wlEdit: async f => {
     const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
-    const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked }).eq("id", f.dataset.id), "Gespeichert.");
+    const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked, ...(f.cnote ? { contact_note: f.cnote.value.trim() } : {}) }).eq("id", f.dataset.id), "Gespeichert.");
     if (r) { S.ui.wlEdit = null; reload(); }
   },
   wlAdd: async f => {
@@ -1267,6 +1285,12 @@ document.addEventListener("change", async e => {
     if (r) reload(); else t.checked = !t.checked;
   } else if (t.dataset.wlpack != null) {
     const v = parseInt(t.value, 10); S.ui.wlPack = v >= 0 ? v : 4;
+  } else if (t.dataset.stage) {
+    const stage = t.value, patch = { contact_stage: stage, contact_at: new Date().toISOString() };
+    await run(sb.from("waitlist").update(patch).eq("id", t.dataset.stage), "Kontakt-Status: " + stageLabel(stage)); reload();
+  } else if (t.dataset.callat) {
+    const v = t.value ? new Date(t.value).toISOString() : null;
+    await run(sb.from("waitlist").update({ call_at: v }).eq("id", t.dataset.callat), "Termin gespeichert."); reload();
   } else if (t.dataset.access) {
     await run(sb.from("profiles").update({ course_access: t.checked }).eq("id", t.dataset.access)); reload();
   } else if (t.dataset.mt) {
