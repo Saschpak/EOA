@@ -580,7 +580,7 @@ function render() {
   if (!S.D) { $("#app").innerHTML = `<div class="loading">Lädt …</div>`; return; }
   if (S.view === "admin" && S.me.role !== "coach") S.view = "start";
   renderChrome();
-  const pre = preLaunch() && S.me.role !== "coach" && (S.view === "start" || S.view === "kurs");
+  const pre = preLaunch() && S.me.role !== "coach" && !S.me.early_access && (S.view === "start" || S.view === "kurs");
   const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
   $("#app").innerHTML = v();
   afterRender();
@@ -1081,9 +1081,11 @@ function adminUsers() {
         <div class="field"><label class="label" for="iPack">1:1s im Paket</label><input id="iPack" name="pack" type="number" min="0" max="100" value="4"></div>
         <div class="field"><span class="label">Videokurs</span><label class="inline-check" for="iCourse"><input class="check" id="iCourse" name="course" type="checkbox" checked style="margin:0">Zugang freischalten</label></div>
       </div>
+      ${preLaunch() ? `<label class="inline-check" for="iEarly"><input class="check" id="iEarly" name="early" type="checkbox" style="margin:0">Kurs schon vor dem Kursstart zeigen (statt Countdown)</label>` : ""}
+      <p class="muted" style="font-size:13px">Schüler, die du hier einlädst, zählen nicht zu den ${CONFIG.waitlistSpots} Teilnehmerplätzen der Warteliste und erscheinen nicht auf der Startseite.</p>
       <div class="actions"><button class="btn primary" type="submit">Einladen</button><button class="btn quiet" type="button" data-a="toggleInvite">Abbrechen</button></div>
     </form>
-    ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}</span></div>${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</div>`).join("")}</div>` : ""}
+    ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}${i.early_access ? " · Kurs schon vor dem Start" : ""}</span></div>${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</div>`).join("")}</div>` : ""}
     <div class="table-wrap"><table><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Nächster Termin</th></tr></thead><tbody>
       ${st.length ? st.map(p => { const l = leftFor(p), pc = pctFor(p), nb = upcomingOf(p.id)[0];
         return `<tr data-a="openUser" data-id="${p.id}" tabindex="0"><td><b>${esc(p.full_name || "–")}</b><span class="sub">${esc(p.email)}${p.invited ? "" : " · nicht eingeladen"}</span></td>
@@ -1115,6 +1117,7 @@ function adminUserDetail() {
       </div>
       <div class="card"><span class="label">Videokurs</span>
         <label class="inline-check" for="courseAcc"><input class="check" id="courseAcc" type="checkbox" data-access="${p.id}" ${p.course_access ? "checked" : ""} style="margin:0">Zugang freigeschaltet</label>
+        ${preLaunch() && "early_access" in p ? `<label class="inline-check" for="earlyAcc"><input class="check" id="earlyAcc" type="checkbox" data-early="${p.id}" ${p.early_access ? "checked" : ""} style="margin:0">Kurs schon vor dem Kursstart zeigen (sonst Countdown-Seite)</label>` : ""}
         ${p.course_access ? progressHTML(p) + `<div style="display:flex;flex-direction:column;gap:8px">${mods.map((m, mi) => { const ls = lessonsOf(m), d = ls.filter(l => dn.has(l.id)).length; return `<div class="mod-line"><span>${mi + 1}. ${esc(m.title)}</span><div class="track"><i style="width:${ls.length ? d / ls.length * 100 : 0}%"></i></div><span class="mono muted" style="font-size:12px;text-align:right">${d}/${ls.length}</span></div>`; }).join("")}</div>` : `<p class="muted">Kein Zugang zum Videokurs.</p>`}
       </div>
     </div>
@@ -1486,8 +1489,9 @@ const F = {
     const email = f.email.value.trim().toLowerCase(), pack = parseInt(f.pack.value, 10);
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
     if (!(pack >= 0)) return toast("Bitte gib die Zahl der 1:1s an (0 oder mehr).", true);
-    if (S.D.profiles.some(p => p.email.toLowerCase() === email)) return toast("Diese Person hat schon ein Konto. Du findest sie in der Liste.", true);
-    const r = await run(sb.from("invites").insert({ email, full_name: f.name.value.trim(), package_total: pack, course_access: f.course.checked }),
+    const ex = S.D.profiles.find(p => p.email.toLowerCase() === email);
+    if (ex) return toast(ex.role === "coach" ? "Das ist dein Coach-Konto. Zum Testen als Schüler nimm eine zweite Adresse, z. B. deine Gmail-Adresse mit +schueler vor dem @." : "Diese Person hat schon ein Konto. Du findest sie in der Liste.", true);
+    const r = await run(sb.from("invites").insert({ email, full_name: f.name.value.trim(), package_total: pack, course_access: f.course.checked, ...(f.early && f.early.checked ? { early_access: true } : {}) }),
       "Eingeladen. Schick " + email + " jetzt den Link " + location.origin + ".");
     if (r) { S.ui.inviteOpen = false; reload(); }
   },
@@ -1588,6 +1592,8 @@ document.addEventListener("change", async e => {
   } else if (t.dataset.callat) {
     const v = t.value ? new Date(t.value).toISOString() : null;
     await run(sb.from("waitlist").update({ call_at: v }).eq("id", t.dataset.callat), "Termin gespeichert."); reload();
+  } else if (t.dataset.early) {
+    await run(sb.from("profiles").update({ early_access: t.checked }).eq("id", t.dataset.early), t.checked ? "Sieht den Kurs ab sofort." : "Sieht bis zum Start die Countdown-Seite."); reload();
   } else if (t.dataset.access) {
     await run(sb.from("profiles").update({ course_access: t.checked }).eq("id", t.dataset.access)); reload();
   } else if (t.dataset.mt) {
