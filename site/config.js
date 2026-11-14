@@ -41,7 +41,7 @@ window.CONFIG = {
   offerDefaults: { full: 800, was: 960, label: "Empfehlung · Early-Bird", single: 100, days: 6 },
   offerMonths: 4,
   contactEmail: "info@saschpak.de",
-  contactWhatsApp: "", // z. B. "4917612345678", leer = kein WhatsApp-Knopf auf der Angebotsseite
+  contactWhatsApp: "491702281153", // WhatsApp-Knopf auf der Angebotsseite, leer = ausblenden
 
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
