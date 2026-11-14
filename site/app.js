@@ -344,7 +344,7 @@ function renderUnsub() {
 
 /* ---------- Persönliches Angebot (#angebot-<token>) ---------- */
 const euro = n => Number(n).toLocaleString("de-DE") + "\u00a0€";
-const offerLink = t => location.origin + location.pathname + "#angebot-" + t;
+const offerLink = t => location.origin + "/angebot/" + t;
 const parsePlan = txt => (txt || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(":"); return i > 0 ? { t: l.slice(0, i).trim(), d: l.slice(i + 1).trim() } : { t: l, d: "" }; });
 const planText = plan => (plan || []).map(x => x.d ? x.t + ": " + x.d : x.t).join("\n");
 
@@ -908,7 +908,7 @@ function offerBox(w) {
     : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
     : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
     : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span>${o.viewed_at ? `<span class="muted" style="font-size:13px">angesehen ${fmt(o.viewed_at)}</span>` : `<span class="muted" style="font-size:13px">noch nicht angesehen</span>`}`;
-  return `<div class="offer-line">${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
+  return `<div class="offer-line">${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.slug || o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.slug || o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
 }
 function stageControls(w) {
   if (w.status !== "waiting" || !("contact_stage" in w)) return "";
@@ -1532,7 +1532,7 @@ const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin", "bald"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
-  const ao = /^angebot-([0-9a-f-]{36})$/.exec(h);
+  const ao = /^angebot-([a-z0-9-]{6,60})$/.exec(h);
   if (ao) { if (!S.ui.offer || S.ui.offer.token !== ao[1]) { S.ui.offer = { token: ao[1] }; loadOffer(); } else render(); return; }
   S.ui.offer = null;
   if (!S.session) {

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dein Angebot · Playback Masterclass</title>
+<script>
+  // /angebot/<code> → Angebotsseite der App
+  (function () {
+    var code = location.pathname.replace(/\/+$/, "").split("/").pop().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    location.replace("/" + (code && code !== "angebot" && code !== "angebot.html" ? "#angebot-" + code : ""));
+  })();
+</script>
+</head><body style="font-family:system-ui,sans-serif;padding:40px 16px">Dein Angebot wird geöffnet …</body></html>
