@@ -94,7 +94,8 @@ async function load() {
     D.visits = vs.error ? [] : vs.data;
     const fs = await q("funnel_stats", "*", [["day"]]);
     D.funnel = fs.error ? null : fs.data;
-    const of = await q("offers", "*", [["created_at"]]);
+    const [of, ev, mlAll] = await Promise.all([q("offers", "*", [["created_at"]]), q("contact_events", "*", [["at"]]), q("mail_log", "id,created_at,kind,to_email,subject,status", [["created_at"]])]);
+    D.events = ev.error ? [] : ev.data; D.mailLogAll = mlAll.error ? [] : mlAll.data.filter(m => m.kind !== "coach_info");
     D.offers = of.error ? null : of.data;
     const eb = await sb.rpc("waitlist_early_bird_slots");
     D.ebSlots = eb.error ? 3 : eb.data;
@@ -908,13 +909,64 @@ function offerBox(w) {
     : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
     : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
     : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span>${o.viewed_at ? `<span class="muted" style="font-size:13px">angesehen ${fmt(o.viewed_at)}</span>` : `<span class="muted" style="font-size:13px">noch nicht angesehen</span>`}`;
-  return `<div class="offer-line">${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.slug || o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.slug || o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
+  return `<div class="offer-line"><span class="muted" style="font-size:13px">Angebot</span>${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.slug || o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.slug || o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Angebot löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
 }
 function stageControls(w) {
   if (w.status !== "waiting" || !("contact_stage" in w)) return "";
-  const result = w.contact_stage === "gefuehrt" ? `<div class="stage-row"><span class="muted">Ergebnis:</span><button class="btn small" type="button" data-a="confirm" data-k="inv:${w.id}">Zugesagt → Platz zusagen</button><button class="btn quiet small" type="button" data-a="wlStage" data-id="${w.id}" data-v="abgesagt">Abgesagt</button><span class="muted" style="font-size:13px">Bedenkzeit? Einfach in den Notizen festhalten.</span></div>` : "";
-  return `<div class="stage-row"><label class="muted" for="st-${w.id}">Kontakt</label><select id="st-${w.id}" data-stage="${w.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${(w.contact_stage || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-    ${w.contact_stage === "termin" ? `<input type="datetime-local" data-callat="${w.id}" value="${toLocalInput(w.call_at)}" aria-label="Termin">` : ""}</div>${result}`;
+  return `<div class="wl-ctrl"><label class="muted" for="st-${w.id}">Status</label><select id="st-${w.id}" data-stage="${w.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${(w.contact_stage || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+    ${w.contact_stage === "termin" ? `<input type="datetime-local" data-callat="${w.id}" value="${toLocalInput(w.call_at)}" aria-label="Termin">` : ""}</div>`;
+}
+
+/* Wo steht jemand gerade, und was ist als Nächstes zu tun? */
+const DAY = 864e5;
+const daysSince = ts => ts ? Math.floor((Date.now() - new Date(ts).getTime()) / DAY) : null;
+const sinceText = ts => { const n = daysSince(ts); return n == null ? "" : n <= 0 ? "heute" : n === 1 ? "seit gestern" : `seit ${n} Tagen`; };
+const offerOf = w => (S.D.offers || []).filter(x => x.waitlist_id === w.id).slice(-1)[0];
+function wlPhase(w) {
+  if (w.status === "removed") return { key: "entfernt", label: "Entfernt", cls: "muted-tag" };
+  if (w.status === "invited") {
+    const reg = S.D.profiles.some(p => p.email.toLowerCase() === w.email);
+    return { key: "platz", label: "Platz zugesagt", cls: "ok-tag", next: reg ? "Konto erstellt" : "Konto noch nicht erstellt", urgent: false };
+  }
+  const o = offerOf(w);
+  if (o) {
+    if (o.status === "coaching") return { key: "angebot", label: "Angebot angenommen", cls: "ok-tag", since: o.answered_at, next: "Rechnung schicken, Platz zusagen", urgent: true };
+    if (o.status === "einzelstunde") return { key: "angebot", label: "Einzelstunde angefragt", cls: "ok-tag", since: o.answered_at, next: "Termin ausmachen", urgent: true };
+    const exp = o.valid_until && o.valid_until < today();
+    if (exp) return { key: "angebot", label: "Angebot abgelaufen", cls: "err-tag", since: o.valid_until, next: "Nachfragen oder abschließen" };
+    const left = o.valid_until ? Math.round((pd(o.valid_until) - pd(today())) / DAY) : null;
+    return { key: "angebot", label: "Angebot offen", cls: "muted-tag", since: o.created_at,
+      next: (o.viewed_at ? "angesehen, wartet auf Antwort" : "noch nicht angesehen") + (left != null ? ` · noch ${left === 0 ? "heute" : left === 1 ? "1 Tag" : left + " Tage"}` : ""), urgent: left != null && left <= 1 };
+  }
+  const k = w.contact_stage || "";
+  if (k === "") return { key: "neu", label: "Neu", cls: "muted-tag", since: w.created_at, next: w.confirmed_at ? "Zum Gespräch einladen" : "Adresse noch nicht bestätigt" };
+  if (k === "angefragt") { const n = daysSince(w.contact_at); return { key: "angefragt", label: "Angefragt", cls: "muted-tag", since: w.contact_at, next: n >= 2 ? "Keine Antwort: nachhaken" : "Wartet auf Antwort", urgent: n >= 2 }; }
+  if (k === "termin") {
+    if (!w.call_at) return { key: "termin", label: "Termin steht", cls: "ok-tag", next: "Uhrzeit eintragen" };
+    const t = fmtTs(w.call_at), past = new Date(w.call_at) < new Date(), isToday = t.date === today();
+    return { key: "termin", label: `Termin ${t.wd.slice(0, 2)} ${fmt(t.date)} · ${t.time}`, cls: "ok-tag", next: past ? "Gespräch geführt? Status setzen" : isToday ? "Heute!" : "Gespräch vorbereiten", urgent: past || isToday };
+  }
+  if (k === "gefuehrt") return { key: "gefuehrt", label: "Gespräch geführt", cls: "ok-tag", since: w.contact_at, next: "Angebot schicken", urgent: true };
+  return { key: "inaktiv", label: stageLabel(k), cls: k === "keine_antwort" ? "muted-tag" : "err-tag", since: w.contact_at, next: "" };
+}
+
+/* Verlauf: alles, was mit einer Person passiert ist, neueste zuerst */
+const EV_STATUS = { "": "Status zurückgesetzt", angefragt: "Zum Gespräch eingeladen", termin: "Termin vereinbart", gefuehrt: "Gespräch geführt", keine_antwort: "Keine Antwort", abgesagt: "Abgesagt", unzustellbar: "Mail kommt nicht an", platz_zugesagt: "Platz zugesagt" };
+const EV_KIND = { mail_raus: "Mail", antwort: "Antwort", status: "", anruf: "Anruf", notiz: "Notiz" };
+function wlTimeline(w) {
+  const ev = [{ at: w.created_at, t: "Auf die Warteliste eingetragen", d: w.source ? "über " + w.source : "" }];
+  if (w.confirmed_at) ev.push({ at: w.confirmed_at, t: "Adresse bestätigt" });
+  (S.D.mailLogAll || []).filter(m => m.to_email === w.email).forEach(m => ev.push({ at: m.created_at, t: "Mail: " + (MAIL_KIND[m.kind] || m.kind), d: m.subject, bad: m.status !== "gesendet" }));
+  (S.D.events || []).filter(e => e.waitlist_id === w.id).forEach(e => ev.push({ at: e.at, t: e.kind === "status" ? (EV_STATUS[e.text] || e.text) : e.text, icon: EV_KIND[e.kind], by: e.by_whom === "claude" ? "Claude" : "" }));
+  const o = offerOf(w);
+  if (o) {
+    ev.push({ at: o.created_at, t: "Angebot erstellt", d: o.valid_until ? "gilt bis " + fmt(o.valid_until) : "" });
+    if (o.viewed_at) ev.push({ at: o.viewed_at, t: "Angebot angesehen" });
+    if (o.answered_at) ev.push({ at: o.answered_at, t: o.status === "coaching" ? "Angebot angenommen" : "Einzelstunde angefragt", good: true });
+  }
+  if (w.contact_stage === "termin" && w.call_at && new Date(w.call_at) > new Date()) ev.push({ at: w.call_at, t: "Kennenlerngespräch", future: true });
+  ev.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  return `<ol class="wl-tl">${ev.map(e => { const t = fmtTs(e.at); return `<li class="${e.future ? "is-future" : ""}${e.bad ? " is-bad" : ""}${e.good ? " is-good" : ""}"><span class="wl-tl-when">${fmt(t.date)} <small>${t.time}</small></span><span class="wl-tl-what"><span>${e.icon ? `<i>${e.icon}:</i> ` : ""}${esc(e.t)}${e.by ? ` <i>· ${e.by}</i>` : ""}</span>${e.d ? `<small>${esc(e.d)}</small>` : ""}${e.bad ? `<small class="err">nicht verschickt</small>` : ""}</span></li>`; }).join("")}</ol>`;
 }
 
 function adminWaitlist() {
@@ -922,22 +974,63 @@ function adminWaitlist() {
   const li = S.ui.lastInvite;
   const mail = li ? `mailto:${encodeURIComponent(li.email)}?subject=${encodeURIComponent("Dein Teilnehmerplatz in der Playback Masterclass")}&body=${encodeURIComponent((firstName(li.name) ? "Hey " + firstName(li.name) : "Hey") + ",\n\ndein Teilnehmerplatz in der Playback Masterclass ist bestätigt! Registriere dich hier mit dieser E-Mail-Adresse:\n" + location.origin + "\n\nBis bald!")}` : "";
   const del = w => confirmBtn("wldel:" + w.id, "Löschen", `data-a="wlDelete" data-id="${w.id}"`);
-  const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
+  const pos = new Map(waiting.map((w, i) => [w.id, i]));
+  const rows = [...waiting, ...invited, ...removed].map(w => ({ w, p: wlPhase(w) }));
+  const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate class="wl-edit">
       <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name (optional)</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
       <div class="field"><label class="label" for="we-e-${w.id}">E-Mail</label><input id="we-e-${w.id}" name="email" type="email" value="${esc(w.email)}"></div></div>
       ${"reach" in w ? `<div class="field"><label class="label" for="we-r-${w.id}">Instagram oder WhatsApp</label><input id="we-r-${w.id}" name="reach" type="text" maxlength="80" value="${esc(w.reach)}"></div>` : ""}
       <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
-      ${"contact_note" in w ? `<div class="field"><label class="label" for="we-c-${w.id}">Notizen zum Kontakt (nur für dich)</label><textarea id="we-c-${w.id}" name="cnote">${esc(w.contact_note)}</textarea></div>` : ""}
+      ${"contact_note" in w ? `<div class="field"><label class="label" for="we-c-${w.id}">Notizen (nur für dich)</label><textarea id="we-c-${w.id}" name="cnote">${esc(w.contact_note)}</textarea></div>` : ""}
       <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
-  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}${stageTag(w)}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span>${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}</div>
-      ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="muted" style="white-space:pre-line;font-size:14px">${esc(w.contact_note)}</p>` : ""}
-      ${stageControls(w)}
-      ${offerBox(w)}
-      <div class="actions" style="align-items:center">${w.status === "waiting" ? `${S.ui.confirm === "inv:" + w.id ? `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} im Gespräch zugesagt?</span><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`
-        : `<button class="btn ${w.contact_stage === "gefuehrt" ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`}${!w.confirmed_at && S.D.mailReady ? `<button class="btn small" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
-        <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
-  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${(() => { const c = k => waiting.filter(w => w.contact_stage === k).length; return [["angefragt", "angefragt"], ["termin", "Termin steht"], ["gefuehrt", "geführt"]].map(([k, t]) => `${c(k)} ${t}`).join(" · "); })()} · ${invited.length} eingeladen · ${CONFIG.waitlistSpots} Teilnehmerplätze in der ersten Runde${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
+
+  const detail = (w, p) => {
+    const contact = `<div class="wl-contact"><a href="mailto:${esc(w.email)}">${esc(w.email)}</a>${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}</div>`;
+    const notes = `${w.note ? `<p class="wl-note"><span class="muted">Nachricht:</span> ${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="wl-note"><span class="muted">Notizen:</span> ${esc(w.contact_note)}</p>` : ""}`;
+    const inviteBtn = S.ui.confirm === "inv:" + w.id
+      ? `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} zugesagt?</span><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`
+      : `<button class="btn ${p.key === "angebot" && /angenommen/.test(p.label) ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`;
+    const acts = w.status === "waiting"
+      ? `${inviteBtn}${w.contact_stage === "gefuehrt" && !offerOf(w) ? `<button class="btn quiet small" type="button" data-a="wlStage" data-id="${w.id}" data-v="abgesagt">Abgesagt</button>` : ""}${!w.confirmed_at && S.D.mailReady ? `<button class="btn small quiet" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}`
+      : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>`
+      : (S.D.profiles.some(x => x.email.toLowerCase() === w.email) ? "" : S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : "");
+    return `<div class="wl-detail">
+      <div class="wl-col"><h3>Verlauf</h3>${wlTimeline(w)}</div>
+      <div class="wl-col">${S.ui.wlEdit === w.id ? editForm(w) : `${contact}${notes}${stageControls(w)}${offerBox(w)}
+        <div class="actions wl-acts">${acts}<button class="btn small quiet" type="button" data-a="wlEditOpen" data-id="${w.id}">Eintrag bearbeiten</button>${confirmBtn("wldel:" + w.id, "Eintrag löschen", `data-a="wlDelete" data-id="${w.id}"`)}</div>`}</div></div>`;
+  };
+
+  const row = ({ w, p }) => {
+    const open = S.ui.wlOpen === w.id || S.ui.wlEdit === w.id;
+    const nr = pos.has(w.id) ? `#${pos.get(w.id) + 1}` : "";
+    return `<article class="wl-row${open ? " open" : ""}${p.urgent ? " urgent" : ""}">
+      <div class="wl-head" data-a="wlOpen" data-id="${w.id}" role="button" tabindex="0" aria-expanded="${open}">
+        <span class="wl-nr mono">${nr}</span>
+        <span class="wl-who"><b>${esc(wlName(w))}</b>${w.full_name ? `<small>${esc(w.email)}</small>` : ""}</span>
+        <span class="wl-phase"><span class="${p.cls}">${esc(p.label)}</span>${p.since && p.key !== "termin" ? `<small>${sinceText(p.since)}</small>` : ""}</span>
+        <span class="wl-next">${p.next ? `${p.urgent ? `<b>${esc(p.next)}</b>` : esc(p.next)}` : ""}${w.early_bird ? ` <span class="eb-tag">Early-Bird</span>` : ""}</span>
+        <span class="wl-chev" aria-hidden="true">›</span>
+      </div>${open ? detail(w, p) : ""}</article>`;
+  };
+
+  const ORDER = [["alle", "Alle"], ["neu", "Neu"], ["angefragt", "Angefragt"], ["termin", "Termin"], ["gefuehrt", "Geführt"], ["angebot", "Angebot"], ["platz", "Zugesagt"], ["inaktiv", "Keine Antwort / Abgesagt"], ["entfernt", "Entfernt"]];
+  const count = k => k === "alle" ? waiting.length : rows.filter(r => r.p.key === k).length;
+  const cur = S.ui.wlFilter && ORDER.some(o => o[0] === S.ui.wlFilter) ? S.ui.wlFilter : "alle";
+  const pipe = `<div class="wl-pipe" role="tablist" aria-label="Warteliste filtern">${ORDER.filter(([k]) => k === "alle" || count(k) || k === cur || ["neu", "angefragt", "termin", "gefuehrt", "angebot", "platz"].includes(k)).map(([k, t]) => `<button type="button" data-a="wlFilter" data-v="${k}" aria-selected="${cur === k}"><b>${count(k)}</b><span>${t}</span></button>`).join("")}</div>`;
+  const list = cur === "alle" ? rows.filter(r => r.w.status === "waiting") : rows.filter(r => r.p.key === cur);
+  if (cur === "termin") list.sort((a, b) => String(a.w.call_at).localeCompare(String(b.w.call_at)));
+
+  const todo = rows.filter(r => r.p.urgent && r.w.status === "waiting");
+  const todoCard = todo.length ? `<div class="card wl-todo"><h2>Braucht dich <span class="count">${todo.length}</span></h2>${todo.map(({ w, p }) => `<button type="button" class="wl-todo-row" data-a="wlOpen" data-id="${w.id}" data-scroll="1"><b>${esc(wlName(w))}</b><span>${esc(p.next)}</span><span class="${p.cls}">${esc(p.label)}</span></button>`).join("")}</div>` : "";
+
+  return `<div class="card"><div class="book-head"><h2>Warteliste</h2><span class="muted">${waiting.length} wartend · ${invited.length} mit Platz · ${CONFIG.waitlistSpots} Teilnehmerplätze${CONFIG.earlyBirdPriceHeadline ? ` · Early-Bird ${all.filter(w => w.early_bird).length} von ${S.D.ebSlots || 3} vergeben` : ""}</span></div>
+      ${pipe}
+      ${li ? `<div class="notice">${esc(li.name)} hat jetzt einen Teilnehmerplatz.${li.early ? ` <b>Early-Bird:</b> ${esc(ebText())}${CONFIG.earlyBirdExtraSessions ? ` (${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket)` : ""}.` : ""} ${li.mailed ? "Die Einladungs-Mail ist raus." : `Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a>`}</div>` : ""}
+    </div>
+    ${todoCard}
+    <div class="wl-list">${list.length ? list.map(row).join("") : `<p class="empty">${cur === "alle" ? "Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier." : "Hier ist gerade niemand."}</p>`}</div>
+    <details class="card wl-more"${S.ui.wlAdd || S.ui.wlMail ? " open" : ""}><summary>Person hinzufügen, Rundmail, Mail-Protokoll, Einstellungen</summary>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px"><label for="wlPack" class="muted">1:1s im Paket für neue Einladungen</label><input id="wlPack" type="number" min="0" max="100" value="${S.ui.wlPack == null ? 4 : S.ui.wlPack}" data-wlpack style="width:80px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r);padding:6px 8px"></div>
       <div><button class="btn small" type="button" data-a="wlAddOpen">${S.ui.wlAdd ? "Formular schließen" : "Person hinzufügen"}</button></div>
       ${S.ui.wlAdd ? `<form data-f="wlAdd" novalidate style="display:flex;flex-direction:column;gap:10px">
@@ -946,19 +1039,8 @@ function adminWaitlist() {
         <div class="field"><label class="label" for="wa-t">Nachricht (optional)</label><textarea id="wa-t" name="note"></textarea></div>
         <p class="muted" style="font-size:13px">Die Person kommt ans Ende der Warteliste. Trag nur Leute ein, die zugestimmt haben, auf die Liste zu kommen.</p>
         <div class="actions"><button class="btn primary small" type="submit">Hinzufügen</button></div></form>` : ""}
-      ${li ? `<div class="notice">${esc(li.name)} hat jetzt einen Teilnehmerplatz.${li.early ? ` <b>Early-Bird:</b> ${esc(ebText())}${CONFIG.earlyBirdExtraSessions ? ` (${CONFIG.earlyBirdExtraSessions} zusätzliche 1:1-Session${CONFIG.earlyBirdExtraSessions > 1 ? "s sind" : " ist"} schon im Paket)` : ""}.` : ""} ${li.mailed ? "Die Einladungs-Mail ist raus." : `Schick jetzt noch die Einladung: <a href="${mail}">Einladungs-Mail schreiben</a>`}</div>` : ""}
-    </div>
-    ${wlMailCard(waiting)}
-    ${(() => {
-      const pos = new Map(waiting.map((w, i) => [w.id, i]));
-      const st = k => waiting.filter(w => (w.contact_stage || "") === k);
-      const groups = [["alle", "Alle wartend", waiting], ["neu", "Noch nicht angeschrieben", st("")], ["angefragt", "Termin angefragt", st("angefragt")], ["termin", "Termin steht", st("termin").sort((a, b) => String(a.call_at).localeCompare(String(b.call_at)))], ["gefuehrt", "Gespräch geführt", st("gefuehrt")],
-        ["offen", "Keine Antwort / Abgesagt", waiting.filter(w => ["keine_antwort", "abgesagt", "unzustellbar"].includes(w.contact_stage))], ["platz", "Platz zugesagt", invited], ["entfernt", "Entfernt", removed]];
-      const cur = groups.find(g => g[0] === (S.ui.wlFilter || "alle")) || groups[0];
-      const tabs = `<div class="tabs wl-tabs" role="tablist" aria-label="Warteliste filtern">${groups.filter(g => g[0] === "alle" || g[2].length || g[0] === cur[0]).map(([k, t, l]) => `<button type="button" data-a="wlFilter" data-v="${k}" aria-selected="${cur[0] === k}">${t}<span class="count">${l.length}</span></button>`).join("")}</div>`;
-      const list = cur[2];
-      return tabs + (list.length ? list.map(w => row(w, pos.has(w.id) ? pos.get(w.id) : null)).join("") : `<p class="empty">${cur[0] === "alle" ? "Gerade wartet niemand. Neue Einträge von der Startseite erscheinen hier." : "Hier ist gerade niemand."}</p>`);
-    })()}`;
+      ${wlMailCard(waiting)}
+    </details>`;
 }
 
 const MAIL_KIND = { geschenk: "Geschenk", bestaetigung: "Bestätigung", coach_info: "Info an dich", einladung: "Einladung", rundmail: "Rundmail" };
@@ -976,7 +1058,7 @@ function wlMailCard(waiting) {
         <p class="muted" style="font-size:13px">Platzhalter: <code>{vorname}</code> und <code>{nr}</code> (echte Nummer auf der Warteliste, unter Platz 10 lieber weglassen). Unter jeder Mail stehen automatisch der Stand (ab Platz 10 mit Nummer) und ein Abmelde-Link.</p>
         <label class="inline-check" for="wm-o"><input class="check" id="wm-o" name="only" type="checkbox" ${d.only ? "checked" : ""} style="margin:0">Nur an bestätigte Einträge (${conf})</label>
         <div class="actions"><button class="btn primary small" type="submit">Weiter</button></div></form>`;
-  return `<div class="card"><div class="book-head"><h2>Mails</h2>${ready === true ? `<span class="ok-tag">Mailversand aktiv</span>` : ""}</div>
+  return `<div class="wl-mails"><div class="book-head"><h2>Mails</h2>${ready === true ? `<span class="ok-tag">Mailversand aktiv</span>` : ""}</div>
     ${ready === false ? `<div class="notice">Der Mailversand ist noch nicht eingerichtet: In Supabase fehlt der Resend-Schlüssel. Bis dahin werden Mails nur protokolliert, nicht verschickt.</div>` : ready == null ? `<div class="notice">Mail-Funktionen sind noch nicht in der Datenbank. Sie kommen mit dem nächsten Update.</div>` : ""}
     <p class="muted" style="font-size:14px">Neue Einträge bekommen automatisch eine Mail zum Bestätigen mit ihrer Nummer, und du bekommst eine Info. Beim Klick auf „Platz zusagen“ geht die Mail mit „Konto erstellen“ automatisch raus.</p>
     ${ready ? `<div class="actions" style="align-items:center">${unconf ? `<button class="btn small" type="button" data-a="wlResend">Bestätigung erneut senden (${unconf} offen)</button>` : `<span class="muted" style="font-size:13px">Alle Wartenden haben bestätigt.</span>`}
@@ -1164,6 +1246,9 @@ const A = {
   logout: async () => { await sb.auth.signOut(); },
   tab: el => { S.ui.tab = el.dataset.v; S.ui.confirm = null; if (el.dataset.v !== "users") S.ui.user = null; render(); },
   confirm: el => { S.ui.confirm = el.dataset.k || null; render(); },
+  wlOpen: el => { const id = el.dataset.id; S.ui.wlOpen = S.ui.wlOpen === id && !el.dataset.scroll ? null : id; S.ui.confirm = null;
+    if (el.dataset.scroll) { const w = (S.D.waitlist || []).find(x => x.id === id); if (w) S.ui.wlFilter = "alle"; }
+    render(); if (el.dataset.scroll) { const h = document.querySelector(`.wl-head[data-id="${id}"]`); if (h) h.scrollIntoView({ block: "start", behavior: "smooth" }); } },
   offerPick: el => { if (S.ui.offer) { S.ui.offer.confirm = el.dataset.v || null; render(); } },
   offerAnswer: async el => {
     const o = S.ui.offer; if (!o) return;
@@ -1474,8 +1559,8 @@ document.addEventListener("focusin", e => { const g = e.target.closest && e.targ
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter") return;
-  const tr = e.target.closest && e.target.closest("tr[data-a]");
-  if (tr) A[tr.dataset.a](tr);
+  const tr = e.target.closest && e.target.closest("tr[data-a], [role=button][data-a]");
+  if (tr && e.target === tr) { e.preventDefault(); A[tr.dataset.a](tr); }
 });
 document.addEventListener("submit", async e => {
   const f = e.target.closest("form[data-f]");
