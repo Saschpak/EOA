@@ -37,6 +37,12 @@ window.CONFIG = {
   priceHeadline: "240\u00a0€",
   priceHeadlineNote: "im Monat · für 4\u00a0Monate",
   priceDetail: "Regulär 240\u00a0€ im Monat. Insgesamt 960\u00a0€, in 4 Monatsraten oder einmalig. Danach keine weiteren Kosten. Alle Preise inkl. 19\u00a0% MwSt.",
+  // Persönliches Angebot nach dem Gespräch (#angebot-<token>): Vorgaben fürs Formular im Admin
+  offerDefaults: { full: 800, was: 960, label: "Empfehlung · Early-Bird", single: 100, days: 6 },
+  offerMonths: 4,
+  contactEmail: "info@saschpak.de",
+  contactWhatsApp: "", // z. B. "4917612345678", leer = kein WhatsApp-Knopf auf der Angebotsseite
+
   packageItems: [
     ["1:1-Sessions", "4, verteilt über 4 Monate"],
     ["Videokurs", "12 Monate Zugang inklusive"],

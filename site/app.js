@@ -94,6 +94,8 @@ async function load() {
     D.visits = vs.error ? [] : vs.data;
     const fs = await q("funnel_stats", "*", [["day"]]);
     D.funnel = fs.error ? null : fs.data;
+    const of = await q("offers", "*", [["created_at"]]);
+    D.offers = of.error ? null : of.data;
     const eb = await sb.rpc("waitlist_early_bird_slots");
     D.ebSlots = eb.error ? 3 : eb.data;
     const [ml, mr] = await Promise.all([sb.rpc("mail_log_status"), sb.rpc("mail_ready")]);
@@ -340,6 +342,68 @@ function renderUnsub() {
   $("#app").innerHTML = `<div class="login-screen"><div class="login card">${head}${body}<div class="auth-links"><button type="button" data-a="goLanding">← Zur Startseite</button></div></div></div>`;
 }
 
+/* ---------- Persönliches Angebot (#angebot-<token>) ---------- */
+const euro = n => Number(n).toLocaleString("de-DE") + "\u00a0€";
+const offerLink = t => location.origin + location.pathname + "#angebot-" + t;
+const parsePlan = txt => (txt || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(":"); return i > 0 ? { t: l.slice(0, i).trim(), d: l.slice(i + 1).trim() } : { t: l, d: "" }; });
+const planText = plan => (plan || []).map(x => x.d ? x.t + ": " + x.d : x.t).join("\n");
+
+async function loadOffer() {
+  const o = S.ui.offer; if (!o) return;
+  o.loading = true; render();
+  const r = await sb.rpc("offer_get", { p_token: o.token });
+  if (S.ui.offer !== o) return;
+  o.loading = false; o.data = r.error ? null : r.data; o.err = r.error ? errText(r.error) : null;
+  render();
+}
+
+function renderOffer() {
+  $("#bar").hidden = true;
+  document.body.classList.add("is-landing");
+  const o = S.ui.offer, d = o.data, mail = CONFIG.contactEmail || "info@saschpak.de";
+  const wa = (CONFIG.contactWhatsApp || "").replace(/[^\d]/g, "");
+  const shell = inner => `<div class="landing offer-page"><div class="offer-wrap">
+      <div class="offer-brand"><b>Playback Masterclass</b>${d && d.name ? `<span>Angebot für ${esc(firstName(d.name))}</span>` : ""}</div>${inner}</div></div>`;
+  if (o.loading) { $("#app").innerHTML = shell(`<p class="muted" style="margin-top:40px">Lädt …</p>`); return; }
+  if (!d) { $("#app").innerHTML = shell(`<h1 class="offer-h">Angebot nicht gefunden</h1><p>Dieser Link ist nicht (mehr) gültig. Schreib mir einfach an <a href="mailto:${esc(mail)}">${esc(mail)}</a>.</p>`); return; }
+  const fn = firstName(d.name);
+  const contact = `<div class="offer-ask"><h3>Noch Fragen?</h3><p>Schreib mir oder ruf kurz an${d.single_price || d.full_price ? ", gern auch zusammen mit deiner Band" : ""}.</p>
+      <div class="offer-row"><a class="btn-line" href="mailto:${esc(mail)}?subject=${encodeURIComponent("Frage zu meinem Angebot")}">Mail an Sascha</a>${wa ? `<a class="btn-line" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div></div>`;
+  if (d.status !== "offen") {
+    $("#app").innerHTML = shell(`<h1 class="offer-h">${d.status === "coaching" ? `Danke${fn ? ", <em>" + esc(fn) + "</em>" : ""}! Schön, dass du dabei bist.` : `Danke${fn ? ", <em>" + esc(fn) + "</em>" : ""}!`}</h1>
+      <p class="offer-note">${d.status === "coaching" ? "Ich melde mich in den nächsten Tagen persönlich bei dir, schicke dir die Rechnung und deinen Zugang zur Plattform." : "Ich melde mich in den nächsten Tagen persönlich bei dir, und wir machen einen Termin für deine Einzelstunde aus."}</p>${contact}`);
+    return;
+  }
+  const months = CONFIG.offerMonths || 4;
+  const monthly = d.full_price && d.full_price % months === 0 ? `insgesamt · ${months} × ${euro(d.full_price / months)} im Monat` : "insgesamt";
+  const pk = CONFIG.packageItems || [];
+  const pick = o.confirm;
+  const choose = (v, label, cls) => d.expired ? "" : pick === v
+    ? `<div class="offer-confirm"><p>${v === "coaching" ? "Super! Willst du das Coaching annehmen? Danach melde ich mich persönlich mit Rechnung und Zugang." : "Soll ich mich wegen einer Einzelstunde bei dir melden?"}</p>
+        <div class="offer-row"><button class="btn-ink" type="button" data-a="offerAnswer" data-v="${v}">${v === "coaching" ? "Ja, Coaching annehmen" : "Ja, bitte melden"}</button><button class="btn-line" type="button" data-a="offerPick" data-v="">Abbrechen</button></div></div>`
+    : `<button class="${cls}" type="button" data-a="offerPick" data-v="${v}">${label}</button>`;
+  const until = d.valid_until ? `${WD[pd(d.valid_until).getDay()]}, ${fmt(d.valid_until)}` : "";
+  $("#app").innerHTML = shell(`
+    <h1 class="offer-h">Dein Angebot${fn ? `, <em>${esc(fn)}</em>` : ""}</h1>
+    ${d.note ? `<p class="offer-note">${esc(d.note)}</p>` : ""}
+    <p class="offer-sig">Sascha · ${fmtY(d.created_at)}</p>
+    ${(d.plan || []).length ? `<section class="offer-plan"><h2>Das nehmen wir uns vor</h2><ol>${d.plan.map(x => `<li><div><b>${esc(x.t)}</b>${x.d ? esc(x.d) : ""}</div></li>`).join("")}</ol></section>` : ""}
+    ${until ? (d.expired ? `<div class="offer-deadline is-over">Dieses Angebot ist am <b>${until}</b> abgelaufen. Schreib mir gern, wenn du noch Interesse hast.</div>` : `<div class="offer-deadline">Gilt bis <b>${until}</b></div>`) : ""}
+    ${d.full_price ? `<section class="offer-opt">
+      <div class="offer-opt-head"><div>${d.full_label ? `<span class="offer-tag">${esc(d.full_label)}</span>` : ""}<h2>Das komplette Coaching</h2></div>
+      <div class="offer-price">${d.full_was ? `<s>${euro(d.full_was)}</s>` : ""}<b>${euro(d.full_price)}</b><small>${monthly}</small></div></div>
+      ${pk.length ? `<ul>${pk.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join("")}</ul>` : ""}
+      ${choose("coaching", "Coaching annehmen", "btn-ink")}
+      ${d.expired ? "" : `<p class="offer-small">Danach melde ich mich persönlich, schicke dir die Rechnung und deinen Zugang.</p>`}</section>` : ""}
+    ${d.single_price ? `<section class="offer-opt">
+      <div class="offer-opt-head"><div><span class="offer-tag">Flexibel</span><h2>Einzelne 1:1-Stunden</h2></div>
+      <div class="offer-price"><b>${euro(d.single_price)}</b><small>pro Stunde</small></div></div>
+      <ul><li><span>Online, 60 Minuten</span><span>gezielt an deinen offenen Punkten</span></li><li><span>Termin</span><span>nach Absprache</span></li></ul>
+      ${choose("einzelstunde", "Einzelstunde anfragen", "btn-line")}</section>` : ""}
+    ${contact}
+    <p class="offer-small" style="margin-top:28px">Alle Preise inkl. 19\u00a0% MwSt.</p>`);
+}
+
 function reachBox(me) {
   if (!me || me.status !== "waiting" || !("reach" in me)) return "";
   if (me.reach && !S.ui.reachEdit) return `<p class="reach-done">Ich erreiche dich auch unter <b>${esc(me.reach)}</b>. <button class="link-btn" type="button" data-a="reachEdit">Ändern</button></p>`;
@@ -504,6 +568,7 @@ function renderChrome() {
 function render() {
   renderFoot();
   document.body.classList.remove("is-landing");
+  if (S.ui.offer) return renderOffer();
   if (S.ui.recovery) return renderAuth();
   if (!S.session) return S.ui.unsub ? renderUnsub() : S.showAuth ? renderAuth() : renderLanding();
   if (!S.me) {
@@ -818,6 +883,33 @@ function stageTag(w) {
   const extra = k === "termin" && w.call_at ? (() => { const t = fmtTs(w.call_at); return ` ${t.wd} ${fmt(t.date)} ${t.time}`; })() : k === "angefragt" && w.contact_at ? ` ${fmt(w.contact_at)}` : "";
   return `<span class="${cls}">${esc(stageLabel(k))}${esc(extra)}</span>`;
 }
+function offerBox(w) {
+  if (!S.D.offers || w.status === "removed") return "";
+  const o = S.D.offers.filter(x => x.waitlist_id === w.id).slice(-1)[0];
+  const editing = S.ui.offerEdit && (S.ui.offerEdit === w.id || (o && S.ui.offerEdit === o.id));
+  if (editing) {
+    const D0 = CONFIG.offerDefaults || {};
+    const v = o || { name: firstName(w.full_name), note: "", plan: [], full_price: D0.full || 0, full_was: D0.was || 0, full_label: D0.label || "", single_price: D0.single || 0, valid_until: addDays(today(), D0.days || 6) };
+    return `<form class="offer-form" data-f="offerEdit" data-wid="${w.id}" data-oid="${o ? o.id : ""}" novalidate>
+      <b>${o ? "Angebot bearbeiten" : "Angebot erstellen"}</b>
+      <div class="form-grid"><div class="field"><label class="label" for="of-n-${w.id}">Vorname</label><input id="of-n-${w.id}" name="name" type="text" maxlength="80" value="${esc(v.name)}"></div>
+      <div class="field"><label class="label" for="of-u-${w.id}">Gilt bis</label><input id="of-u-${w.id}" name="until" type="date" value="${esc(v.valid_until || "")}"></div></div>
+      <div class="field"><label class="label" for="of-t-${w.id}">Persönliche Notiz</label><textarea id="of-t-${w.id}" name="note" rows="3" maxlength="1500" placeholder="Danke für das gute Gespräch! …">${esc(v.note)}</textarea></div>
+      <div class="field"><label class="label" for="of-p-${w.id}">Das nehmen wir uns vor (eine Zeile pro Punkt, „Titel: Beschreibung“)</label><textarea id="of-p-${w.id}" name="plan" rows="4">${esc(planText(v.plan))}</textarea></div>
+      <div class="form-grid"><div class="field"><label class="label" for="of-f-${w.id}">Coaching, € insgesamt (0 = ohne)</label><input id="of-f-${w.id}" name="full" type="number" min="0" step="1" value="${v.full_price}"></div>
+      <div class="field"><label class="label" for="of-w-${w.id}">Durchgestrichen, € (0 = ohne)</label><input id="of-w-${w.id}" name="was" type="number" min="0" step="1" value="${v.full_was}"></div></div>
+      <div class="form-grid"><div class="field"><label class="label" for="of-l-${w.id}">Hinweis über dem Coaching</label><input id="of-l-${w.id}" name="label" type="text" maxlength="60" value="${esc(v.full_label)}"></div>
+      <div class="field"><label class="label" for="of-s-${w.id}">Einzelstunde, € (0 = ohne)</label><input id="of-s-${w.id}" name="single" type="number" min="0" step="1" value="${v.single_price}"></div></div>
+      <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="offerOpen" data-id="">Abbrechen</button></div></form>`;
+  }
+  if (!o) return ["gefuehrt", "termin"].includes(w.contact_stage) && w.status === "waiting" ? `<div class="actions"><button class="btn small" type="button" data-a="offerOpen" data-id="${w.id}">Angebot erstellen</button></div>` : "";
+  const expired = o.status === "offen" && o.valid_until && o.valid_until < today();
+  const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${fmt(o.answered_at)}</span>`
+    : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
+    : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
+    : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span>${o.viewed_at ? `<span class="muted" style="font-size:13px">angesehen ${fmt(o.viewed_at)}</span>` : `<span class="muted" style="font-size:13px">noch nicht angesehen</span>`}`;
+  return `<div class="offer-line">${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
+}
 function stageControls(w) {
   if (w.status !== "waiting" || !("contact_stage" in w)) return "";
   const result = w.contact_stage === "gefuehrt" ? `<div class="stage-row"><span class="muted">Ergebnis:</span><button class="btn small" type="button" data-a="confirm" data-k="inv:${w.id}">Zugesagt → Platz zusagen</button><button class="btn quiet small" type="button" data-a="wlStage" data-id="${w.id}" data-v="abgesagt">Abgesagt</button><span class="muted" style="font-size:13px">Bedenkzeit? Einfach in den Notizen festhalten.</span></div>` : "";
@@ -841,6 +933,7 @@ function adminWaitlist() {
   const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}${stageTag(w)}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span>${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}</div>
       ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="muted" style="white-space:pre-line;font-size:14px">${esc(w.contact_note)}</p>` : ""}
       ${stageControls(w)}
+      ${offerBox(w)}
       <div class="actions" style="align-items:center">${w.status === "waiting" ? `${S.ui.confirm === "inv:" + w.id ? `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} im Gespräch zugesagt?</span><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`
         : `<button class="btn ${w.contact_stage === "gefuehrt" ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`}${!w.confirmed_at && S.D.mailReady ? `<button class="btn small" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}` : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>` : (S.D.profiles.some(p => p.email.toLowerCase() === w.email) ? `<span class="muted" style="font-size:13px">registriert</span>` : `<span class="muted" style="font-size:13px">noch nicht registriert</span>${S.D.mailReady ? `<button class="btn small" type="button" data-a="wlInviteMail" data-id="${w.id}">Einladung erneut senden</button>` : ""}`)}
         <button class="btn small" type="button" data-a="wlEditOpen" data-id="${w.id}">Bearbeiten</button>${del(w)}</div>`}</article>`;
@@ -1071,6 +1164,17 @@ const A = {
   logout: async () => { await sb.auth.signOut(); },
   tab: el => { S.ui.tab = el.dataset.v; S.ui.confirm = null; if (el.dataset.v !== "users") S.ui.user = null; render(); },
   confirm: el => { S.ui.confirm = el.dataset.k || null; render(); },
+  offerPick: el => { if (S.ui.offer) { S.ui.offer.confirm = el.dataset.v || null; render(); } },
+  offerAnswer: async el => {
+    const o = S.ui.offer; if (!o) return;
+    el.disabled = true;
+    const r = await run(sb.rpc("offer_answer", { p_token: o.token, p_choice: el.dataset.v }));
+    if (!r) { el.disabled = false; return; }
+    o.data.status = r.data.status; o.confirm = null; render(); window.scrollTo(0, 0);
+  },
+  offerOpen: el => { S.ui.offerEdit = el.dataset.id || null; render(); },
+  offerCopy: el => { const t = offerLink(el.dataset.t); try { navigator.clipboard.writeText(t).then(() => toast("Link zum Angebot kopiert."), () => toast(t)); } catch (e) { toast(t); } },
+  offerDelete: async el => { S.ui.confirm = null; await run(sb.from("offers").delete().eq("id", el.dataset.id), "Angebot gelöscht."); reload(); },
   reachEdit: () => { S.ui.reachEdit = true; render(); const i = $("#wlReach"); if (i) i.focus(); },
   viewMod: el => { S.ui.viewMod = el.dataset.id; render(); },
   openLesson: el => { const l = getLesson(el.dataset.id); if (!l) return; S.ui.lesson = l.id; S.ui.viewMod = l.module_id; if (S.view !== "kurs") location.hash = "kurs"; else render(); window.scrollTo(0, 0); },
@@ -1223,6 +1327,17 @@ const F = {
     wlSet(d.token); S.ui.wlToken = d.token;
     await loadLanding(); render(); toast(giftHero() ? "Fast geschafft: Schau in dein Postfach." : showPlace(d.position) ? "Du bist Nr. " + d.position + " auf der Warteliste." : "Du bist auf der Warteliste.");
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+  },
+  offerEdit: async f => {
+    const wid = f.dataset.wid, oid = f.dataset.oid, w = (S.D.waitlist || []).find(x => x.id === wid) || {};
+    const num = n => Math.max(0, Math.round(+String(f[n].value).replace(",", ".") || 0));
+    const row = { name: f.name.value.trim(), note: f.note.value.trim(), plan: parsePlan(f.plan.value),
+      full_price: num("full"), full_was: num("was"), full_label: f.label.value.trim(), single_price: num("single"),
+      valid_until: f.until.value || null, updated_at: new Date().toISOString() };
+    if (!row.full_price && !row.single_price) return toast("Bitte mindestens einen Preis eintragen.", true);
+    const r = oid ? await run(sb.from("offers").update(row).eq("id", oid), "Angebot gespeichert.")
+      : await run(sb.from("offers").insert({ ...row, waitlist_id: wid, email: w.email || "" }), "Angebot erstellt. Link kopieren und mitschicken.");
+    if (r) { S.ui.offerEdit = null; reload(); }
   },
   wlReach: async f => {
     const v = f.reach.value.trim(), token = S.wl && S.wl.token;
@@ -1417,6 +1532,9 @@ const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin", "bald"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
+  const ao = /^angebot-([0-9a-f-]{36})$/.exec(h);
+  if (ao) { if (!S.ui.offer || S.ui.offer.token !== ao[1]) { S.ui.offer = { token: ao[1] }; loadOffer(); } else render(); return; }
+  S.ui.offer = null;
   if (!S.session) {
     S.ui.unsub = null;
     const m = /^platz-([0-9a-f-]{36})$/.exec(h);
@@ -1461,7 +1579,7 @@ async function liveRefresh() {
   if (liveBusy || document.hidden || !S.session || !S.me || S.me.role !== "coach" || S.view !== "admin" || !S.D) return;
   const ae = document.activeElement;
   if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; // nicht beim Tippen stören
-  if (S.ui.wlMail || S.ui.wlEdit || S.ui.wlAdd || S.ui.confirm || S.ui.editLesson || S.ui.editNews) return;
+  if (S.ui.offerEdit || S.ui.wlMail || S.ui.wlEdit || S.ui.wlAdd || S.ui.confirm || S.ui.editLesson || S.ui.editNews) return;
   liveBusy = true;
   try {
     const before = liveSig(), known = new Set((S.D.waitlist || []).map(w => w.id));
