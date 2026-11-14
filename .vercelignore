@@ -1,0 +1,6 @@
+# Vercel veröffentlicht nur den Drum Sheet Editor (index.html und MP3s im Hauptverzeichnis).
+# Die Coaching-Plattform läuft über Netlify und wird hier nicht mit hochgeladen.
+site/
+supabase/
+plattform/
+CLAUDE.md
