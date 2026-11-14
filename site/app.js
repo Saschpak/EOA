@@ -43,6 +43,17 @@ const S = {
 
 /* ---------- Meldungen ---------- */
 let toastT;
+/* Admin merkt sich, wo du zuletzt warst (Reiter, Filter, geöffneter Schüler, Scroll-Position) */
+const ADMIN_UI_KEY = "pc-admin-ui", ADMIN_UI_FIELDS = ["tab", "user", "wlFilter", "wlOpen", "statRange", "funnelSrc"];
+try { const saved = JSON.parse(localStorage.getItem(ADMIN_UI_KEY) || "{}"); ADMIN_UI_FIELDS.forEach(k => { if (saved[k] != null) S.ui[k] = saved[k]; }); } catch (e) { /* egal */ }
+let adminScrollRestore = null;
+try { const y = sessionStorage.getItem("pc-admin-scroll"); if (y) adminScrollRestore = +y; } catch (e) { /* egal */ }
+function saveAdminUi() {
+  if (S.view !== "admin") return;
+  try { const o = {}; ADMIN_UI_FIELDS.forEach(k => { o[k] = S.ui[k] == null ? null : S.ui[k]; }); localStorage.setItem(ADMIN_UI_KEY, JSON.stringify(o)); } catch (e) { /* egal */ }
+}
+window.addEventListener("pagehide", () => { try { if (S.view === "admin") sessionStorage.setItem("pc-admin-scroll", String(window.scrollY)); else sessionStorage.removeItem("pc-admin-scroll"); } catch (e) { /* egal */ } });
+
 function toast(text, err) {
   const t = $("#toast"); t.textContent = text; t.className = "toast" + (err ? " err" : ""); t.hidden = false;
   clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, err ? 7000 : 3500);
@@ -608,6 +619,10 @@ function render() {
   const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
   $("#app").innerHTML = v();
   afterRender();
+  if (S.view === "admin" && S.me.role === "coach") {
+    saveAdminUi();
+    if (adminScrollRestore != null) { const y = adminScrollRestore; adminScrollRestore = null; requestAnimationFrame(() => window.scrollTo(0, y)); }
+  }
 }
 let cdTimer;
 function afterRender() {
@@ -790,7 +805,9 @@ function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
   const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
-  const body = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews }[S.ui.tab]();
+  const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews };
+  if (!AV[S.ui.tab]) S.ui.tab = "home";
+  const body = AV[S.ui.tab]();
   return `<section class="view">
     <div class="intro"><span class="label">Nur für dich als Coach sichtbar</span><h1>Admin</h1></div>
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-a="tab" data-v="${k}" aria-selected="${S.ui.tab === k}">${t}</button>`).join("")}</div>
