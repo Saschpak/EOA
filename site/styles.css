@@ -585,3 +585,65 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 /* Admin */
 .offer-form{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 .offer-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Admin Warteliste: kompakt, mit Verlauf */
+.wl-pipe{display:flex;gap:6px;flex-wrap:wrap}
+.wl-pipe button{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-width:84px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--fg);font:inherit;cursor:pointer;text-align:left}
+.wl-pipe button b{font-size:20px;font-weight:800;font-stretch:80%;line-height:1.1}
+.wl-pipe button span{font-size:12.5px;color:var(--muted)}
+.wl-pipe button[aria-selected=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.wl-pipe button[aria-selected=true] b{color:var(--accent)}
+.wl-todo h2{display:flex;align-items:center;gap:8px}
+.wl-todo-row{display:grid;grid-template-columns:minmax(120px,1fr) 2fr auto;gap:12px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);font:inherit;font-size:15px;text-align:left;cursor:pointer}
+.wl-todo-row:first-of-type{border-top:0}
+.wl-todo-row span:nth-child(2){color:var(--accent);font-weight:600}
+.wl-todo-row:hover b{text-decoration:underline}
+.wl-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);overflow:hidden}
+.wl-row + .wl-row{border-top:1px solid var(--line)}
+.wl-head{display:grid;grid-template-columns:36px minmax(140px,1.3fr) minmax(150px,1.2fr) 2fr 16px;gap:12px;align-items:center;padding:12px 16px;cursor:pointer}
+.wl-head:hover{background:var(--bg-2)}
+.wl-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.wl-nr{color:var(--muted);font-size:13px}
+.wl-who{display:flex;flex-direction:column;min-width:0}
+.wl-who b,.wl-who small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-who small,.wl-phase small{color:var(--muted);font-size:12.5px}
+.wl-phase{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.wl-next{font-size:14px;color:var(--muted)}
+.wl-next b{color:var(--accent);font-weight:600}
+.wl-chev{color:var(--muted);transition:transform .15s}
+.wl-row.open .wl-chev{transform:rotate(90deg)}
+.wl-row.open{background:var(--bg-2)}
+.wl-row.open .wl-head:hover{background:transparent}
+.wl-detail{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:4px 16px 18px 64px}
+.wl-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.wl-col h3{font-size:13px;color:var(--muted);font-weight:600}
+.wl-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wl-tl li{display:grid;grid-template-columns:78px 1fr;gap:10px;font-size:14px}
+.wl-tl-when{color:var(--muted);font-variant-numeric:tabular-nums}
+.wl-tl-when small{font-size:12px}
+.wl-tl-what{display:flex;flex-direction:column}
+.wl-tl-what i{font-style:normal;color:var(--muted)}
+.wl-tl-what small{color:var(--muted);font-size:12.5px}
+.wl-tl-what small.err{color:var(--danger)}
+.wl-tl li.is-future .wl-tl-what{color:var(--accent);font-weight:600}
+.wl-tl li.is-good .wl-tl-what{color:var(--ok);font-weight:600}
+.wl-contact{display:flex;gap:12px;flex-wrap:wrap;font-size:14px}
+.wl-note{font-size:14px;white-space:pre-line;margin:0}
+.wl-ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.wl-ctrl select,.wl-ctrl input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px}
+.wl-acts{align-items:center}
+.wl-edit{display:flex;flex-direction:column;gap:10px}
+.wl-more summary{cursor:pointer;font-weight:600}
+.wl-more[open]{gap:14px}
+.wl-mails{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:760px){
+ .wl-head{grid-template-columns:28px 1fr auto;grid-template-areas:"nr who chev" "nr phase phase" "nr next next";gap:4px 10px;padding:12px}
+ .wl-nr{grid-area:nr;align-self:start;padding-top:2px}.wl-who{grid-area:who}.wl-phase{grid-area:phase;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}.wl-next{grid-area:next}.wl-chev{grid-area:chev}
+ .wl-detail{grid-template-columns:1fr;padding:4px 12px 16px 12px;gap:18px}
+ .wl-todo-row{grid-template-columns:1fr;gap:2px}
+ .wl-pipe button{min-width:0;flex:1 1 calc(33% - 6px)}
+}
+.wl-tl-what i{font-style:normal;color:var(--muted)}
+.wl-todo-row .muted-tag,.wl-todo-row .ok-tag,.wl-todo-row .err-tag{justify-self:start}
+@media (max-width:760px){.wl-pipe{display:grid;grid-template-columns:repeat(3,1fr)}.wl-pipe button{min-width:0}}
+@media (max-width:760px){.wl-detail .wl-col:last-child{order:-1}}
