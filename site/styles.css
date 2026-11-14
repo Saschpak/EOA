@@ -653,3 +653,8 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .pace-edit input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px}
 td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 @media (max-width:760px){.todo{flex-wrap:wrap}.todo .what{flex:1 1 100%;min-width:0}.todo .what span{overflow-wrap:anywhere}}
+
+/* Coach sieht die Plattform als Schüler */
+.viewas-bar{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent);color:#fff;border-radius:var(--r);padding:10px 14px;margin:0 0 18px;font-size:14px}
+.viewas-bar .btn{background:#fff;color:#1d1d1f;border-color:#fff}
+.user-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}

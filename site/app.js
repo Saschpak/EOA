@@ -614,10 +614,17 @@ function render() {
   }
   if (!S.D) { $("#app").innerHTML = `<div class="loading">Lädt …</div>`; return; }
   if (S.view === "admin" && S.me.role !== "coach") S.view = "start";
-  renderChrome();
-  const pre = preLaunch() && S.me.role !== "coach" && !S.me.early_access && (S.view === "start" || S.view === "kurs");
-  const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
-  $("#app").innerHTML = v();
+  // Coach sieht die Plattform als Schüler: S.me wird nur fürs Zeichnen getauscht, Speichern ist gesperrt
+  const coachMe = S.me, va = S.viewAs && coachMe.role === "coach" && S.view !== "admin" ? S.D.profiles.find(p => p.id === S.viewAs) : null;
+  if (S.viewAs && !va) S.viewAs = null;
+  if (va) S.me = va;
+  try {
+    renderChrome();
+    const pre = preLaunch() && S.me.role !== "coach" && !S.me.early_access && (S.view === "start" || S.view === "kurs");
+    const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
+    $("#app").innerHTML = (va ? `<div class="viewas-bar" role="status"><span>Du siehst die Plattform als <b>${esc(va.full_name || va.email)}</b>. Hier wird nichts gespeichert.</span><button class="btn small" type="button" data-a="viewAsExit">Zurück zum Admin</button></div>` : "") + v();
+  } finally { S.me = coachMe; }
+  document.body.classList.toggle("is-viewas", !!va);
   afterRender();
   if (S.view === "admin" && S.me.role === "coach") {
     saveAdminUi();
@@ -1155,7 +1162,7 @@ function adminUserDetail() {
   const ss = sessionsOf(p.id), up = upcomingOf(p.id), dn = progressOf(p.id);
   const mods = modsSorted();
   return `<button class="btn quiet small back" type="button" data-a="openUser" data-id="">← Alle Schüler</button>
-    <div class="intro"><h1>${esc(p.full_name || p.email)}</h1><p class="muted">${esc(p.email)} · dabei seit ${fmtY(p.started_at)}</p></div>
+    <div class="intro user-intro"><div><h1>${esc(p.full_name || p.email)}</h1><p class="muted">${esc(p.email)} · dabei seit ${fmtY(p.started_at)}</p></div>${p.invited ? `<button class="btn small" type="button" data-a="viewAs" data-id="${p.id}">Als ${esc(firstName(p.full_name) || "Schüler")} ansehen</button>` : ""}</div>
     ${(() => { const pa = paceOf(p), exp = accessExpired(p), cm = CONFIG.coachingMonths || 4;
       return `<div class="card"><span class="label">Laufzeit und Zeitplan</span>
         <div class="facts"><span><b>${pa.pre ? "–" : pa.done ? "vorbei" : pa.week + "/" + pa.weeks}</b>${pa.pre ? pa.text : `Woche der ${cm} Monate`}</span><span><b>${pa.pre ? "–" : pa.used + pa.booked + " / " + pa.expS}</b>1:1s genutzt+gebucht / Plan</span><span><b>${pa.pre ? "–" : pa.pc + " / " + pa.expPct + " %"}</b>Kurs / Plan</span><span><b style="${exp ? "color:var(--danger)" : ""}">${exp ? "abgelaufen" : monthsLeftText(p).replace(/^noch /, "")}</b>Zugang ${exp ? "seit" : "bis"} ${fmtY(accessUntil(p))}</span></div>
@@ -1331,6 +1338,8 @@ const A = {
     const r = await run(sb.storage.from("lesson-files").createSignedUrl(el.dataset.path, 120, { download: true }));
     if (r && r.data) location.href = r.data.signedUrl;
   },
+  viewAs: el => { S.viewAs = el.dataset.id; S.ui.lesson = null; S.ui.viewMod = null; if (location.hash === "#start") render(); else location.hash = "start"; window.scrollTo(0, 0); },
+  viewAsExit: () => { const id = S.viewAs; S.viewAs = null; S.ui.tab = "users"; S.ui.user = id; S.ui.lesson = null; location.hash = "admin"; window.scrollTo(0, 0); },
   openUser: el => { S.ui.tab = "users"; S.ui.user = el.dataset.id || null; S.ui.confirm = null; if (S.view !== "admin") location.hash = "admin"; else render(); window.scrollTo(0, 0); },
   toggleInvite: () => { S.ui.inviteOpen = !S.ui.inviteOpen; render(); },
   delInvite: async el => { await run(sb.from("invites").delete().eq("email", el.dataset.id), "Einladung zurückgezogen."); S.ui.confirm = null; reload(); },
@@ -1598,9 +1607,13 @@ const F = {
 };
 
 /* ---------- Ereignisse ---------- */
+// In der Schüleransicht nur Navigation erlauben, nichts speichern
+const VIEWAS_OK = new Set(["viewMod", "openLesson", "download", "copyText", "viewAsExit", "reloadPage"]);
+const viewAsBlocked = () => { toast("Das ist nur die Schüleransicht. Hier wird nichts gespeichert.", true); };
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]");
   if (!el || el.disabled) return;
+  if (S.viewAs && S.view !== "admin" && !VIEWAS_OK.has(el.dataset.a)) { e.preventDefault(); return viewAsBlocked(); }
   const fn = A[el.dataset.a];
   if (fn) { e.preventDefault(); fn(el, e); }
 });
@@ -1627,12 +1640,14 @@ document.addEventListener("submit", async e => {
   const f = e.target.closest("form[data-f]");
   if (!f) return;
   e.preventDefault();
+  if (S.viewAs && S.view !== "admin") return viewAsBlocked();
   const btn = f.querySelector('button[type="submit"]');
   if (btn) btn.disabled = true;
   try { await F[f.dataset.f](f); } finally { if (btn && document.contains(btn)) btn.disabled = false; }
 });
 document.addEventListener("change", async e => {
   const t = e.target;
+  if (S.viewAs && S.view !== "admin" && !t.closest("[data-a]")) { if (t.type === "checkbox") t.checked = !t.checked; render(); return viewAsBlocked(); }
   if (t.dataset.task) {
     const r = await run(sb.rpc("set_task_done", { p_task: t.dataset.task, p_done: t.checked }));
     if (r) reload(); else t.checked = !t.checked;
@@ -1678,7 +1693,7 @@ document.addEventListener("change", async e => {
     await run(sb.from("lesson_files").insert({ lesson_id: lid, file_name: file.name, storage_path: path }), "Datei hochgeladen."); reload();
   }
 });
-$("#logout").addEventListener("click", () => A.logout());
+$("#logout").addEventListener("click", () => { if (S.viewAs && S.view !== "admin") return viewAsBlocked(); A.logout(); });
 
 /* ---------- Navigation ---------- */
 const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin", "bald"];
