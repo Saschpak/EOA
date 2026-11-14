@@ -2,7 +2,7 @@
 
 Dieses Repo enthält zwei Dinge:
 
-1. **Drum Sheet Editor** (`index.html` im Hauptverzeichnis, dazu die MP3s): Der Besitzer nutzt ihn aktiv. Nicht verschieben, nicht löschen. Er wird über die bestehende Netlify-Seite `darling-biscuit-788a7b` und die Vercel-Projekte aus dem Hauptverzeichnis veröffentlicht. Es darf keine `netlify.toml` im Hauptverzeichnis geben, die das ändert.
+1. **Drum Sheet Editor** (`index.html` im Hauptverzeichnis, dazu die MP3s): Der Besitzer nutzt ihn aktiv. Nicht verschieben, nicht löschen. Er wird über die bestehende Netlify-Seite `darling-biscuit-788a7b` und die Vercel-Projekte aus dem Hauptverzeichnis veröffentlicht. Es darf keine `netlify.toml` im Hauptverzeichnis geben, die das ändert. `vercel.json` schaltet nur die Vercel-Vorschauen für `claude/*`-Branches ab (sonst sprengen sie das Speicherlimit), `.vercelignore` lässt `site/`, `supabase/` und `plattform/` bei Vercel weg.
 2. **Playback Masterclass von Saschpak** (Coaching-Plattform, `site/` und `supabase/`): live unter `https://coaching.saschpak.de` (Netlify-Projekt `deluxe-rabanadas-926740`, Publish directory `site`).
 
 ## Plattform: Aufbau
