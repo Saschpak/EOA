@@ -524,3 +524,18 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .call-who{display:flex;flex-direction:column;gap:3px;min-width:0}
 .call-who p{font-size:14px;color:var(--muted);white-space:pre-line;line-height:1.45}
 @media (max-width:560px){.call-row{grid-template-columns:1fr;gap:6px}}
+
+/* Freiwillig: Instagram oder WhatsApp nach dem Eintragen */
+.reach-form{display:flex;flex-direction:column;gap:8px;width:100%;padding-top:4px}
+.reach-form label{font-size:15px;color:var(--muted)}
+.reach-row{display:flex;gap:8px;flex-wrap:wrap}
+.reach-row input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--fg);font:inherit;font-size:16px}
+.reach-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.reach-row .btn-line{background:none;cursor:pointer;font-family:inherit}
+.reach-done{font-size:15px}
+.link-btn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit}
+.link-btn:hover{color:var(--fg)}
+.reach-tag{font-size:13px}
+.reach-tag a{color:var(--accent)}
+.landing .reach-form label,.landing .reach-done{font-size:var(--t-s)}
+@media (max-width:520px){.reach-row .btn-line{width:100%}}

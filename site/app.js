@@ -21,6 +21,17 @@ const parseDur = s => { const m = /^(\d{1,3}):([0-5]\d)$/.exec(String(s).trim())
 const lines = s => String(s || "").split("\n").map(x => x.trim()).filter(Boolean);
 const firstName = n => (n || "").trim().split(/\s+/)[0] || "";
 const wlName = w => (w.full_name || "").trim() || w.email;
+// Instagram-Name oder Handynummer -> Link zu Instagram bzw. WhatsApp
+const reachLink = r => {
+  r = (r || "").trim(); if (!r) return "";
+  const digits = r.replace(/[^\d+]/g, "");
+  if (/^\+?\d{7,}$/.test(digits) && !/[a-z_]/i.test(r.replace(/^@/, ""))) {
+    let n = digits.replace(/^\+/, ""); if (n.startsWith("00")) n = n.slice(2); else if (digits.startsWith("0")) n = "49" + n.slice(1);
+    return `<a href="https://wa.me/${n}" target="_blank" rel="noopener">WhatsApp ${esc(r)}</a>`;
+  }
+  const h = r.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/[/?].*$/, "");
+  return /^[\w.]{1,30}$/.test(h) ? `<a href="https://instagram.com/${h}" target="_blank" rel="noopener">Instagram @${esc(h)}</a>` : esc(r);
+};
 
 const LOCK = '<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1" y="6" width="10" height="7.5" rx="1.5" fill="currentColor"/><path d="M3.3 6V4.2a2.7 2.7 0 0 1 5.4 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
@@ -329,6 +340,15 @@ function renderUnsub() {
   $("#app").innerHTML = `<div class="login-screen"><div class="login card">${head}${body}<div class="auth-links"><button type="button" data-a="goLanding">← Zur Startseite</button></div></div></div>`;
 }
 
+function reachBox(me) {
+  if (!me || me.status !== "waiting" || !("reach" in me)) return "";
+  if (me.reach && !S.ui.reachEdit) return `<p class="reach-done">Ich erreiche dich auch unter <b>${esc(me.reach)}</b>. <button class="link-btn" type="button" data-a="reachEdit">Ändern</button></p>`;
+  return `<form class="reach-form" data-f="wlReach" novalidate>
+      <label for="wlReach">Damit ich dich schneller erreiche (freiwillig): dein Instagram-Name oder deine Handynummer für WhatsApp</label>
+      <div class="reach-row"><input id="wlReach" name="reach" type="text" maxlength="80" autocomplete="off" placeholder="@deinname oder 0171 …" value="${esc(me.reach || "")}"><button class="btn-line" type="submit">Speichern</button></div>
+    </form>`;
+}
+
 function renderLanding() {
   $("#bar").hidden = true;
   const giftFile = CONFIG.giftFile || (S.preview ? "#" : "");
@@ -340,6 +360,7 @@ function renderLanding() {
       ${me.confirmed === false
         ? `<div class="place place-early"><b>Check deine Mails.</b></div><p>Ich habe dir eine Mail geschickt. Bestätige deine Adresse über den Link darin, dann bekommst du das PDF. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>`
         : `<div class="place place-early"><b>Hier ist dein PDF.</b></div><div class="actions"><a class="btn-ink" href="${esc(giftFile)}" download>PDF herunterladen</a></div>`}
+      ${reachBox(me)}
       <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : `Du gehörst außerdem zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste`} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
       ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand:</p>
@@ -353,6 +374,7 @@ function renderLanding() {
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
       <p>Danke${firstName(me.name) ? ", " + esc(firstName(me.name)) : ""}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
+      ${reachBox(me)}
       ${giftFile ? (me.confirmed === false ? `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}: Sobald du deinen Eintrag bestätigt hast, kannst du es hier herunterladen und bekommst es per Mail.</span></div>`
         : `<div class="gift"><span class="eb-tag">Geschenk</span><span>${esc(CONFIG.giftTitle)}</span><a class="btn small" href="${esc(giftFile)}" download>Herunterladen</a></div>`) : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand auf der Warteliste:</p>
@@ -707,7 +729,7 @@ function adminHome() {
     ${(() => {
       const calls = (S.D.waitlist || []).filter(w => w.status === "waiting" && w.contact_stage === "termin" && w.call_at && new Date(w.call_at) >= new Date(Date.now() - 2 * 3600e3)).sort((a, b) => String(a.call_at).localeCompare(String(b.call_at)));
       if (!calls.length) return "";
-      return `<div class="card"><div class="book-head"><h2>Nächste Kennenlerngespräche</h2><button class="btn small quiet" type="button" data-a="tab" data-v="warteliste">Warteliste</button></div>${calls.map(w => { const t = fmtTs(w.call_at); return `<div class="call-row"><div class="call-when"><b>${t.wd.slice(0, 2)} ${fmt(t.date)}</b><span>${t.time} Uhr</span></div><div class="call-who"><b>${esc(wlName(w))}</b>${w.full_name ? `<span class="muted">${esc(w.email)}</span>` : ""}${w.contact_note ? `<p>${esc(w.contact_note)}</p>` : ""}</div></div>`; }).join("")}</div>`;
+      return `<div class="card"><div class="book-head"><h2>Nächste Kennenlerngespräche</h2><button class="btn small quiet" type="button" data-a="tab" data-v="warteliste">Warteliste</button></div>${calls.map(w => { const t = fmtTs(w.call_at); return `<div class="call-row"><div class="call-when"><b>${t.wd.slice(0, 2)} ${fmt(t.date)}</b><span>${t.time} Uhr</span></div><div class="call-who"><b>${esc(wlName(w))}</b>${w.full_name ? `<span class="muted">${esc(w.email)}</span>` : ""}${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}${w.contact_note ? `<p>${esc(w.contact_note)}</p>` : ""}</div></div>`; }).join("")}</div>`;
     })()}
     <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div>${t.link ? `<a class="btn small" ${t.a}>${t.btn}</a>` : `<button class="btn small" type="button" ${t.a}>${t.btn}</button>`}</div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
     <div class="card"><h2>Nächste Termine</h2><div>${up.length ? up.map(b => { const t = fmtTs(b.starts_at); return `<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(t.date)} ${t.time}</span><span><b>${esc(profileName(b.user_id))}</b>${b.topic ? " · " + esc(b.topic) : ""}</span></div><button class="btn small quiet" type="button" data-a="openUser" data-id="${b.user_id}">Schüler öffnen</button></div>`; }).join("") : `<p class="empty">Keine Termine gebucht.</p>`}</div></div>`;
@@ -811,11 +833,12 @@ function adminWaitlist() {
   const editForm = w => `<form data-f="wlEdit" data-id="${w.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
       <div class="form-grid"><div class="field"><label class="label" for="we-n-${w.id}">Name (optional)</label><input id="we-n-${w.id}" name="name" type="text" value="${esc(w.full_name)}"></div>
       <div class="field"><label class="label" for="we-e-${w.id}">E-Mail</label><input id="we-e-${w.id}" name="email" type="email" value="${esc(w.email)}"></div></div>
+      ${"reach" in w ? `<div class="field"><label class="label" for="we-r-${w.id}">Instagram oder WhatsApp</label><input id="we-r-${w.id}" name="reach" type="text" maxlength="80" value="${esc(w.reach)}"></div>` : ""}
       <div class="field"><label class="label" for="we-t-${w.id}">Nachricht</label><textarea id="we-t-${w.id}" name="note">${esc(w.note)}</textarea></div>
       ${"contact_note" in w ? `<div class="field"><label class="label" for="we-c-${w.id}">Notizen zum Kontakt (nur für dich)</label><textarea id="we-c-${w.id}" name="cnote">${esc(w.contact_note)}</textarea></div>` : ""}
       <label class="inline-check" for="we-b-${w.id}"><input class="check" id="we-b-${w.id}" name="eb" type="checkbox" ${w.early_bird ? "checked" : ""} style="margin:0">Early-Bird</label>
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="wlEditOpen" data-id="">Abbrechen</button></div></form>`;
-  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}${stageTag(w)}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span></div>
+  const row = (w, i) => `<article class="card" style="gap:8px"><div class="session-meta">${i != null ? `<b class="mono" style="font-size:18px">#${i + 1}</b>` : ""}<b>${esc(wlName(w))}</b>${w.early_bird ? '<span class="eb-tag">Early-Bird</span>' : ""}${w.status === "waiting" ? (w.confirmed_at ? '<span class="ok-tag">bestätigt</span>' : '<span class="muted-tag">unbestätigt</span>') : ""}${stageTag(w)}<span class="muted" style="font-size:13px">${esc(w.email)} · seit ${fmt(w.created_at)}</span>${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}</div>
       ${S.ui.wlEdit === w.id ? editForm(w) : `${w.note ? `<p class="muted" style="white-space:pre-line">${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="muted" style="white-space:pre-line;font-size:14px">${esc(w.contact_note)}</p>` : ""}
       ${stageControls(w)}
       <div class="actions" style="align-items:center">${w.status === "waiting" ? `${S.ui.confirm === "inv:" + w.id ? `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} im Gespräch zugesagt?</span><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`
@@ -1048,6 +1071,7 @@ const A = {
   logout: async () => { await sb.auth.signOut(); },
   tab: el => { S.ui.tab = el.dataset.v; S.ui.confirm = null; if (el.dataset.v !== "users") S.ui.user = null; render(); },
   confirm: el => { S.ui.confirm = el.dataset.k || null; render(); },
+  reachEdit: () => { S.ui.reachEdit = true; render(); const i = $("#wlReach"); if (i) i.focus(); },
   viewMod: el => { S.ui.viewMod = el.dataset.id; render(); },
   openLesson: el => { const l = getLesson(el.dataset.id); if (!l) return; S.ui.lesson = l.id; S.ui.viewMod = l.module_id; if (S.view !== "kurs") location.hash = "kurs"; else render(); window.scrollTo(0, 0); },
   toggleDone: async el => {
@@ -1163,7 +1187,7 @@ const F = {
   wlEdit: async f => {
     const name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Bitte gib eine gültige E-Mail-Adresse ein.", true);
-    const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked, ...(f.cnote ? { contact_note: f.cnote.value.trim() } : {}) }).eq("id", f.dataset.id), "Gespeichert.");
+    const r = await run(sb.from("waitlist").update({ full_name: name, email, note: f.note.value.trim(), early_bird: f.eb.checked, ...(f.cnote ? { contact_note: f.cnote.value.trim() } : {}), ...(f.reach ? { reach: f.reach.value.trim().slice(0, 80) } : {}) }).eq("id", f.dataset.id), "Gespeichert.");
     if (r) { S.ui.wlEdit = null; reload(); }
   },
   wlAdd: async f => {
@@ -1199,6 +1223,13 @@ const F = {
     wlSet(d.token); S.ui.wlToken = d.token;
     await loadLanding(); render(); toast(giftHero() ? "Fast geschafft: Schau in dein Postfach." : showPlace(d.position) ? "Du bist Nr. " + d.position + " auf der Warteliste." : "Du bist auf der Warteliste.");
     const box = $("#wlBox"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+  },
+  wlReach: async f => {
+    const v = f.reach.value.trim(), token = S.wl && S.wl.token;
+    if (!token) return;
+    const r = await run(sb.rpc("waitlist_set_reach", { p_token: token, p_reach: v }));
+    if (!r) return;
+    S.wl.me.reach = v; S.ui.reachEdit = false; render(); toast(v ? "Danke, gespeichert." : "Gelöscht.");
   },
   myName: async f => {
     const name = f.name.value.trim();
