@@ -1074,7 +1074,7 @@ function adminUsers() {
   return `<div class="admin-head"><h2>Schüler</h2><button class="btn primary" type="button" data-a="toggleInvite">Schüler einladen</button></div>
     <form class="card" data-f="invite" ${S.ui.inviteOpen ? "" : "hidden"} novalidate>
       <h2>Schüler einladen</h2>
-      <p class="muted" style="font-size:14px">Trag die E-Mail-Adresse ein. Schick dem Schüler danach den Link <b>${esc(location.origin)}</b>. Wer sich dort mit genau dieser Adresse registriert, bekommt automatisch Paket und Kurszugang.</p>
+      <p class="muted" style="font-size:14px">Trag die E-Mail-Adresse ein. Die Person bekommt automatisch eine Mail mit dem Link zum Konto-Erstellen. Wer sich mit genau dieser Adresse registriert, bekommt Paket und Kurszugang.</p>
       <div class="form-grid">
         <div class="field"><label class="label" for="iName">Name</label><input id="iName" name="name" type="text"></div>
         <div class="field"><label class="label" for="iEmail">E-Mail</label><input id="iEmail" name="email" type="email" required></div>
@@ -1085,7 +1085,7 @@ function adminUsers() {
       <p class="muted" style="font-size:13px">Schüler, die du hier einlädst, zählen nicht zu den ${CONFIG.waitlistSpots} Teilnehmerplätzen der Warteliste und erscheinen nicht auf der Startseite.</p>
       <div class="actions"><button class="btn primary" type="submit">Einladen</button><button class="btn quiet" type="button" data-a="toggleInvite">Abbrechen</button></div>
     </form>
-    ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}${i.early_access ? " · Kurs schon vor dem Start" : ""}</span></div>${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</div>`).join("")}</div>` : ""}
+    ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}${i.early_access ? " · Kurs schon vor dem Start" : ""}</span></div><span class="actions">${S.D.mailReady ? `<button class="btn small" type="button" data-a="inviteResend" data-id="${esc(i.email)}">Mail erneut senden</button>` : ""}${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</span></div>`).join("")}</div>` : ""}
     <div class="table-wrap"><table><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Nächster Termin</th></tr></thead><tbody>
       ${st.length ? st.map(p => { const l = leftFor(p), pc = pctFor(p), nb = upcomingOf(p.id)[0];
         return `<tr data-a="openUser" data-id="${p.id}" tabindex="0"><td><b>${esc(p.full_name || "–")}</b><span class="sub">${esc(p.email)}${p.invited ? "" : " · nicht eingeladen"}</span></td>
@@ -1252,6 +1252,7 @@ const A = {
   wlOpen: el => { const id = el.dataset.id; S.ui.wlOpen = S.ui.wlOpen === id && !el.dataset.scroll ? null : id; S.ui.confirm = null;
     if (el.dataset.scroll) { const w = (S.D.waitlist || []).find(x => x.id === id); if (w) S.ui.wlFilter = "alle"; }
     render(); if (el.dataset.scroll) { const h = document.querySelector(`.wl-head[data-id="${id}"]`); if (h) h.scrollIntoView({ block: "start", behavior: "smooth" }); } },
+  inviteResend: async el => { el.disabled = true; const r = await run(sb.rpc("invite_send_mail", { p_email: el.dataset.id }), "Einladungs-Mail an " + el.dataset.id + " ist raus."); if (!r) el.disabled = false; },
   offerPick: el => { if (S.ui.offer) { S.ui.offer.confirm = el.dataset.v || null; render(); } },
   offerAnswer: async el => {
     const o = S.ui.offer; if (!o) return;
@@ -1491,9 +1492,11 @@ const F = {
     if (!(pack >= 0)) return toast("Bitte gib die Zahl der 1:1s an (0 oder mehr).", true);
     const ex = S.D.profiles.find(p => p.email.toLowerCase() === email);
     if (ex) return toast(ex.role === "coach" ? "Das ist dein Coach-Konto. Zum Testen als Schüler nimm eine zweite Adresse, z. B. deine Gmail-Adresse mit +schueler vor dem @." : "Diese Person hat schon ein Konto. Du findest sie in der Liste.", true);
-    const r = await run(sb.from("invites").insert({ email, full_name: f.name.value.trim(), package_total: pack, course_access: f.course.checked, ...(f.early && f.early.checked ? { early_access: true } : {}) }),
-      "Eingeladen. Schick " + email + " jetzt den Link " + location.origin + ".");
-    if (r) { S.ui.inviteOpen = false; reload(); }
+    const r = await run(sb.from("invites").insert({ email, full_name: f.name.value.trim(), package_total: pack, course_access: f.course.checked, ...(f.early && f.early.checked ? { early_access: true } : {}) }));
+    if (!r) return;
+    const m = S.D.mailReady ? await sb.rpc("invite_send_mail", { p_email: email }) : { error: true };
+    toast(m.error ? "Eingeladen. Die Mail ging nicht raus: Schick " + email + " selbst den Link " + location.origin + "/#registrieren." : "Eingeladen. Die Einladungs-Mail an " + email + " ist raus.", !!m.error);
+    S.ui.inviteOpen = false; reload();
   },
   session: async f => {
     const held_on = f.date.value, topic = f.topic.value.trim(), notes = f.notes.value.trim(), tasks = lines(f.tasks.value);
