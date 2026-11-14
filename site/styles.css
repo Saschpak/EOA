@@ -82,10 +82,10 @@ p{margin:0}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label,.field .label{font-size:13px;font-weight:500;color:var(--muted)}
-.field input,.field textarea,.field select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--fg);font-size:15px}
-.field input,.field textarea,.field select{width:100%}
+.field input:not(.check),.field textarea,.field select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--fg);font-size:15px}
+.field input:not(.check),.field textarea,.field select{width:100%}
 .field textarea{resize:vertical;min-height:88px}
-.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field input:not(.check):focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .check{appearance:none;width:18px;height:18px;border:1.5px solid var(--line-2);border-radius:5px;background:var(--panel);flex:none;margin-top:2px;cursor:pointer;display:grid;place-items:center}
 .check:checked{background:var(--accent);border-color:var(--accent)}
 .check:checked::after{content:"";width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
