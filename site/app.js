@@ -144,6 +144,7 @@ const profileName = id => { const p = S.D.profiles.find(x => x.id === id); retur
 
 function access(p, m) {
   if (!p.course_access) return { ok: false, why: "Kein Kurszugang", long: "Der Videokurs ist für dich noch nicht freigeschaltet." };
+  if (accessExpired(p)) return { ok: false, why: "Zugang abgelaufen", long: "Dein Zugang zum Videokurs ist am " + fmtY(accessUntil(p)) + " abgelaufen." };
   if (S.D.unlocks.some(u => u.user_id === p.id && u.module_id === m.id)) return { ok: true, why: "Von dir freigeschaltet", manual: true };
   if (m.drip_type === "now") return { ok: true, why: "Sofort frei" };
   if (m.drip_type === "days") {
@@ -168,6 +169,29 @@ function progressHTML(p) {
   return `<div class="progress"><div class="progress-top"><span class="muted">${done} von ${total} Lektionen</span><b class="mono">${pct}%</b></div><div class="track"><i style="width:${pct}%"></i></div></div>`;
 }
 const pctFor = p => { const t = allLessons().length; return t ? Math.round(allLessons().filter(l => progressOf(p.id).has(l.id)).length / t * 100) : 0; };
+
+/* ---------- Laufzeit und Zeitplan ---------- */
+const addMonths = (s, n) => { const d = pd(s); d.setMonth(d.getMonth() + n); return iso(d); };
+// Ab wann läuft die Uhr? Ab Beitritt, aber nicht vor dem Kursstart (außer mit Frühzugang)
+const effStart = p => { const cs = CONFIG.courseStart ? iso(new Date(CONFIG.courseStart)) : ""; return cs && !p.early_access && p.started_at < cs ? cs : p.started_at; };
+const accessUntil = p => p.access_until || addMonths(effStart(p), CONFIG.accessMonths || 12);
+const accessExpired = p => p.role !== "coach" && accessUntil(p) < today();
+const monthsLeftText = p => { const d = Math.round((pd(accessUntil(p)) - pd(today())) / 864e5); if (d < 0) return "abgelaufen"; if (d <= 31) return d === 0 ? "läuft heute ab" : `noch ${d} Tag${d === 1 ? "" : "e"}`; const m = Math.round(d / 30.44); return `noch ${m} Monat${m === 1 ? "" : "e"}`; };
+function paceOf(p) {
+  const months = CONFIG.coachingMonths || 4, st = effStart(p);
+  if (st > today()) return { pre: true, text: "startet am " + fmtY(st) };
+  const days = (pd(today()) - pd(st)) / 864e5, total = months * 30.44, frac = Math.min(1, days / total);
+  const week = Math.min(Math.ceil(total / 7), Math.max(1, Math.ceil((days + 1) / 7))), weeks = Math.ceil(total / 7);
+  const used = sessionsOf(p.id).length, booked = upcomingOf(p.id).length, expS = Math.floor(p.package_total * frac + 0.0001);
+  const sBehind = Math.max(0, expS - used - booked);
+  const expPct = Math.round(frac * 100), pc = pctFor(p), cBehind = Math.max(0, expPct - pc);
+  const tag = (lvl, t) => `<span class="${lvl === 0 ? "ok-tag" : lvl === 1 ? "muted-tag" : "err-tag"}">${t}</span>`;
+  return {
+    week, weeks, done: frac >= 1, expS, expPct, used, booked, pc,
+    sTag: p.package_total ? tag(sBehind === 0 ? 0 : sBehind === 1 ? 1 : 2, sBehind === 0 ? "im Plan" : sBehind + " hinter Plan") : "",
+    cTag: p.course_access && allLessons().length ? tag(cBehind <= 15 ? 0 : cBehind <= 35 ? 1 : 2, cBehind <= 15 ? "im Plan" : cBehind <= 35 ? "etwas hinter Plan" : "hinter Plan") : ""
+  };
+}
 
 /* ---------- Startseite mit Warteliste (nicht eingeloggt) ---------- */
 const WL_KEY = "pc-waitlist-token";
@@ -627,9 +651,11 @@ function viewPrelaunch() {
 /* ---------- Schüler: Übersicht ---------- */
 function viewStart() {
   const me = S.me, n = nextLessonFor(me), mods = modsSorted();
-  const blocked = !me.course_access && me.role !== "coach";
+  const expired = me.course_access && accessExpired(me);
+  const blocked = (!me.course_access || expired) && me.role !== "coach";
   let resume;
-  if (blocked) resume = `<p class="muted">Dein Coach schaltet den Kurs für dich frei.</p>`;
+  if (expired) resume = `<p class="muted">Dein Zugang zum Videokurs ist am ${fmtY(accessUntil(me))} abgelaufen. Schreib mir an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, wenn du verlängern möchtest.</p>`;
+  else if (blocked) resume = `<p class="muted">Dein Coach schaltet den Kurs für dich frei.</p>`;
   else if (!n.lesson) resume = `<p class="muted">Hier erscheint die nächste Lektion, sobald der Kurs Inhalte hat.</p>`;
   else if (n.allDone) {
     const lockedIx = mods.findIndex(m => !openFor(me, m));
@@ -665,6 +691,7 @@ const taskHTML = t => `<div class="task"><input class="check" type="checkbox" id
 function viewKurs() {
   const me = S.me, mods = modsSorted();
   if (!me.course_access) return `<section class="view"><div class="intro"><h1>${esc(CONFIG.courseTitle)}</h1></div><p class="card muted">Der Videokurs ist für dich noch nicht freigeschaltet. Sprich deinen Coach an, wenn du Zugang möchtest.</p></section>`;
+  if (accessExpired(me)) return `<section class="view"><div class="intro"><h1>${esc(CONFIG.courseTitle)}</h1></div><p class="card muted">Dein Zugang zum Videokurs ist am ${fmtY(accessUntil(me))} abgelaufen. Schreib mir an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, wenn du verlängern möchtest.</p></section>`;
   if (!mods.length) return `<section class="view"><div class="intro"><h1>${esc(CONFIG.courseTitle)}</h1></div><p class="card muted">Der Kurs hat noch keine Inhalte.</p></section>`;
   const done = progressOf(me.id);
   let sel = S.ui.lesson && getLesson(S.ui.lesson);
@@ -752,6 +779,7 @@ function viewKonto() {
       <div class="field"><label class="label" for="myPw">Neues Passwort (mindestens 8 Zeichen)</label><input id="myPw" name="pw" type="password" autocomplete="new-password" minlength="8"></div>
       <div class="field"><label class="label" for="myPw2">Neues Passwort wiederholen</label><input id="myPw2" name="pw2" type="password" autocomplete="new-password" minlength="8"></div>
       <div class="actions"><button class="btn" type="submit">Passwort ändern</button></div></form>
+    ${me.role !== "coach" && me.course_access ? `<div class="card"><h2>Dein Zugang</h2><p class="muted" style="font-size:15px">${accessExpired(me) ? `Dein Zugang zum Videokurs ist am <b>${fmtY(accessUntil(me))}</b> abgelaufen.` : `Dein Zugang zum Videokurs läuft bis <b>${fmtY(accessUntil(me))}</b> (${monthsLeftText(me)}).`}</p></div>` : ""}
     <div class="card"><h2>E-Mail-Adresse oder Konto löschen</h2><p class="muted" style="font-size:14px">Wenn du deine E-Mail-Adresse ändern oder dein Konto löschen möchtest, schreib bitte deinem Coach.</p></div>
   </section>`;
 }
@@ -1086,13 +1114,15 @@ function adminUsers() {
       <div class="actions"><button class="btn primary" type="submit">Einladen</button><button class="btn quiet" type="button" data-a="toggleInvite">Abbrechen</button></div>
     </form>
     ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}${i.early_access ? " · Kurs schon vor dem Start" : ""}</span></div><span class="actions">${S.D.mailReady ? `<button class="btn small" type="button" data-a="inviteResend" data-id="${esc(i.email)}">Mail erneut senden</button>` : ""}${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</span></div>`).join("")}</div>` : ""}
-    <div class="table-wrap"><table><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Nächster Termin</th></tr></thead><tbody>
+    <div class="table-wrap"><table><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Zugang</th><th>Nächster Termin</th></tr></thead><tbody>
       ${st.length ? st.map(p => { const l = leftFor(p), pc = pctFor(p), nb = upcomingOf(p.id)[0];
-        return `<tr data-a="openUser" data-id="${p.id}" tabindex="0"><td><b>${esc(p.full_name || "–")}</b><span class="sub">${esc(p.email)}${p.invited ? "" : " · nicht eingeladen"}</span></td>
-          <td><span class="pill ${l <= 0 ? "zero" : ""}">${Math.max(0, l)} offen</span><span class="sub">${sessionsOf(p.id).length} von ${p.package_total} genutzt</span></td>
-          <td>${p.course_access ? `<div class="pct-cell"><div class="track"><i style="width:${pc}%"></i></div><span class="mono" style="font-size:12.5px">${pc}%</span></div>` : `<span class="muted">Kein Zugang</span>`}</td>
+        const pa = paceOf(p), exp = accessExpired(p);
+        return `<tr data-a="openUser" data-id="${p.id}" tabindex="0"><td><b>${esc(p.full_name || "–")}</b><span class="sub">${esc(p.email)}${p.invited ? "" : " · nicht eingeladen"}</span><span class="sub">dabei seit ${fmtY(p.started_at)}${pa.pre ? "" : pa.done ? " · Coaching-Zeit vorbei" : ` · Woche ${pa.week} von ${pa.weeks}`}</span></td>
+          <td><span class="pill ${l <= 0 ? "zero" : ""}">${Math.max(0, l)} offen</span><span class="sub">${sessionsOf(p.id).length} von ${p.package_total} genutzt</span>${pa.pre ? "" : pa.sTag ? `<span class="sub">${pa.sTag}</span>` : ""}</td>
+          <td>${p.course_access ? `<div class="pct-cell"><div class="track"><i style="width:${pc}%"></i></div><span class="mono" style="font-size:12.5px">${pc}%</span></div>${pa.pre ? "" : pa.cTag ? `<span class="sub">${pa.cTag}</span>` : ""}` : `<span class="muted">Kein Zugang</span>`}</td>
+          <td>${p.course_access ? `${exp ? `<span class="err-tag">abgelaufen</span>` : `bis ${fmtY(accessUntil(p))}`}<span class="sub">${exp ? fmtY(accessUntil(p)) : monthsLeftText(p)}</span>` : `<span class="muted">–</span>`}</td>
           <td>${nb ? (() => { const t = fmtTs(nb.starts_at); return `${fmt(t.date)}, ${t.time} Uhr`; })() : `<span class="muted">Kein Termin</span>`}</td></tr>`; }).join("")
-        : `<tr><td colspan="4" class="muted">Noch keine Schüler. Lade den ersten über „Schüler einladen“ ein.</td></tr>`}
+        : `<tr><td colspan="5" class="muted">Noch keine Schüler. Lade den ersten über „Schüler einladen“ ein.</td></tr>`}
     </tbody></table></div>`;
 }
 
@@ -1109,6 +1139,13 @@ function adminUserDetail() {
   const mods = modsSorted();
   return `<button class="btn quiet small back" type="button" data-a="openUser" data-id="">← Alle Schüler</button>
     <div class="intro"><h1>${esc(p.full_name || p.email)}</h1><p class="muted">${esc(p.email)} · dabei seit ${fmtY(p.started_at)}</p></div>
+    ${(() => { const pa = paceOf(p), exp = accessExpired(p), cm = CONFIG.coachingMonths || 4;
+      return `<div class="card"><span class="label">Laufzeit und Zeitplan</span>
+        <div class="facts"><span><b>${pa.pre ? "–" : pa.done ? "vorbei" : pa.week + "/" + pa.weeks}</b>${pa.pre ? pa.text : `Woche der ${cm} Monate`}</span><span><b>${pa.pre ? "–" : pa.used + pa.booked + " / " + pa.expS}</b>1:1s genutzt+gebucht / Plan</span><span><b>${pa.pre ? "–" : pa.pc + " / " + pa.expPct + " %"}</b>Kurs / Plan</span><span><b style="${exp ? "color:var(--danger)" : ""}">${exp ? "abgelaufen" : monthsLeftText(p).replace(/^noch /, "")}</b>Zugang ${exp ? "seit" : "bis"} ${fmtY(accessUntil(p))}</span></div>
+        ${pa.pre ? "" : `<div class="pace-tags">${pa.sTag ? `<span>1:1s ${pa.sTag}</span>` : ""}${pa.cTag ? `<span>Kurs ${pa.cTag}</span>` : ""}</div>`}
+        <div class="pace-edit"><label class="muted" for="pStart">Dabei seit</label><input id="pStart" type="date" data-started="${p.id}" value="${esc(p.started_at)}">
+          ${"access_until" in p ? `<label class="muted" for="pUntil">Zugang bis</label><input id="pUntil" type="date" data-until="${p.id}" value="${esc(p.access_until || "")}" placeholder="${esc(accessUntil(p))}"><span class="muted" style="font-size:13px">${p.access_until ? "eigenes Datum" : `Standard: ${CONFIG.accessMonths || 12} Monate ab ${fmtY(effStart(p))}`}</span>` : ""}</div>
+      </div>`; })()}
     ${!p.invited ? `<div class="notice">Diese Person hat sich ohne Einladung registriert und hat deshalb keinen Zugang. <button class="btn small" type="button" data-a="grant" data-id="${p.id}" style="margin-left:8px">Als Schüler aufnehmen</button></div>` : ""}
     <div class="two">
       <div class="card"><span class="label">1:1-Paket</span>
@@ -1595,6 +1632,11 @@ document.addEventListener("change", async e => {
   } else if (t.dataset.callat) {
     const v = t.value ? new Date(t.value).toISOString() : null;
     await run(sb.from("waitlist").update({ call_at: v }).eq("id", t.dataset.callat), "Termin gespeichert."); reload();
+  } else if (t.dataset.until !== undefined && t.dataset.until) {
+    await run(sb.from("profiles").update({ access_until: t.value || null }).eq("id", t.dataset.until), t.value ? "Zugang bis " + fmtY(t.value) + " gespeichert." : "Zugang wieder auf Standard."); reload();
+  } else if (t.dataset.started) {
+    if (!t.value) return;
+    await run(sb.from("profiles").update({ started_at: t.value }).eq("id", t.dataset.started), "Gespeichert."); reload();
   } else if (t.dataset.early) {
     await run(sb.from("profiles").update({ early_access: t.checked }).eq("id", t.dataset.early), t.checked ? "Sieht den Kurs ab sofort." : "Sieht bis zum Start die Countdown-Seite."); reload();
   } else if (t.dataset.access) {

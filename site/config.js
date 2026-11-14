@@ -40,6 +40,8 @@ window.CONFIG = {
   // Persönliches Angebot nach dem Gespräch (#angebot-<token>): Vorgaben fürs Formular im Admin
   offerDefaults: { full: 800, was: 960, label: "Empfehlung · Early-Bird", single: 100, days: 6 },
   offerMonths: 4,
+  coachingMonths: 4,   // Zeitraum für 1:1s und Kurs, für „im Plan / hinter Plan“ im Admin
+  accessMonths: 12,    // Zugang zum Videokurs ab Kursstart bzw. Beitritt (pro Schüler änderbar)
   contactEmail: "info@saschpak.de",
   contactWhatsApp: "491702281153", // WhatsApp-Knopf auf der Angebotsseite, leer = ausblenden
 

@@ -647,3 +647,9 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .wl-todo-row .muted-tag,.wl-todo-row .ok-tag,.wl-todo-row .err-tag{justify-self:start}
 @media (max-width:760px){.wl-pipe{display:grid;grid-template-columns:repeat(3,1fr)}.wl-pipe button{min-width:0}}
 @media (max-width:760px){.wl-detail .wl-col:last-child{order:-1}}
+.pace-tags{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.pace-tags span{display:inline-flex;gap:6px;align-items:center}
+.pace-edit{display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.pace-edit input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px}
+td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
+@media (max-width:760px){.todo{flex-wrap:wrap}.todo .what{flex:1 1 100%;min-width:0}.todo .what span{overflow-wrap:anywhere}}
