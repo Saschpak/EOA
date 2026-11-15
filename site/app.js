@@ -105,7 +105,8 @@ async function load() {
     D.visits = vs.error ? [] : vs.data;
     const fs = await q("funnel_stats", "*", [["day"]]);
     D.funnel = fs.error ? null : fs.data;
-    const [of, ev, mlAll] = await Promise.all([q("offers", "*", [["created_at"]]), q("contact_events", "*", [["at"]]), q("mail_log", "id,created_at,kind,to_email,subject,status", [["created_at"]])]);
+    const [of, ev, mlAll, ov] = await Promise.all([q("offers", "*", [["created_at"]]), q("contact_events", "*", [["at"]]), q("mail_log", "id,created_at,kind,to_email,subject,status", [["created_at"]]), q("offer_views", "*", [["at"]])]);
+    D.offerViews = ov.error ? null : ov.data;
     D.events = ev.error ? [] : ev.data; D.mailLogAll = mlAll.error ? [] : mlAll.data.filter(m => m.kind !== "coach_info");
     D.offers = of.error ? null : of.data;
     const eb = await sb.rpc("waitlist_early_bird_slots");
@@ -387,7 +388,9 @@ const planText = plan => (plan || []).map(x => x.d ? x.t + ": " + x.d : x.t).joi
 async function loadOffer() {
   const o = S.ui.offer; if (!o) return;
   o.loading = true; render();
-  const r = await sb.rpc("offer_get", { p_token: o.token });
+  const dev = (window.matchMedia && matchMedia("(max-width: 760px)").matches) || /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "mobil" : "desktop";
+  let r = await sb.rpc("offer_get", { p_token: o.token, p_device: dev });
+  if (r.error && /PGRST202|Could not find the function/.test((r.error.code || "") + r.error.message)) r = await sb.rpc("offer_get", { p_token: o.token });
   if (S.ui.offer !== o) return;
   o.loading = false; o.data = r.error ? null : r.data; o.err = r.error ? errText(r.error) : null;
   render();
@@ -960,7 +963,7 @@ function offerBox(w) {
   const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${fmt(o.answered_at)}</span>`
     : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
     : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
-    : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span>${o.viewed_at ? `<span class="muted" style="font-size:13px">angesehen ${fmt(o.viewed_at)}</span>` : `<span class="muted" style="font-size:13px">noch nicht angesehen</span>`}`;
+    : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span><span class="muted" style="font-size:13px">${esc(viewsText(o))}</span>`;
   return `<div class="offer-line"><span class="muted" style="font-size:13px">Angebot</span>${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.slug || o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.slug || o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Angebot löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
 }
 function stageControls(w) {
@@ -973,6 +976,9 @@ function stageControls(w) {
 const DAY = 864e5;
 const daysSince = ts => ts ? Math.floor((Date.now() - new Date(ts).getTime()) / DAY) : null;
 const sinceText = ts => { const n = daysSince(ts); return n == null ? "" : n <= 0 ? "heute" : n === 1 ? "seit gestern" : `seit ${n} Tagen`; };
+const viewsOf = o => (S.D.offerViews || []).filter(v => v.offer_id === o.id);
+const whenText = ts => { const t = fmtTs(ts), d = Math.round((pd(today()) - pd(t.date)) / 864e5); return (d === 0 ? "heute" : d === 1 ? "gestern" : `${t.wd.slice(0, 2)} ${fmt(t.date)}`) + " " + t.time; };
+const viewsText = o => { const v = viewsOf(o); if (!v.length) return o.viewed_at ? "angesehen" : "noch nicht angesehen"; return `${v.length}× angesehen, zuletzt ${whenText(v[v.length - 1].at)}`; };
 const offerOf = w => (S.D.offers || []).filter(x => x.waitlist_id === w.id).slice(-1)[0];
 function wlPhase(w) {
   if (w.status === "removed") return { key: "entfernt", label: "Entfernt", cls: "muted-tag" };
@@ -988,7 +994,7 @@ function wlPhase(w) {
     if (exp) return { key: "angebot", label: "Angebot abgelaufen", cls: "err-tag", since: o.valid_until, next: "Nachfragen oder abschließen" };
     const left = o.valid_until ? Math.round((pd(o.valid_until) - pd(today())) / DAY) : null;
     return { key: "angebot", label: "Angebot offen", cls: "muted-tag", since: o.created_at,
-      next: (o.viewed_at ? "angesehen, wartet auf Antwort" : "noch nicht angesehen") + (left != null ? ` · noch ${left === 0 ? "heute" : left === 1 ? "1 Tag" : left + " Tage"}` : ""), urgent: left != null && left <= 1 };
+      next: viewsText(o) + (left != null ? ` · noch ${left === 0 ? "heute" : left === 1 ? "1 Tag" : left + " Tage"}` : ""), urgent: left != null && left <= 1 };
   }
   const k = w.contact_stage || "";
   if (k === "") return { key: "neu", label: "Neu", cls: "muted-tag", since: w.created_at, next: w.confirmed_at ? "Zum Gespräch einladen" : "Adresse noch nicht bestätigt" };
@@ -1013,7 +1019,9 @@ function wlTimeline(w) {
   const o = offerOf(w);
   if (o) {
     ev.push({ at: o.created_at, t: "Angebot erstellt", d: o.valid_until ? "gilt bis " + fmt(o.valid_until) : "" });
-    if (o.viewed_at) ev.push({ at: o.viewed_at, t: "Angebot angesehen" });
+    const vs = viewsOf(o);
+    if (vs.length) vs.forEach(v => ev.push({ at: v.at, t: "Angebot angesehen" + (v.device === "mobil" ? " (Handy)" : v.device === "desktop" ? " (Computer)" : "") }));
+    else if (o.viewed_at) ev.push({ at: o.viewed_at, t: "Angebot angesehen" });
     if (o.answered_at) ev.push({ at: o.answered_at, t: o.status === "coaching" ? "Angebot angenommen" : "Einzelstunde angefragt", good: true });
   }
   if (w.contact_stage === "termin" && w.call_at && new Date(w.call_at) > new Date()) ev.push({ at: w.call_at, t: "Kennenlerngespräch", future: true });
