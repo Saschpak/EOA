@@ -103,6 +103,8 @@ async function load() {
     D.profiles = pr.data; D.invites = inv.data; D.waitlist = wl.data;
     const vs = await q("visit_stats", "*", [["day"]]);
     D.visits = vs.error ? [] : vs.data;
+    const hs = await q("stat_hourly", "*", [["hour"]]);
+    D.hourly = hs.error ? null : hs.data;
     const fs = await q("funnel_stats", "*", [["day"]]);
     D.funnel = fs.error ? null : fs.data;
     const [of, ev, mlAll, ov] = await Promise.all([q("offers", "*", [["created_at"]]), q("contact_events", "*", [["at"]]), q("mail_log", "id,created_at,kind,to_email,subject,status", [["created_at"]]), q("offer_views", "*", [["at"]])]);
@@ -858,11 +860,27 @@ function adminHome() {
 
 function adminStats() {
   const range = S.ui.statRange || 30, days = [];
-  for (let i = range - 1; i >= 0; i--) days.push(addDays(today(), -i));
-  const first = days[0];
-  const visits = (S.D.visits || []).filter(v => v.day >= first);
-  const wl = (S.D.waitlist || []).filter(w => iso(new Date(w.created_at)) >= first);
-  const perDay = days.map(d => ({ d, v: visits.filter(x => x.day === d).reduce((a, x) => a + x.views, 0), s: wl.filter(w => iso(new Date(w.created_at)) === d).length }));
+  // „24 Std.“ (range 1): stündliche Zahlen der letzten 24 Stunden statt Tagessummen
+  const h24 = range === 1 && S.D.hourly != null;
+  const hourKey = t => { const d = new Date(t); d.setMinutes(0, 0, 0); return d.getTime(); };
+  let first, visits, wl, perDay, fnRows = null;
+  if (h24) {
+    const nowH = hourKey(Date.now());
+    for (let i = 23; i >= 0; i--) days.push(nowH - i * 3600e3);
+    first = days[0];
+    const hr = S.D.hourly.filter(x => hourKey(x.hour) >= first);
+    visits = hr.filter(x => x.step === "besuch").map(x => ({ day: hourKey(x.hour), source: x.source, device: x.device, views: x.n }));
+    fnRows = hr.filter(x => x.step !== "besuch").map(x => ({ day: hourKey(x.hour), source: x.source, device: x.device, step: x.step, n: x.n }));
+    wl = (S.D.waitlist || []).filter(w => new Date(w.created_at).getTime() >= first);
+    perDay = days.map(d => ({ d, v: visits.filter(x => x.day === d).reduce((a, x) => a + x.views, 0), s: wl.filter(w => hourKey(w.created_at) === d).length }));
+  } else {
+    for (let i = range - 1; i >= 0; i--) days.push(addDays(today(), -i));
+    first = days[0];
+    visits = (S.D.visits || []).filter(v => v.day >= first);
+    wl = (S.D.waitlist || []).filter(w => iso(new Date(w.created_at)) >= first);
+    perDay = days.map(d => ({ d, v: visits.filter(x => x.day === d).reduce((a, x) => a + x.views, 0), s: wl.filter(w => iso(new Date(w.created_at)) === d).length }));
+  }
+  const hh = d => String(new Date(d).getHours()).padStart(2, "0");
   const totV = perDay.reduce((a, x) => a + x.v, 0), totS = wl.length;
   const mob = visits.filter(x => x.device === "mobil").reduce((a, x) => a + x.views, 0);
   const booked = (S.D.waitlist || []).filter(w => w.status === "invited").length;
@@ -879,24 +897,25 @@ function adminStats() {
   for (let t = 0; t <= top; t += step) ticks.push(t);
   const slot = cw / days.length, bw = Math.max(2, Math.min(24, slot - 2));
   const y = v => pt + ch - v / top * ch;
-  const labelEvery = days.length <= 7 ? 1 : days.length <= 31 ? 7 : 14;
+  const labelEvery = h24 ? 3 : days.length <= 7 ? 1 : days.length <= 31 ? 7 : 14;
   const bars = perDay.map((x, i) => {
     const cx = pl + slot * i + slot / 2, h = x.v / top * ch, r = Math.min(4, bw / 2, h);
     const yTop = pt + ch - h, x0 = cx - bw / 2;
     const path = h > 0 ? `M${x0},${pt + ch} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + bw - r} Q${x0 + bw},${yTop} ${x0 + bw},${yTop + r} V${pt + ch} Z` : "";
-    const tip = `${WD[pd(x.d).getDay()].slice(0, 2)}, ${fmt(x.d)} · ${x.v} ${x.v === 1 ? "Besuch" : "Besuche"} · ${x.s} ${x.s === 1 ? "Eintrag" : "Einträge"}`;
-    return `<g class="bar" tabindex="0" data-tip="${esc(tip)}" aria-label="${esc(tip)}"><rect x="${pl + slot * i}" y="${pt}" width="${slot}" height="${ch}" fill="transparent"/>${path ? `<path d="${path}" fill="var(--btn)"/>` : ""}${(days.length - 1 - i) % labelEvery === 0 ? `<text x="${cx}" y="${H - 8}" text-anchor="middle">${fmt(x.d)}</text>` : ""}</g>`;
+    const tip = `${h24 ? `${WD[new Date(x.d).getDay()].slice(0, 2)}, ${hh(x.d)}–${hh(x.d + 3600e3)} Uhr` : `${WD[pd(x.d).getDay()].slice(0, 2)}, ${fmt(x.d)}`} · ${x.v} ${x.v === 1 ? "Besuch" : "Besuche"} · ${x.s} ${x.s === 1 ? "Eintrag" : "Einträge"}`;
+    return `<g class="bar" tabindex="0" data-tip="${esc(tip)}" aria-label="${esc(tip)}"><rect x="${pl + slot * i}" y="${pt}" width="${slot}" height="${ch}" fill="transparent"/>${path ? `<path d="${path}" fill="var(--btn)"/>` : ""}${(days.length - 1 - i) % labelEvery === 0 ? `<text x="${cx}" y="${H - 8}" text-anchor="middle">${h24 ? hh(x.d) + " h" : fmt(x.d)}</text>` : ""}</g>`;
   }).join("");
   const grid = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
   const base = location.origin + location.pathname;
-  return `<p class="live-note"><span class="live-dot" aria-hidden="true"></span>Live: aktualisiert sich alle 15 Sekunden</p><div class="tabs" role="tablist" aria-label="Zeitraum">${[[7, "7 Tage"], [30, "30 Tage"], [90, "90 Tage"]].map(([v, t]) => `<button type="button" data-a="statRange" data-v="${v}" aria-selected="${range === v}">${t}</button>`).join("")}</div>
+  return `<p class="live-note"><span class="live-dot" aria-hidden="true"></span>Live: aktualisiert sich alle 15 Sekunden</p><div class="tabs" role="tablist" aria-label="Zeitraum">${[...(S.D.hourly != null ? [[1, "24 Std."]] : []), [7, "7 Tage"], [30, "30 Tage"], [90, "90 Tage"]].map(([v, t]) => `<button type="button" data-a="statRange" data-v="${v}" aria-selected="${range === v}">${t}</button>`).join("")}</div>
     <div class="stats">${[[totV.toLocaleString("de-DE"), "Besuche"], [totS, "Einträge Warteliste"], [pct(totS, totV), "Eintragsquote"], [booked, "Buchungen gesamt"]].map(([v, t]) => `<div class="stat"><b>${v}</b><span>${t}</span></div>`).join("")}</div>
-    <div class="card"><div class="book-head"><h2>Besuche pro Tag</h2><span class="muted" style="font-size:13px">${totV ? `${pct(mob, totV)} vom Handy` : ""}</span></div>
-      ${totV ? `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Besuche pro Tag in den letzten ${range} Tagen">${grid}${bars}</svg><div class="chart-tip" id="chartTip" hidden></div></div>
-      <details class="tbl"><summary>Als Tabelle anzeigen</summary><div class="table-wrap"><table><thead><tr><th>Tag</th><th>Besuche</th><th>Einträge</th></tr></thead><tbody>${perDay.slice().reverse().map(x => `<tr><td>${fmtY(x.d)}</td><td>${x.v}</td><td>${x.s}</td></tr>`).join("")}</tbody></table></div></details>`
+    <div class="card"><div class="book-head"><h2>Besuche pro ${h24 ? "Stunde" : "Tag"}</h2><span class="muted" style="font-size:13px">${totV ? `${pct(mob, totV)} vom Handy` : ""}</span></div>
+      ${totV ? `<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h24 ? "Besuche pro Stunde in den letzten 24 Stunden" : `Besuche pro Tag in den letzten ${range} Tagen`}">${grid}${bars}</svg><div class="chart-tip" id="chartTip" hidden></div></div>
+      <details class="tbl"><summary>Als Tabelle anzeigen</summary><div class="table-wrap"><table><thead><tr><th>${h24 ? "Stunde" : "Tag"}</th><th>Besuche</th><th>Einträge</th></tr></thead><tbody>${perDay.slice().reverse().map(x => `<tr><td>${h24 ? `${WD[new Date(x.d).getDay()].slice(0, 2)} ${hh(x.d)}–${hh(x.d + 3600e3)} Uhr` : fmtY(x.d)}</td><td>${x.v}</td><td>${x.s}</td></tr>`).join("")}</tbody></table></div></details>`
       : `<p class="empty">Noch keine Besuche in diesem Zeitraum. Sobald jemand die Startseite öffnet, erscheint er hier. Deine eigenen Besuche als Coach werden auf diesem Gerät nicht mitgezählt.</p>`}
     </div>
-    ${funnelCard(first, visits, wl, pct)}
+    ${h24 && S.D.hourly.length && hourKey(S.D.hourly[0].hour) > first ? `<p class="muted" style="font-size:13px">Stündlich gezählt wird seit ${fmt(iso(new Date(S.D.hourly[0].hour)))} ${hh(hourKey(S.D.hourly[0].hour))} Uhr.</p>` : ""}
+    ${funnelCard(first, visits, wl, pct, fnRows)}
     <div class="card"><h2>Woher kommen die Leute?</h2>
       ${srcRows.length ? `<div class="table-wrap" style="background:var(--bg)"><table><thead><tr><th>Quelle</th><th>Besuche</th><th>Einträge</th><th>Quote</th></tr></thead><tbody>${srcRows.map(([k, x]) => `<tr><td>${esc(k)}</td><td>${x.v}</td><td>${x.s}</td><td>${pct(x.s, x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Noch keine Daten.</p>`}
       <p class="muted" style="font-size:14px">Damit du siehst, was funktioniert, häng an deine Links eine Quelle an. Instagram gibt die Herkunft oft nicht weiter.</p>
@@ -910,22 +929,23 @@ function adminStats() {
     </div>`;
 }
 
-function funnelCard(first, visits, wl, pct) {
+function funnelCard(first, visits, wl, pct, override) {
   if (S.D.funnel == null) return "";
-  const src = S.ui.funnelSrc || "", rows = S.D.funnel.filter(x => x.day >= first && (!src || x.source === src));
+  const all = override || S.D.funnel;
+  const src = S.ui.funnelSrc || "", rows = all.filter(x => x.day >= first && (!src || x.source === src));
   const n = k => rows.filter(x => x.step === k).reduce((a, x) => a + x.n, 0);
-  const since = S.D.funnel.length ? S.D.funnel.reduce((a, x) => x.day < a ? x.day : a, S.D.funnel[0].day) : null;
+  const since = override ? null : S.D.funnel.length ? S.D.funnel.reduce((a, x) => x.day < a ? x.day : a, S.D.funnel[0].day) : null;
   const v = visits.filter(x => (!src || x.source === src) && (!since || x.day >= since)).reduce((a, x) => a + x.views, 0);
   const signups = wl.filter(w => (!src || (w.source || "unbekannt") === src) && (!since || iso(new Date(w.created_at)) >= since)).length;
   const main = [["Besuche", v], ["Länger als 10 Sekunden", n("zeit_10s")], ["Länger als 30 Sekunden", n("zeit_30s")], ["Formular gesehen", n("formular")], ["Angefangen zu tippen", n("tippen")], ["Auf „Eintragen“ getippt", n("abgeschickt")], ["Eingetragen", signups]];
   const extra = [["Video gestartet", n("video")], ["Preis angesehen", n("preis")], ["Halbe Seite gescrollt", n("scroll_50")], ["Bis ans Ende gescrollt", n("scroll_90")], ["Kursmodule aufgeklappt", n("module")], ["FAQ geöffnet", n("faq")], ["Fehler beim Eintragen", n("fehler")]];
-  const srcs = [...new Set(S.D.funnel.map(x => x.source))].sort();
+  const srcs = [...new Set(all.map(x => x.source))].sort();
   const bar = ([label, val]) => `<div class="fn-row"><span class="fn-l">${label}</span><span class="fn-bar"><i style="width:${v ? Math.min(100, val / v * 100) : 0}%"></i></span><span class="fn-n">${val}</span><span class="fn-p">${pct(val, v)}</span></div>`;
   return `<div class="card"><div class="book-head"><h2>Wo springen die Leute ab?</h2><span class="muted" style="font-size:13px">${since ? "gemessen seit " + fmt(since) : ""}</span></div>
     ${srcs.length > 1 ? `<div class="tabs" role="tablist" aria-label="Quelle">${[["", "Alle"], ...srcs.map(x => [x, x])].map(([k, t]) => `<button type="button" data-a="funnelSrc" data-v="${esc(k)}" aria-selected="${src === k}">${esc(t)}</button>`).join("")}</div>` : ""}
-    ${since ? `<div class="fn">${main.map(bar).join("")}</div><p class="label group-label" style="margin-top:6px">Was sie sich angesehen haben</p><div class="fn">${extra.map(bar).join("")}</div>`
+    ${since || (override && v) ? `<div class="fn">${main.map(bar).join("")}</div><p class="label group-label" style="margin-top:6px">Was sie sich angesehen haben</p><div class="fn">${extra.map(bar).join("")}</div>`
       : `<p class="empty">Ab jetzt wird anonym gezählt, wie weit Besucher auf der Startseite kommen: wie lange sie bleiben, ob sie das Formular sehen, anfangen zu tippen, das Video starten. Sobald die ersten Besuche da sind, erscheint hier die Auswertung.</p>`}
-    <p class="muted" style="font-size:13px">Prozent jeweils von allen Besuchen im Zeitraum. Ohne Cookies, nur Tagessummen.</p>
+    <p class="muted" style="font-size:13px">Prozent jeweils von allen Besuchen im Zeitraum. Ohne Cookies, nur ${override ? "Stundensummen" : "Tagessummen"}.</p>
   </div>`;
 }
 
@@ -1304,6 +1324,7 @@ const A = {
   statReset: async el => {
     const del = t => { const q = sb.from(t).delete(); return el.dataset.v ? q.eq("source", el.dataset.v) : q.gte("day", "2000-01-01"); };
     await del("funnel_stats");
+    if (S.D.hourly != null) { const qh = sb.from("stat_hourly").delete(); await (el.dataset.v ? qh.eq("source", el.dataset.v) : qh.gte("hour", "2000-01-01")); }
     const r = await run(del("visit_stats"), el.dataset.v ? "Besuche mit Quelle „direkt“ zurückgesetzt." : "Alle Besuche zurückgesetzt.");
     S.ui.confirm = null; if (r) reload(); else render();
   },
