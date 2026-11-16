@@ -1039,7 +1039,13 @@ function offerBox(w) {
 function stageControls(w) {
   if (w.status !== "waiting" || !("contact_stage" in w)) return "";
   return `<div class="wl-ctrl"><label class="muted" for="st-${w.id}">Status</label><select id="st-${w.id}" data-stage="${w.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${(w.contact_stage || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-    ${w.contact_stage === "termin" ? `<input type="datetime-local" data-callat="${w.id}" value="${toLocalInput(w.call_at)}" aria-label="Termin">` : ""}</div>`;
+    ${w.contact_stage === "termin" ? `<input type="datetime-local" data-callat="${w.id}" value="${toLocalInput(w.call_at)}" aria-label="Termin">` : ""}</div>${einzelCtrl(w)}`;
+}
+function einzelCtrl(w) {
+  const o = offerOf(w);
+  if (!o || o.status !== "einzelstunde") return "";
+  const at = w.call_at && o.answered_at && new Date(w.call_at) > new Date(o.answered_at) ? w.call_at : null;
+  return `<div class="wl-ctrl"><label class="muted" for="ez-${w.id}">Termin Einzelstunde</label><input id="ez-${w.id}" type="datetime-local" data-callat="${w.id}" value="${toLocalInput(at)}"><span class="muted" style="font-size:13px">Belegt keinen Teilnehmerplatz.</span></div>`;
 }
 
 /* Wo steht jemand gerade, und was ist als Nächstes zu tun? */
@@ -1066,7 +1072,13 @@ function wlPhase(w) {
   const o = offerOf(w);
   if (o) {
     if (o.status === "coaching") return { key: "angebot", label: "Angebot angenommen", cls: "ok-tag", since: o.answered_at, next: o.pay_mode === "einmal" ? "Rechnung über den Gesamtbetrag, Platz zusagen" : o.pay_mode === "raten" ? "Rechnung für die Anzahlung, Platz zusagen" : "Rechnung schicken, Platz zusagen", urgent: true };
-    if (o.status === "einzelstunde") return { key: "angebot", label: "Einzelstunde angefragt", cls: "ok-tag", since: o.answered_at, next: "Termin ausmachen", urgent: true };
+    if (o.status === "einzelstunde") {
+      // Termin der Einzelstunde = call_at nach der Antwort aufs Angebot (der alte Wert ist das Kennenlerngespräch)
+      const at = w.call_at && o.answered_at && new Date(w.call_at) > new Date(o.answered_at) ? w.call_at : null;
+      if (!at) { const n = daysSince(o.answered_at); return { key: "einzel", label: "Einzelstunde", cls: "ok-tag", since: o.answered_at, next: "Termin für die Einzelstunde ausmachen", urgent: n != null && n >= 2 }; }
+      const t = fmtTs(at), past = new Date(at) < new Date(), isToday = t.date === today();
+      return { key: "einzel", label: "Einzelstunde", cls: "ok-tag", next: past ? `Gehalten am ${fmt(t.date)}` : `Termin ${t.wd.slice(0, 2)} ${fmt(t.date)} · ${t.time}${isToday ? " (heute)" : ""}`, urgent: isToday && !past };
+    }
     const exp = o.valid_until && o.valid_until < today();
     if (exp) return { key: "angebot", label: "Angebot abgelaufen", cls: "err-tag", since: o.valid_until, next: "Nachfragen oder abschließen" };
     const left = o.valid_until ? Math.round((pd(o.valid_until) - pd(today())) / DAY) : null;
@@ -1127,7 +1139,7 @@ function adminWaitlist() {
     const notes = `${w.note ? `<p class="wl-note"><span class="muted">Nachricht:</span> ${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="wl-note"><span class="muted">Notizen:</span> ${esc(w.contact_note)}</p>` : ""}`;
     const inviteBtn = S.ui.confirm === "inv:" + w.id
       ? (() => { const e = ebDefault(w); return `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} zugesagt?</span>${CONFIG.earlyBirdPriceHeadline ? `<label class="inline-check" for="inv-eb-${w.id}" style="font-size:14px"><input class="check" id="inv-eb-${w.id}" type="checkbox" ${e.want ? "checked" : ""} ${!e.want && !e.free ? "disabled" : ""} style="margin:0">Early-Bird${ebText() ? ` (${esc(ebText())})` : ""}${e.fromOffer ? " · wie im Angebot" : ""}${!e.free && !w.early_bird ? " · alle vergeben" : ""}</label>` : ""}<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`; })()
-      : `<button class="btn ${p.key === "angebot" && /angenommen/.test(p.label) ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`;
+      : p.key === "einzel" ? "" : `<button class="btn ${p.key === "angebot" && /angenommen/.test(p.label) ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`;
     const acts = w.status === "waiting"
       ? `${inviteBtn}${w.contact_stage === "gefuehrt" && !offerOf(w) ? `<button class="btn quiet small" type="button" data-a="wlStage" data-id="${w.id}" data-v="abgesagt">Abgesagt</button>` : ""}${!w.confirmed_at && S.D.mailReady ? `<button class="btn small quiet" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}`
       : w.status === "removed" ? `<button class="btn small" type="button" data-a="wlRestore" data-id="${w.id}">Wieder aufnehmen</button>`
@@ -1151,7 +1163,7 @@ function adminWaitlist() {
       </div>${open ? detail(w, p) : ""}</article>`;
   };
 
-  const ORDER = [["alle", "Alle"], ["neu", "Neu"], ["angefragt", "Angefragt"], ["termin", "Termin"], ["gefuehrt", "Geführt"], ["angebot", "Angebot"], ["platz", "Zugesagt"], ["inaktiv", "Keine Antwort / Abgesagt"], ["entfernt", "Entfernt"]];
+  const ORDER = [["alle", "Alle"], ["neu", "Neu"], ["angefragt", "Angefragt"], ["termin", "Termin"], ["gefuehrt", "Geführt"], ["angebot", "Angebot"], ["platz", "Zugesagt"], ["einzel", "Einzelstunde"], ["inaktiv", "Keine Antwort / Abgesagt"], ["entfernt", "Entfernt"]];
   const count = k => k === "alle" ? waiting.length : rows.filter(r => r.p.key === k).length;
   const cur = S.ui.wlFilter && ORDER.some(o => o[0] === S.ui.wlFilter) ? S.ui.wlFilter : "alle";
   const pipe = `<div class="wl-pipe" role="tablist" aria-label="Warteliste filtern">${ORDER.filter(([k]) => k === "alle" || count(k) || k === cur || ["neu", "angefragt", "termin", "gefuehrt", "angebot", "platz"].includes(k)).map(([k, t]) => `<button type="button" data-a="wlFilter" data-v="${k}" aria-selected="${cur === k}"><b>${count(k)}</b><span>${t}</span></button>`).join("")}</div>`;
@@ -1343,7 +1355,7 @@ function adminFragen() {
   const qs = [...S.D.questions].sort((a, b) => (!!a.answer - !!b.answer) || b.created_at.localeCompare(a.created_at));
   return qs.length ? qs.map(q => `<article class="card" style="gap:10px"><div class="session-meta"><b>${esc(profileName(q.user_id))}</b><span class="muted" style="font-size:13px">${fmt(q.created_at)} · ${q.lesson_id && getLesson(q.lesson_id) ? "Lektion „" + esc(getLesson(q.lesson_id).title) + "“" : "Allgemeine Frage"}</span>${q.answer ? '<span class="label" style="color:var(--ok)">Beantwortet</span>' : '<span class="label" style="color:var(--accent-hi)">Offen</span>'}</div>
     <p style="white-space:pre-line">${esc(q.body)}</p>
-    ${q.answer ? `<p class="note" style="white-space:pre-line">${esc(q.answer)}</p>` : `<form data-f="answer" data-id="${q.id}" novalidate style="display:flex;flex-direction:column;gap:10px"><div class="field"><label class="label" for="ans-${q.id}">Deine Antwort</label><textarea id="ans-${q.id}" name="answer"></textarea></div><div class="actions"><button class="btn primary small" type="submit">Antwort senden</button></div></form>`}</article>`).join("")
+    ${q.answer ? `<p class="note" style="white-space:pre-line">${esc(q.answer)}</p>` : `<form data-f="answer" data-id="${q.id}" novalidate style="display:flex;flex-direction:column;gap:10px"><div class="field"><label class="label" for="ans-${q.id}">Deine Antwort</label><textarea id="ans-${q.id}" name="answer"></textarea></div><div class="actions"><button class="btn primary small" type="submit">Antwort senden</button></div></form>`}<div class="actions" style="align-items:center">${confirmBtn("q:" + q.id, "Frage löschen", `data-a="delQuestion" data-id="${q.id}"`)}</div></article>`).join("")
     : `<p class="empty">Noch keine Fragen.</p>`;
 }
 
@@ -1565,6 +1577,7 @@ const A = {
     await run(sb.storage.from("downloads").remove([d.storage_path]));
     await run(sb.from("downloads").delete().eq("id", d.id), "Download gelöscht."); S.ui.confirm = null; if (S.ui.editDl === d.id) S.ui.editDl = null; reload();
   },
+  delQuestion: async el => { await run(sb.from("questions").delete().eq("id", el.dataset.id), "Frage gelöscht."); S.ui.confirm = null; reload(); },
   editNews: el => { S.ui.editNews = el.dataset.id || null; render(); window.scrollTo(0, 0); },
   delNews: async el => { await run(sb.from("news").delete().eq("id", el.dataset.id), "News gelöscht."); S.ui.confirm = null; if (S.ui.editNews === el.dataset.id) S.ui.editNews = null; reload(); }
 };
