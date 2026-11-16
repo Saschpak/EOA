@@ -301,10 +301,7 @@ function spotsInfo() {
 }
 function spotsMeter() {
   const { n, taken, free } = spotsInfo();
-  const st = (S.wl && S.wl.stats) || {}, ebN = ebActive() ? Math.min(n, st.early_bird_slots || 0) : 0;
-  return `<div class="spots-box"><div class="spots" role="img" aria-label="Noch ${free} von ${n} Teilnehmerplätzen frei${ebN ? `, die ersten ${ebN} zum Early-Bird-Preis` : ""}" style="--n:${n}">
-      ${ebN ? `<span class="eb-bracket" style="grid-column:1 / ${ebN + 1}">${pubPrice() ? `Early-Bird · ${esc(CONFIG.earlyBirdPriceHeadline)}/Monat` : "Early-Bird-Rabatt"}</span>` : ""}
-      ${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : i < ebN ? "eb" : ""}"></i>`).join("")}</div>
+  return `<div class="spots-box">
     <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Teilnehmerplätzen frei` : `Alle ${n} Teilnehmerplätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
 }
 
@@ -332,11 +329,11 @@ function priceBlock() {
   if (!pubPrice()) {
     const st = (S.wl && S.wl.stats) || {};
     return `<h2 class="big" style="margin-top:12px">Was kostet das?</h2><p class="price-sub" style="font-size:var(--t-m)">${esc(CONFIG.priceHiddenText || "")}</p>
-      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${st.early_bird_slots} Buchungen bekommen einen Rabatt. Noch ${st.early_bird_left} von ${st.early_bird_slots} frei.</span></p>` : ""}`;
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${st.early_bird_slots} Buchungen bekommen einen Rabatt.</span></p>` : ""}`;
   }
   const st = (S.wl && S.wl.stats) || {};
   if (ebActive()) return `<div class="price" style="margin-top:12px"><s>${esc(CONFIG.earlyBirdPriceWas)}</s>${esc(CONFIG.earlyBirdPriceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "").split(" · ").join("<br>")}</small></div>
-      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>. Noch ${st.early_bird_left} von ${st.early_bird_slots} frei.</span></p>
+      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>.</span></p>
       ${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
   return `<div class="price" style="margin-top:12px">ab ${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "").split(" · ").join("<br>")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
 }
@@ -481,7 +478,7 @@ function renderLanding() {
       ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
         : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
-        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}. Gerade noch ${S.wl.stats.early_bird_left} frei.</span></p>` : ""}
+        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
       <p>Danke${firstName(me.name) ? ", " + esc(firstName(me.name)) : ""}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
