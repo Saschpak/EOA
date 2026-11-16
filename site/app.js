@@ -758,14 +758,14 @@ function viewKurs() {
       ${a.ok ? `<span class="track"><i style="width:${ls.length ? dn / ls.length * 100 : 0}%"></i></span>` : `<span class="why">${esc(a.why)}</span>`}</button>`;
   }).join("");
   const where = !va.ok ? `<span class="lock-note" style="display:inline-flex;padding:6px 10px;gap:8px">${LOCK}${esc(va.long)}</span>`
-    : sel && sel.module_id === vm.id ? `Du bist bei Lektion ${vls.indexOf(sel) + 1} von ${vls.length}` : sel ? `Du bist gerade in Modul ${modIndex(modOf(sel)) + 1}` : "";
+    : sel && sel.module_id === vm.id ? `Du bist bei Lektion ${vls.indexOf(sel) + 1} von ${vls.length}` : sel ? `<button type="button" class="lnk-back" data-a="openLesson" data-id="${sel.id}">Zurück zu Modul ${modIndex(modOf(sel)) + 1}: „${esc(sel.title)}“</button>` : "";
   const steps = vls.length ? vls.map((l, li) => {
     if (!va.ok) return `<button type="button" class="step" disabled><span class="st">${LOCK}</span><span class="tx"><b>${esc(l.title)}</b><span class="mono">${mmss(l.duration_seconds)} min</span></span></button>`;
     const act = sel && l.id === sel.id;
     return `<button type="button" class="step ${done.has(l.id) ? "done" : ""} ${act ? "active" : ""}" data-a="openLesson" data-id="${l.id}" ${act ? 'aria-current="step"' : ""}><span class="st">${done.has(l.id) ? "" : li + 1}</span><span class="tx"><b>${esc(l.title)}</b><span class="mono">${act ? "Aktuell · " : ""}${mmss(l.duration_seconds)} min</span></span></button>`;
   }).join("") : `<p class="empty">In diesem Modul gibt es noch keine Lektionen.</p>`;
   let lessonHTML = "";
-  if (sel) {
+  if (sel && sel.module_id === vm.id) {
     const isDone = done.has(sel.id), order = allLessons(), nx = order[order.indexOf(sel) + 1];
     const nxt = nx && openFor(me, modOf(nx)) ? nx : null;
     const files = S.D.files.filter(f => f.lesson_id === sel.id);
