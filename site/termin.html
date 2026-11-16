@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Termin eintragen · Playback Masterclass</title>
+<style>
+@font-face{font-family:"Archivo";font-display:swap;font-weight:100 900;font-stretch:62% 125%;src:url(/fonts/archivo-latin-wdth-normal.woff2) format("woff2")}
+:root{--bg:#fff;--bg-2:#f5f5f7;--line:#d2d2d7;--fg:#1d1d1f;--muted:#6e6e73;--accent:#d9480f}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--bg-2:#161617;--line:#38383a;--fg:#f5f5f7;--muted:#a1a1a6;--accent:#ff7a3d}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:Archivo,system-ui,sans-serif;font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:520px;margin:0 auto;padding:40px 16px 64px}
+.brand{font-size:14px;font-weight:700;font-stretch:85%}
+h1{font-size:clamp(30px,8vw,40px);font-weight:800;font-stretch:76%;line-height:1.05;margin:32px 0 10px}
+.when{font-size:20px;margin-bottom:6px}
+.muted{color:var(--muted);font-size:15px}
+.btns{display:grid;gap:10px;margin:28px 0 20px}
+.btn{display:block;text-align:center;border-radius:12px;padding:14px 20px;font:inherit;font-weight:700;text-decoration:none}
+.btn-ink{background:var(--accent);color:#fff}
+.btn-line{border:1.5px solid var(--line);color:var(--fg)}
+a{color:var(--accent)}
+.btn-ink{color:#fff!important}.btn-line{color:var(--fg)!important}
+.err{background:var(--bg-2);border-radius:12px;padding:16px}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"><p class="brand">Playback Masterclass</p><p class="muted" style="margin-top:32px">Lädt …</p></main>
+<script>
+// Termin-Link: /termin?t=YYYYMMDDTHHMM (Berliner Zeit)&d=Minuten&k=k|e|s
+// k: k = Kennenlerngespräch (Standard), e = Einzelstunde, s = 1:1-Session
+(function () {
+  var q = new URLSearchParams(location.search);
+  var t = q.get("t") || "", d = Math.min(240, Math.max(5, parseInt(q.get("d") || "20", 10) || 20)), k = q.get("k") || "k";
+  var kinds = {
+    k: ["Kennenlerngespräch Playback Masterclass mit Sascha", "Sascha ruft dich an. Etwa 20 Minuten, kostenlos und unverbindlich."],
+    e: ["Einzelstunde mit Sascha (Playback Masterclass)", "Deine 1:1-Einzelstunde mit Sascha."],
+    s: ["1:1-Session Playback Masterclass", "Deine 1:1-Session mit Sascha."]
+  };
+  var kind = kinds[k] || kinds.k, app = document.getElementById("app");
+  var m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})$/.exec(t);
+  if (!m) { app.innerHTML = '<p class="brand">Playback Masterclass</p><h1>Termin nicht gefunden</h1><p class="err">Dieser Link ist unvollständig. Schreib mir einfach an <a href="mailto:info@saschpak.de">info@saschpak.de</a>.</p>'; return; }
+  var y = +m[1], mo = +m[2], da = +m[3], h = +m[4], mi = +m[5];
+  var p = function (n) { return String(n).padStart(2, "0"); };
+  var endMin = h * 60 + mi + d, eh = Math.floor(endMin / 60), em = endMin % 60;
+  var start = m[1] + m[2] + m[3] + "T" + m[4] + m[5] + "00", end = m[1] + m[2] + m[3] + "T" + p(eh) + p(em) + "00";
+  var wd = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"][new Date(y, mo - 1, da).getDay()];
+  var nice = wd + ", " + da + "." + mo + "." + y + " um " + p(h) + ":" + p(mi) + " Uhr";
+  var stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  var ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Playback Masterclass//Termin//DE", "METHOD:PUBLISH",
+    "BEGIN:VTIMEZONE", "TZID:Europe/Berlin",
+    "BEGIN:STANDARD", "DTSTART:19701025T030000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0100", "TZNAME:CET", "END:STANDARD",
+    "BEGIN:DAYLIGHT", "DTSTART:19700329T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0200", "TZNAME:CEST", "END:DAYLIGHT",
+    "END:VTIMEZONE",
+    "BEGIN:VEVENT", "UID:pm-" + start + "-" + k + "@saschpak.de", "DTSTAMP:" + stamp,
+    "DTSTART;TZID=Europe/Berlin:" + start, "DTEND;TZID=Europe/Berlin:" + end,
+    "SUMMARY:" + kind[0], "DESCRIPTION:" + kind[1].replace(/,/g, "\\,"),
+    "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:" + kind[0], "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR", ""].join("\r\n");
+  var icsHref = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
+  var g = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(kind[0]) +
+    "&dates=" + start + "/" + end + "&ctz=Europe/Berlin&details=" + encodeURIComponent(kind[1]);
+  document.title = kind[0];
+  app.innerHTML = '<p class="brand">Playback Masterclass</p>' +
+    '<h1>' + kind[0].replace(" Playback Masterclass mit Sascha", "").replace(" (Playback Masterclass)", "") + '</h1>' +
+    '<p class="when"><b>' + nice + '</b></p><p class="muted">' + kind[1] + '</p>' +
+    '<div class="btns"><a class="btn btn-ink" id="ics" href="' + icsHref + '" download="Termin-Playback-Masterclass.ics">In meinen Kalender eintragen</a>' +
+    '<a class="btn btn-line" href="' + g + '" target="_blank" rel="noopener">Google Kalender</a></div>' +
+    '<p class="muted">iPhone, Mac und Outlook: oberer Knopf. Google-Kalender: unterer Knopf. Fragen? <a href="mailto:info@saschpak.de">info@saschpak.de</a></p>';
+})();
+</script>
+</body>
+</html>

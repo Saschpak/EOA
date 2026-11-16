@@ -1,2 +1,5 @@
 # Kurze Links für persönliche Angebote: /angebot/<vorname>-<code>
 /angebot/*  /angebot.html  200
+
+# Termin-Link für den Kalender: /termin?t=YYYYMMDDTHHMM&d=20
+/termin  /termin.html  200
