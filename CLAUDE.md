@@ -56,7 +56,7 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 ## Offene Punkte (Stand November 2026)
 
 - Impressum und Datenschutz sind online (Stand November 2026). AV-Verträge: Resend unterschrieben, Supabase und Netlify gelten automatisch über die Nutzungsbedingungen (PDFs beim Coach abgelegt, Stand November 2026).
-- Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus.
+- Videos (Bunny Stream) kommen ab Dezember, Anbindung mit signierten Links steht noch aus. Eingerichtet (16.11.2026): Library „Playback Coaching“ (ID 811527), Token-Schutz für den Player an, nur Referrer coaching.saschpak.de, kein Direct Play, kein MP4-Fallback, Player deutsch. Claude erreicht `api.bunny.net` (Konto-Schlüssel) und `video.bunnycdn.com` (Library-Schlüssel) über Network Secrets mit Header `AccessKey`. Für signierte Links braucht die Datenbank später den Token Authentication Key der Library im Supabase Vault, nie im Repo.
 - Wartelisten-Mails laufen über Resend (Domain saschpak.de verifiziert). Noch offen: Resend auch als SMTP für die Konto-Mails in Supabase eintragen und die deutschen Vorlagen einfügen. AV-Vertrag mit Resend ist unterschrieben (November 2026).
 - Calendly: Link für 1:1-Buchung (`calendlyUrl`) und Kennenlerngespräch (`introCallUrl`).
 - Intro-Video (`site/media/intro.mp4`, Website-Schnitt ohne Plätze-Angabe und ohne Instagram-Aufruf) und Stichpunkte über Sascha sind drin. Geschenk-PDF ist drin (`site/downloads/ableton-shortcuts.pdf`, Quelle `plattform/geschenk/ableton-shortcuts.html`, per Chromium als A4-PDF erzeugen). Noch offen: Stimmen, Bild für `heroImage`. Vorschau mit Platzhaltern unter `#vorschau`.
