@@ -113,6 +113,7 @@ main{max-width:1040px;margin:0 auto;padding-block:40px 72px}
 .site-foot{max-width:1040px;margin:0 auto;padding-block:0 36px;display:flex;gap:20px;font-size:12px}
 .site-foot a{color:var(--muted)}
 .site-foot:empty{display:none}
+#app:has(> .landing:not(.offer-page)) ~ .site-foot{box-sizing:content-box;max-width:1080px}
 
 .progress{display:flex;flex-direction:column;gap:7px}
 .progress-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}
@@ -332,6 +333,8 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 
 /* Häufige Fragen */
 .faq{display:flex;flex-direction:column;margin-top:8px;border-top:1px solid var(--line);max-width:820px}
+.pack .faq{margin-top:0}
+.pack .about-pts{margin-top:4px}
 .faq details{border-bottom:1px solid var(--line)}
 .faq summary{cursor:pointer;list-style:none;padding:18px 36px 18px 0;font-size:18px;font-weight:650;position:relative}
 .faq summary::-webkit-details-marker{display:none}
@@ -382,6 +385,7 @@ video.about-media{aspect-ratio:9/16;width:100%;max-width:360px;height:auto;objec
 .incl li{display:flex;justify-content:space-between;gap:16px;padding:15px 0;border-top:1px solid var(--line);font-size:17px;font-weight:600}
 .incl li:last-child{border-bottom:1px solid var(--line)}
 .incl li span{color:var(--muted);font-weight:400;text-align:right}
+@media (max-width:480px){.incl li{flex-direction:column;gap:2px}.landing .incl li span{text-align:left;font-size:15px}}
 .round{font-size:15px;color:var(--muted);line-height:1.55;margin-top:18px}
 .round b{color:var(--fg);font-weight:700}
 
