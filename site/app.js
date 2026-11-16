@@ -412,7 +412,7 @@ function renderOffer() {
       <div class="offer-row"><a class="btn-line" href="mailto:${esc(mail)}?subject=${encodeURIComponent("Frage zu meinem Angebot")}">Mail an Sascha</a>${wa ? `<a class="btn-line" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div></div>`;
   if (d.status !== "offen") {
     $("#app").innerHTML = shell(`<h1 class="offer-h">${d.status === "coaching" ? `Danke${fn ? ", <em>" + esc(fn) + "</em>" : ""}! Schön, dass du dabei bist.` : `Danke${fn ? ", <em>" + esc(fn) + "</em>" : ""}!`}</h1>
-      <p class="offer-note">${d.status === "coaching" ? "Ich melde mich in den nächsten Tagen persönlich bei dir, schicke dir die Rechnung und deinen Zugang zur Plattform." : "Ich melde mich in den nächsten Tagen persönlich bei dir, und wir machen einen Termin für deine Einzelstunde aus."}</p>${contact}`);
+      <p class="offer-note">${d.status === "coaching" ? `Ich melde mich in den nächsten Tagen persönlich bei dir, schicke dir die Rechnung${d.pay_mode === "raten" ? " für die Anzahlung" : d.pay_mode === "einmal" ? " über den Gesamtbetrag" : ""} und deinen Zugang zur Plattform.` : "Ich melde mich in den nächsten Tagen persönlich bei dir, und wir machen einen Termin für deine Einzelstunde aus."}</p>${contact}`);
     return;
   }
   const months = CONFIG.offerMonths || 4;
@@ -420,7 +420,12 @@ function renderOffer() {
   const pk = CONFIG.packageItems || [];
   const pick = o.confirm;
   const choose = (v, label, cls) => d.expired ? "" : pick === v
-    ? `<div class="offer-confirm"><p>${v === "coaching" ? "Super! Willst du das Coaching annehmen? Danach melde ich mich persönlich mit Rechnung und Zugang." : "Soll ich mich wegen einer Einzelstunde bei dir melden?"}</p>
+    ? `<div class="offer-confirm"><p>${v === "coaching" ? "Super! Wie möchtest du zahlen?" : "Soll ich mich wegen einer Einzelstunde bei dir melden?"}</p>
+        ${v === "coaching" ? (() => { const m = CONFIG.offerMonths || 4, r = Math.round(d.full_price / m);
+          return `<div class="offer-paychoice" role="radiogroup" aria-label="Zahlungsweise">
+            <label class="offer-radio"><input type="radio" name="offerPay" value="raten" checked><span><b>In ${m} Raten à ${euro(r)}</b><small>Die erste Rate ist deine Anzahlung, die weiteren zahlst du ab Kursstart.</small></span></label>
+            <label class="offer-radio"><input type="radio" name="offerPay" value="einmal"><span><b>Einmalig ${euro(d.full_price)}</b><small>Du zahlst den Gesamtbetrag auf einmal.</small></span></label>
+          </div><p class="offer-small" style="margin:0 0 12px">Danach melde ich mich persönlich mit der Rechnung und deinem Zugang.</p>`; })() : ""}
         <div class="offer-row"><button class="btn-ink" type="button" data-a="offerAnswer" data-v="${v}">${v === "coaching" ? "Ja, Coaching annehmen" : "Ja, bitte melden"}</button><button class="btn-line" type="button" data-a="offerPick" data-v="">Abbrechen</button></div></div>`
     : `<button class="${cls}" type="button" data-a="offerPick" data-v="${v}">${label}</button>`;
   const until = d.valid_until ? `${WD[pd(d.valid_until).getDay()]}, ${fmt(d.valid_until)}` : "";
@@ -983,7 +988,8 @@ function offerBox(w) {
   }
   if (!o) return ["gefuehrt", "termin"].includes(w.contact_stage) && w.status === "waiting" ? `<div class="actions"><button class="btn small" type="button" data-a="offerOpen" data-id="${w.id}">Angebot erstellen</button></div>` : "";
   const expired = o.status === "offen" && o.valid_until && o.valid_until < today();
-  const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${fmt(o.answered_at)}</span>`
+  const payTxt = o.pay_mode === "raten" ? " · in Raten" : o.pay_mode === "einmal" ? " · einmalig" : "";
+  const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${fmt(o.answered_at)}${payTxt}</span>`
     : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
     : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
     : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span><span class="muted" style="font-size:13px">${esc(viewsText(o))}</span>`;
@@ -1011,7 +1017,7 @@ function wlPhase(w) {
   }
   const o = offerOf(w);
   if (o) {
-    if (o.status === "coaching") return { key: "angebot", label: "Angebot angenommen", cls: "ok-tag", since: o.answered_at, next: "Rechnung schicken, Platz zusagen", urgent: true };
+    if (o.status === "coaching") return { key: "angebot", label: "Angebot angenommen", cls: "ok-tag", since: o.answered_at, next: o.pay_mode === "einmal" ? "Rechnung über den Gesamtbetrag, Platz zusagen" : o.pay_mode === "raten" ? "Rechnung für die Anzahlung, Platz zusagen" : "Rechnung schicken, Platz zusagen", urgent: true };
     if (o.status === "einzelstunde") return { key: "angebot", label: "Einzelstunde angefragt", cls: "ok-tag", since: o.answered_at, next: "Termin ausmachen", urgent: true };
     const exp = o.valid_until && o.valid_until < today();
     if (exp) return { key: "angebot", label: "Angebot abgelaufen", cls: "err-tag", since: o.valid_until, next: "Nachfragen oder abschließen" };
@@ -1045,7 +1051,7 @@ function wlTimeline(w) {
     const vs = viewsOf(o);
     if (vs.length) vs.forEach(v => ev.push({ at: v.at, t: "Angebot angesehen" + (v.device === "mobil" ? " (Handy)" : v.device === "desktop" ? " (Computer)" : "") }));
     else if (o.viewed_at) ev.push({ at: o.viewed_at, t: "Angebot angesehen" });
-    if (o.answered_at) ev.push({ at: o.answered_at, t: o.status === "coaching" ? "Angebot angenommen" : "Einzelstunde angefragt", good: true });
+    if (o.answered_at) ev.push({ at: o.answered_at, t: o.status === "coaching" ? "Angebot angenommen" + (o.pay_mode === "raten" ? " (Zahlung in Raten)" : o.pay_mode === "einmal" ? " (Zahlung einmalig)" : "") : "Einzelstunde angefragt", good: true });
   }
   if (w.contact_stage === "termin" && w.call_at && new Date(w.call_at) > new Date()) ev.push({ at: w.call_at, t: "Kennenlerngespräch", future: true });
   ev.sort((a, b) => String(b.at).localeCompare(String(a.at)));
@@ -1350,9 +1356,12 @@ const A = {
   offerAnswer: async el => {
     const o = S.ui.offer; if (!o) return;
     el.disabled = true;
-    const r = await run(sb.rpc("offer_answer", { p_token: o.token, p_choice: el.dataset.v }));
+    const payEl = document.querySelector('input[name="offerPay"]:checked'), pay = el.dataset.v === "coaching" && payEl ? payEl.value : "";
+    let res = await sb.rpc("offer_answer", { p_token: o.token, p_choice: el.dataset.v, p_pay: pay });
+    if (res.error && /PGRST202|Could not find the function/.test((res.error.code || "") + res.error.message)) res = await sb.rpc("offer_answer", { p_token: o.token, p_choice: el.dataset.v });
+    const r = await run(Promise.resolve(res));
     if (!r) { el.disabled = false; return; }
-    o.data.status = r.data.status; o.confirm = null; render(); window.scrollTo(0, 0);
+    o.data.status = r.data.status; o.data.pay_mode = r.data.pay_mode || pay; o.confirm = null; render(); window.scrollTo(0, 0);
   },
   offerOpen: el => { S.ui.offerEdit = el.dataset.id || null; render(); },
   offerCopy: el => { const t = offerLink(el.dataset.t); try { navigator.clipboard.writeText(t).then(() => toast("Link zum Angebot kopiert."), () => toast(t)); } catch (e) { toast(t); } },
