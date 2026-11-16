@@ -160,6 +160,7 @@ const leftFor = p => p.package_total - sessionsOf(p.id).length - upcomingOf(p.id
 const profileName = id => { const p = S.D.profiles.find(x => x.id === id); return p ? (p.full_name || p.email) : (id === S.me.id ? (S.me.full_name || S.me.email) : "Gelöschter Schüler"); };
 
 function access(p, m) {
+  if (p.role === "coach") return { ok: true, why: "Als Coach alles frei" };
   if (!p.course_access) return { ok: false, why: "Kein Kurszugang", long: "Der Videokurs ist für dich noch nicht freigeschaltet." };
   if (accessExpired(p)) return { ok: false, why: "Zugang abgelaufen", long: "Dein Zugang zum Videokurs ist am " + fmtY(accessUntil(p)) + " abgelaufen." };
   if (S.D.unlocks.some(u => u.user_id === p.id && u.module_id === m.id)) return { ok: true, why: "Von dir freigeschaltet", manual: true };
@@ -612,6 +613,8 @@ function renderChrome() {
   document.querySelectorAll("#nav a").forEach(a => {
     if (a.getAttribute("href") === "#" + S.view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
+  const cur = $("#nav a[aria-current]"), nav = $("#nav");
+  if (cur && nav && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, cur.offsetLeft - nav.offsetLeft - nav.clientWidth / 2 + cur.offsetWidth / 2);
 }
 
 function render() {
@@ -644,8 +647,23 @@ function render() {
     if (adminScrollRestore != null) { const y = adminScrollRestore; adminScrollRestore = null; requestAnimationFrame(() => window.scrollTo(0, y)); }
   }
 }
+// Kursvideo: signierten Bunny-Link holen (gilt 4 Stunden, wir merken ihn 3 Stunden)
+const videoCache = {};
+async function mountVideo() {
+  const box = $("[data-video]"); if (!box) return;
+  const id = box.dataset.video, c = videoCache[id];
+  let url = c && c.until > Date.now() ? c.url : null;
+  if (!url) {
+    const { data, error } = await sb.rpc("lesson_video_url", { p_lesson: id });
+    if (error || !data) { if (box.isConnected) box.innerHTML = `<p class="soon">Das Video ist gerade nicht verfügbar. Lade die Seite neu oder schreib mir, wenn es so bleibt.</p>`; return; }
+    url = data; videoCache[id] = { url, until: Date.now() + 3 * 3600e3 };
+  }
+  const now = $(`[data-video="${id}"]`); if (!now || now.querySelector("iframe")) return;
+  now.innerHTML = `<iframe src="${esc(url)}&autoplay=false&preload=true&responsive=true" title="Lektionsvideo" loading="lazy" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+}
 let cdTimer;
 function afterRender() {
+  mountVideo();
   clearInterval(cdTimer);
   const cd = $("[data-cd]");
   if (!cd) return;
@@ -753,7 +771,7 @@ function viewKurs() {
     const files = S.D.files.filter(f => f.lesson_id === sel.id);
     const qs = S.D.questions.filter(q => q.user_id === me.id && q.lesson_id === sel.id);
     lessonHTML = `<div class="player">
-      <div class="screen">${sel.video_id ? `<p class="soon">Das Video wird gerade angebunden und ist bald hier zu sehen.</p>` : `<p class="soon">Für diese Lektion gibt es noch kein Video.</p>`}</div>
+      <div class="screen"${sel.video_id ? ` data-video="${sel.id}"` : ""}>${sel.video_id ? `<p class="soon">Video lädt …</p>` : `<p class="soon">Für diese Lektion gibt es noch kein Video.</p>`}</div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="lesson-head"><span class="muted" style="font-size:13px">Modul ${modIndex(modOf(sel)) + 1} · ${esc(modOf(sel).title)}</span><h2>${esc(sel.title)}</h2></div>
         ${sel.points.length ? `<ul class="points">${sel.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}

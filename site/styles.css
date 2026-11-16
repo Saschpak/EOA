@@ -65,7 +65,7 @@ p{margin:0}
 #logout{margin-left:auto}
 @media (max-width:640px){
   .bar-inner{flex-wrap:wrap;height:auto;padding-block:10px 0;row-gap:2px}
-  .nav{order:3;flex-basis:100%;gap:18px}
+  .nav{order:3;flex-basis:100%;gap:15px;padding-right:24px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
   .nav a{padding:10px 0}
 }
 
@@ -166,6 +166,7 @@ main{max-width:1040px;margin:0 auto;padding-block:40px 72px}
 .player{display:flex;flex-direction:column;gap:18px}
 .screen{aspect-ratio:16/9;max-width:100%;max-height:70vh;background:var(--screen);border-radius:var(--r-lg);position:relative;display:grid;place-items:center;overflow:hidden}
 .screen .soon{color:#a1a1a6;font-size:14px;text-align:center;padding:16px}
+.screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .lesson-head{display:flex;flex-direction:column;gap:4px}
 .lesson-head h2{font-size:26px;font-weight:750}
 .points{margin:0;padding-left:20px;color:var(--muted)}
