@@ -972,10 +972,12 @@ function offerBox(w) {
       <div class="field"><label class="label" for="of-u-${w.id}">Gilt bis</label><input id="of-u-${w.id}" name="until" type="date" value="${esc(v.valid_until || "")}"></div></div>
       <div class="field"><label class="label" for="of-t-${w.id}">Persönliche Notiz</label><textarea id="of-t-${w.id}" name="note" rows="3" maxlength="1500" placeholder="Danke für das gute Gespräch! …">${esc(v.note)}</textarea></div>
       <div class="field"><label class="label" for="of-p-${w.id}">Das nehmen wir uns vor (eine Zeile pro Punkt, „Titel: Beschreibung“)</label><textarea id="of-p-${w.id}" name="plan" rows="4">${esc(planText(v.plan))}</textarea></div>
-      <div class="form-grid"><div class="field"><label class="label" for="of-f-${w.id}">Coaching, € insgesamt (0 = ohne)</label><input id="of-f-${w.id}" name="full" type="number" min="0" step="1" value="${v.full_price}"></div>
+      <label class="inline-check" for="of-fo-${w.id}"><input class="check" id="of-fo-${w.id}" name="fullOn" type="checkbox" ${v.full_price ? "checked" : ""} style="margin:0"><b>Komplettes Coaching anbieten</b></label>
+      <div class="form-grid"><div class="field"><label class="label" for="of-f-${w.id}">Preis insgesamt, €</label><input id="of-f-${w.id}" name="full" type="number" min="0" step="1" value="${v.full_price || D0.full || 0}"></div>
       <div class="field"><label class="label" for="of-w-${w.id}">Durchgestrichen, € (0 = ohne)</label><input id="of-w-${w.id}" name="was" type="number" min="0" step="1" value="${v.full_was}"></div></div>
-      <div class="form-grid"><div class="field"><label class="label" for="of-l-${w.id}">Hinweis über dem Coaching</label><input id="of-l-${w.id}" name="label" type="text" maxlength="60" value="${esc(v.full_label)}"></div>
-      <div class="field"><label class="label" for="of-s-${w.id}">Einzelstunde, € (0 = ohne)</label><input id="of-s-${w.id}" name="single" type="number" min="0" step="1" value="${v.single_price}"></div></div>
+      <div class="field"><label class="label" for="of-l-${w.id}">Hinweis über dem Coaching</label><input id="of-l-${w.id}" name="label" type="text" maxlength="60" value="${esc(v.full_label)}"></div>
+      <label class="inline-check" for="of-so-${w.id}"><input class="check" id="of-so-${w.id}" name="singleOn" type="checkbox" ${v.single_price ? "checked" : ""} style="margin:0"><b>Einzelstunden anbieten</b></label>
+      <div class="field"><label class="label" for="of-s-${w.id}">Preis pro Stunde, €</label><input id="of-s-${w.id}" name="single" type="number" min="0" step="1" value="${v.single_price || D0.single || 0}"></div>
       <div class="actions"><button class="btn primary small" type="submit">Speichern</button><button class="btn quiet small" type="button" data-a="offerOpen" data-id="">Abbrechen</button></div></form>`;
   }
   if (!o) return ["gefuehrt", "termin"].includes(w.contact_stage) && w.status === "waiting" ? `<div class="actions"><button class="btn small" type="button" data-a="offerOpen" data-id="${w.id}">Angebot erstellen</button></div>` : "";
@@ -1512,10 +1514,11 @@ const F = {
   offerEdit: async f => {
     const wid = f.dataset.wid, oid = f.dataset.oid, w = (S.D.waitlist || []).find(x => x.id === wid) || {};
     const num = n => Math.max(0, Math.round(+String(f[n].value).replace(",", ".") || 0));
+    const fullOn = f.fullOn ? f.fullOn.checked : true, singleOn = f.singleOn ? f.singleOn.checked : true;
     const row = { name: f.name.value.trim(), note: f.note.value.trim(), plan: parsePlan(f.plan.value),
-      full_price: num("full"), full_was: num("was"), full_label: f.label.value.trim(), single_price: num("single"),
+      full_price: fullOn ? num("full") : 0, full_was: fullOn ? num("was") : 0, full_label: f.label.value.trim(), single_price: singleOn ? num("single") : 0,
       valid_until: f.until.value || null, updated_at: new Date().toISOString() };
-    if (!row.full_price && !row.single_price) return toast("Bitte mindestens einen Preis eintragen.", true);
+    if (!row.full_price && !row.single_price) return toast("Bitte mindestens eine Option mit Preis anbieten.", true);
     const r = oid ? await run(sb.from("offers").update(row).eq("id", oid), "Angebot gespeichert.")
       : await run(sb.from("offers").insert({ ...row, waitlist_id: wid, email: w.email || "" }), "Angebot erstellt. Link kopieren und mitschicken.");
     if (r) { S.ui.offerEdit = null; reload(); }
