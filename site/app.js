@@ -116,6 +116,9 @@ async function load() {
     const [ml, mr] = await Promise.all([sb.rpc("mail_log_status"), sb.rpc("mail_ready")]);
     D.mailLog = ml.error ? null : ml.data; D.mailReady = mr.error ? null : mr.data;
   }
+  const dl = await q("downloads", "*", [["category"], ["position"], ["created_at", false]]);
+  D.downloads = dl.error ? [] : dl.data;
+  if (S.me.role === "coach") { const lg = await q("download_log", "download_id,user_id,at", [["at"]]); D.dlLog = lg.error ? [] : lg.data; }
   S.D = D;
 }
 async function refreshMe() {
@@ -631,7 +634,7 @@ function render() {
   try {
     renderChrome();
     const pre = preLaunch() && S.me.role !== "coach" && !S.me.early_access && (S.view === "start" || S.view === "kurs");
-    const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
+    const v = pre ? viewPrelaunch : { start: viewStart, kurs: viewKurs, sessions: viewSessions, downloads: viewDownloads, news: viewNews, konto: viewKonto, admin: viewAdmin, bald: viewPrelaunch }[S.view] || viewStart;
     $("#app").innerHTML = (va ? `<div class="viewas-bar" role="status"><span>Du siehst die Plattform als <b>${esc(va.full_name || va.email)}</b>. Hier wird nichts gespeichert.</span><button class="btn small" type="button" data-a="viewAsExit">Zurück zum Admin</button></div>` : "") + v();
   } finally { S.me = coachMe; }
   document.body.classList.toggle("is-viewas", !!va);
@@ -794,6 +797,27 @@ function viewSessions() {
 }
 
 /* ---------- Schüler: News ---------- */
+/* ---------- Downloads ---------- */
+const fmtSize = b => !b ? "" : b >= 1048576 ? (b / 1048576).toFixed(b >= 10485760 ? 0 : 1).replace(".", ",") + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+const dlExt = n => (n.split(".").pop() || "").slice(0, 4);
+function dlGroups(list) {
+  const g = new Map();
+  list.forEach(d => { if (!g.has(d.category)) g.set(d.category, []); g.get(d.category).push(d); });
+  return [...g.entries()];
+}
+function viewDownloads() {
+  const me = S.me, list = S.D.downloads.filter(d => d.published);
+  const can = me.role === "coach" || me.course_access;
+  return `<section class="view"><div class="intro"><h1>Downloads</h1><p class="muted">Templates, Max-for-Live-Devices und alles, was du für dein Live-Set brauchst. Lade dir die Dateien herunter und leg sie in deine Ableton User Library.</p></div>
+    ${!can ? `<p class="empty">Die Downloads siehst du, sobald dein Coach den Kurs für dich freischaltet.</p>`
+      : !list.length ? `<p class="empty">Hier kommen bald die ersten Templates.</p>`
+      : dlGroups(list).map(([cat, items]) => `<div class="dl-group"><h2 class="dl-cat">${esc(cat)}</h2>${items.map(d => `<div class="dl-item">
+          <span class="dl-ext">${esc(dlExt(d.file_name))}</span>
+          <div class="dl-main"><b>${esc(d.title)}</b>${d.description ? `<p>${esc(d.description)}</p>` : ""}<span class="dl-meta">${[d.version ? "Version " + esc(d.version) : "", fmtSize(d.size_bytes), "Stand " + fmtY(d.updated_at)].filter(Boolean).join(" · ")}</span></div>
+          <button class="btn primary dl-btn" type="button" data-a="dl" data-id="${d.id}">Herunterladen</button></div>`).join("")}</div>`).join("")}
+  </section>`;
+}
+
 function viewNews() {
   return `<section class="view"><div class="intro"><h1>News</h1></div>
     ${S.D.news.length ? S.D.news.map(n => `<article class="card news"><span class="label">${fmt(n.published_at)}</span><h3>${esc(n.title)}</h3><p style="white-space:pre-line">${esc(n.body)}</p></article>`).join("") : `<p class="empty">Noch keine News.</p>`}
@@ -821,8 +845,8 @@ const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
-  const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, fragen: adminFragen, news: adminNews };
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
   if (!AV[S.ui.tab]) S.ui.tab = "home";
   const body = AV[S.ui.tab]();
   return `<section class="view">
@@ -1305,6 +1329,34 @@ function adminFragen() {
     : `<p class="empty">Noch keine Fragen.</p>`;
 }
 
+function adminDownloads() {
+  const e = S.ui.editDl && S.D.downloads.find(d => d.id === S.ui.editDl);
+  const cats = [...new Set(["Max for Live", "Templates", "Clips & Presets", "Anleitungen", ...S.D.downloads.map(d => d.category)])];
+  const log = S.D.dlLog || [];
+  return `<form class="card" data-f="dlSave" novalidate>
+      <h2>${e ? "Download bearbeiten" : "Neuer Download"}</h2>
+      <p class="muted" style="font-size:14px">Am besten eine ZIP-Datei pro Download (z. B. Device, Clips und Anleitung zusammen). Bis 200 MB. Sichtbar für alle Schüler mit Kurszugang.</p>
+      <div class="field"><label class="label" for="dlTitle">Titel</label><input id="dlTitle" name="title" type="text" maxlength="120" value="${e ? esc(e.title) : ""}" placeholder="z. B. Saschpak's Sections Maker"></div>
+      <div class="two-fields">
+        <div class="field"><label class="label" for="dlCat">Kategorie</label><input id="dlCat" name="category" type="text" maxlength="60" list="dlCats" value="${esc(e ? e.category : "Max for Live")}"><datalist id="dlCats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
+        <div class="field"><label class="label" for="dlVer">Version (optional)</label><input id="dlVer" name="version" type="text" maxlength="30" value="${e ? esc(e.version) : ""}" placeholder="z. B. 1.0"></div>
+      </div>
+      <div class="field"><label class="label" for="dlDesc">Beschreibung</label><textarea id="dlDesc" name="description" maxlength="1000" style="min-height:90px" placeholder="Was ist das, und wofür brauche ich es?">${e ? esc(e.description) : ""}</textarea></div>
+      <div class="field"><label class="label" for="dlFile">${e ? `Datei ersetzen (optional, jetzt: ${esc(e.file_name)})` : "Datei"}</label><input id="dlFile" name="file" type="file"></div>
+      <label class="inline-check"><input class="check" type="checkbox" name="published" ${!e || e.published ? "checked" : ""}><span>Für Schüler sichtbar</span></label>
+      <div class="actions"><button class="btn primary" type="submit">${e ? "Änderungen speichern" : "Hochladen"}</button>${e ? `<button class="btn quiet" type="button" data-a="editDl" data-id="">Abbrechen</button>` : ""}</div>
+    </form>
+    ${S.D.downloads.length ? dlGroups(S.D.downloads).map(([cat, items]) => `<span class="label group-label">${esc(cat)}</span>${items.map(d => {
+      const l = log.filter(x => x.download_id === d.id), who = new Set(l.map(x => x.user_id)).size;
+      return `<div class="card dl-admin"><div class="dl-item">
+        <span class="dl-ext">${esc(dlExt(d.file_name))}</span>
+        <div class="dl-main"><b>${esc(d.title)}${d.published ? "" : ` <span class="muted-tag">Entwurf</span>`}</b>${d.description ? `<p>${esc(d.description)}</p>` : ""}
+          <span class="dl-meta">${[esc(d.file_name), fmtSize(d.size_bytes), d.version ? "Version " + esc(d.version) : "", "Stand " + fmtY(d.updated_at)].filter(Boolean).join(" · ")}</span>
+          <span class="dl-meta">${l.length ? `${l.length}× geladen von ${who} ${who === 1 ? "Person" : "Personen"}, zuletzt ${fmtY(l[l.length - 1].at)}` : "Noch nicht geladen"}</span></div></div>
+        <div class="actions" style="align-items:center"><button class="btn small" type="button" data-a="editDl" data-id="${d.id}">Bearbeiten</button><button class="btn small quiet" type="button" data-a="dl" data-id="${d.id}">Testen</button>${confirmBtn("dl:" + d.id, "Löschen", `data-a="delDl" data-id="${d.id}"`)}</div></div>`;
+    }).join("")}`).join("") : `<p class="empty">Noch keine Downloads.</p>`}`;
+}
+
 function adminNews() {
   const e = S.ui.editNews && S.D.news.find(n => n.id === S.ui.editNews);
   return `<form class="card" data-f="news" novalidate>
@@ -1482,6 +1534,19 @@ const A = {
     await run(sb.storage.from("lesson-files").remove([f.storage_path]));
     await run(sb.from("lesson_files").delete().eq("id", f.id), "Datei entfernt."); S.ui.confirm = null; reload();
   },
+  dl: async el => {
+    const d = S.D.downloads.find(x => x.id === el.dataset.id); if (!d) return;
+    const r = await run(sb.storage.from("downloads").createSignedUrl(d.storage_path, 300, { download: d.file_name }));
+    if (!r || !r.data) return;
+    if (S.me.role !== "coach" && !S.viewAs) sb.from("download_log").insert({ download_id: d.id, user_id: S.me.id }).then(() => {});
+    location.href = r.data.signedUrl;
+  },
+  editDl: el => { S.ui.editDl = el.dataset.id || null; render(); window.scrollTo(0, 0); },
+  delDl: async el => {
+    const d = S.D.downloads.find(x => x.id === el.dataset.id); if (!d) return;
+    await run(sb.storage.from("downloads").remove([d.storage_path]));
+    await run(sb.from("downloads").delete().eq("id", d.id), "Download gelöscht."); S.ui.confirm = null; if (S.ui.editDl === d.id) S.ui.editDl = null; reload();
+  },
   editNews: el => { S.ui.editNews = el.dataset.id || null; render(); window.scrollTo(0, 0); },
   delNews: async el => { await run(sb.from("news").delete().eq("id", el.dataset.id), "News gelöscht."); S.ui.confirm = null; if (S.ui.editNews === el.dataset.id) S.ui.editNews = null; reload(); }
 };
@@ -1645,6 +1710,25 @@ const F = {
     if (!answer) return f.answer.focus();
     await run(sb.from("questions").update({ answer, answered_at: new Date().toISOString() }).eq("id", f.dataset.id), "Antwort gesendet."); reload();
   },
+  dlSave: async f => {
+    const e = S.ui.editDl && S.D.downloads.find(d => d.id === S.ui.editDl);
+    const title = f.title.value.trim(), category = f.category.value.trim() || "Templates", file = f.file.files && f.file.files[0];
+    if (!title) return toast("Bitte einen Titel eingeben.", true);
+    if (!e && !file) return toast("Bitte eine Datei auswählen.", true);
+    if (file && file.size > 200 * 1024 * 1024) return toast("Die Datei ist größer als 200 MB.", true);
+    const row = { title, category, version: f.version.value.trim(), description: f.description.value.trim(), published: f.published.checked, updated_at: new Date().toISOString() };
+    if (file) {
+      const path = Date.now() + "-" + file.name.replace(/[^\w.\-]+/g, "_");
+      toast("Lädt hoch …");
+      const up = await run(sb.storage.from("downloads").upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" }));
+      if (!up) return;
+      Object.assign(row, { file_name: file.name, storage_path: path, size_bytes: file.size });
+    }
+    const ok = e ? await run(sb.from("downloads").update(row).eq("id", e.id), "Gespeichert.") : await run(sb.from("downloads").insert(row), "Hochgeladen.");
+    if (!ok) { if (file) await sb.storage.from("downloads").remove([row.storage_path]); return; }
+    if (e && file) await sb.storage.from("downloads").remove([e.storage_path]);
+    S.ui.editDl = null; reload();
+  },
   news: async f => {
     const title = f.title.value.trim(), body = f.body.value.trim();
     if (!title || !body) return toast("Bitte Überschrift und Text ausfüllen.", true);
@@ -1656,7 +1740,7 @@ const F = {
 
 /* ---------- Ereignisse ---------- */
 // In der Schüleransicht nur Navigation erlauben, nichts speichern
-const VIEWAS_OK = new Set(["viewMod", "openLesson", "download", "copyText", "viewAsExit", "reloadPage"]);
+const VIEWAS_OK = new Set(["viewMod", "openLesson", "download", "dl", "copyText", "viewAsExit", "reloadPage"]);
 const viewAsBlocked = () => { toast("Das ist nur die Schüleransicht. Hier wird nichts gespeichert.", true); };
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]");
@@ -1744,7 +1828,7 @@ document.addEventListener("change", async e => {
 $("#logout").addEventListener("click", () => { if (S.viewAs && S.view !== "admin") return viewAsBlocked(); A.logout(); });
 
 /* ---------- Navigation ---------- */
-const VIEWS = ["start", "kurs", "sessions", "news", "konto", "admin", "bald"];
+const VIEWS = ["start", "kurs", "sessions", "downloads", "news", "konto", "admin", "bald"];
 function route() {
   const h = location.hash.replace("#", "");
   if (/access_token|error_description|type=/.test(h)) return;
