@@ -665,3 +665,9 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 .offer-radio input{accent-color:var(--accent);margin-top:4px;width:18px;height:18px;flex:none}
 .offer-radio span{display:flex;flex-direction:column;gap:2px}
 .offer-radio small{color:var(--muted);font-size:14px}
+/* Plätze deutlicher (ohne Early-Bird-Klammer) */
+.spots-big{font-size:clamp(24px,5vw,32px);font-weight:800;font-stretch:80%;line-height:1.1}
+.spots-big b{color:var(--accent)}
+.spots i{grid-row:auto;height:14px;border-radius:999px;border:0;background:var(--line)}
+.spots i.taken{background:var(--accent-hi)}
+.hero-spots b{color:var(--fg);font-weight:700}

@@ -302,7 +302,9 @@ function spotsInfo() {
 function spotsMeter() {
   const { n, taken, free } = spotsInfo();
   return `<div class="spots-box">
-    <p class="spots-cap">${free > 0 ? `Noch <b>${free} von ${n}</b> Teilnehmerplätzen frei` : `Alle ${n} Teilnehmerplätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
+    <p class="spots-big">${free > 0 ? `Noch <b>${free}</b> von ${n} Plätzen frei` : `Alle ${n} Plätze vergeben`}</p>
+    <div class="spots" role="img" aria-label="${taken} von ${n} Teilnehmerplätzen vergeben" style="--n:${n}">${Array.from({ length: n }, (_, i) => `<i class="${i < taken ? "taken" : ""}"></i>`).join("")}</div>
+    <p class="spots-cap">${free > 0 ? `${taken ? `${taken} ${taken === 1 ? "Platz ist" : "Plätze sind"} schon vergeben. ` : ""}${esc(CONFIG.launchText || "")}` : `Alle ${n} Teilnehmerplätze sind vergeben. Trag dich trotzdem ein, du rückst nach, wenn jemand abspringt.`}</p></div>`;
 }
 
 function roundText() {
@@ -310,7 +312,7 @@ function roundText() {
   const n = CONFIG.waitlistSpots, free = Math.max(0, n - (st.invited || 0));
   let t = `Nur ${n} Teilnehmerplätze in der ersten Runde. ${esc(CONFIG.launchText)} Die Warteliste ist der erste Schritt: Ich melde mich in der Reihenfolge der Einträge für ein kostenloses Kennenlerngespräch.`;
   if (CONFIG.earlyBirdBonus && st.early_bird_slots != null && st.early_bird_left > 0)
-    t += ` Die ersten ${st.early_bird_slots} Buchungen bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
+    t += ` Die ersten Buchungen bekommen ${esc(CONFIG.earlyBirdBonus)} dazu.`;
   return t;
 }
 const pubPrice = () => CONFIG.showPrice !== false;
@@ -329,11 +331,11 @@ function priceBlock() {
   if (!pubPrice()) {
     const st = (S.wl && S.wl.stats) || {};
     return `<h2 class="big" style="margin-top:12px">Was kostet das?</h2><p class="price-sub" style="font-size:var(--t-m)">${esc(CONFIG.priceHiddenText || "")}</p>
-      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${st.early_bird_slots} Buchungen bekommen einen Rabatt.</span></p>` : ""}`;
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten Buchungen gibt es einen Early-Bird-Rabatt.</span></p>` : ""}`;
   }
   const st = (S.wl && S.wl.stats) || {};
   if (ebActive()) return `<div class="price" style="margin-top:12px"><s>${esc(CONFIG.earlyBirdPriceWas)}</s>${esc(CONFIG.earlyBirdPriceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "").split(" · ").join("<br>")}</small></div>
-      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten ${st.early_bird_slots} Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>.</span></p>
+      <p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Für die ersten Buchungen: <b>${esc(CONFIG.earlyBirdDeal)}</b>.</span></p>
       ${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
   return `<div class="price" style="margin-top:12px">ab ${esc(CONFIG.priceHeadline)}<small>${esc(CONFIG.priceHeadlineNote || "").split(" · ").join("<br>")}</small></div>${CONFIG.priceDetail ? `<p class="price-sub">${esc(CONFIG.priceDetail)}</p>` : ""}`;
 }
@@ -470,7 +472,7 @@ function renderLanding() {
         : `<div class="place place-early"><b>Hier ist dein PDF.</b></div><div class="actions"><a class="btn-ink" href="${esc(giftFile)}" download>PDF herunterladen</a></div>`}
       ${reachBox(me)}
       <p>${showPlace(me.position) ? `Du stehst außerdem als <b>Nr.\u00a0${me.position}</b> auf der Warteliste` : `Du gehörst außerdem zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste`} der Playback Masterclass. Ich melde mich bei dir, bevor es ${launch} losgeht, und wir sprechen kostenlos über dein Setup.</p>
-      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
+      ${ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten Buchungen ${esc(ebShort())}.</span></p>` : ""}
       <p class="muted" style="font-size:14px">Unter diesem Link siehst du jederzeit deinen Stand:</p>
       <div class="copyrow"><code id="placeUrl">${esc(placeLink(w.token))}</code><button class="btn-ink" type="button" data-a="copyPlace">Kopieren</button></div>
       <p class="muted" style="font-size:13px">Doch kein Interesse? <a href="#abmelden-${esc(w.token)}">Von der Warteliste abmelden</a></p></div>`;
@@ -478,7 +480,7 @@ function renderLanding() {
       ${showPlace(me.position) ? `<div class="place"><b>Nr.\u00a0${me.position}</b><span>auf der Warteliste</span></div>`
         : `<div class="place place-early"><b>Du bist dabei.</b></div><p>Du gehörst zu den <b>ersten ${placeBucket(me.position)}</b> auf der Warteliste.</p>`}
       ${me.early_bird && ebText() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Du zahlst ${esc(ebText())}.</span></p>`
-        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten ${S.wl.stats.early_bird_slots} Buchungen ${esc(ebShort())}.</span></p>` : ""}
+        : ebActive() ? `<p class="eb-line"><span class="eb-tag">Early-Bird</span><span>Die ersten Buchungen ${esc(ebShort())}.</span></p>` : ""}
       ${me.confirmed === false ? `<p class="confirm-hint"><b>Fast geschafft:</b> Ich habe dir eine Mail geschickt. Bitte bestätige deinen Eintrag über den Link darin. Nichts bekommen? Schau auch im Spam-Ordner nach.</p>` : ""}
       <p>Danke${firstName(me.name) ? ", " + esc(firstName(me.name)) : ""}! Als Nächstes sprechen wir kurz, unverbindlich und kostenlos, über dein Setup und schauen, ob das Coaching zu dir passt.</p>
       ${CONFIG.introCallUrl ? `<div class="actions"><a class="btn-ink" href="${esc(CONFIG.introCallUrl)}" target="_blank" rel="noopener">Termin fürs Kennenlerngespräch wählen</a></div><p class="muted" style="font-size:14px">Lieber später? Kein Problem, ich melde mich bei dir.</p>` : `<p class="muted">Ich melde mich in der Reihenfolge der Warteliste per Mail bei dir für einen Termin.</p>`}
@@ -518,7 +520,7 @@ function renderLanding() {
         <span class="eyebrow">Und wenn du mehr willst · Start ${launch}</span>
         <h2 class="big">Die Playback Masterclass: Playback, das auf der Bühne <em>einfach läuft.</em></h2>
         <p class="lead" style="margin-top:14px">Für Bands und Artists, die live mit Ableton spielen. In 4 Monaten bauen wir zusammen dein komplettes Set, mit meinen Templates und Workflows.</p>
-        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span><span>${sp.free > 0 ? `<b>Noch ${sp.free} von ${sp.n}</b> Plätzen frei${sp.taken ? ` · ${sp.taken} schon vergeben` : ""}` : "Erste Runde ausgebucht, Warteliste offen"}</span></p>
         <div class="cta"><a class="btn-line" href="#kurs" data-a="toKurs">Was ist drin?</a></div>
       </div>
       ${video ? `<div class="hero-side">${video}</div>` : ""}
@@ -528,7 +530,7 @@ function renderLanding() {
         <h1 class="hero">Playback, das auf der Bühne <em>einfach läuft.</em></h1>
         ${video ? `<button class="intro-strip" type="button" data-a="playIntro">${CONFIG.photoUrl ? `<img src="${esc(CONFIG.photoUrl)}" alt="" width="54" height="96">` : ""}<span><b>${esc((CONFIG.aboutTitle || "Hi, ich bin Sascha.").replace(/\.$/, "."))}</b><span>${esc(CONFIG.introStripText || "")}</span></span><span class="play-ic" aria-hidden="true"></span></button>` : ""}
         <p class="lead">${CONFIG.heroLeadStrong ? `<b class="lead-strong">${esc(CONFIG.heroLeadStrong)}</b> ` : ""}${esc(CONFIG.heroLead || "")}</p>
-        <p class="hero-spots"><span class="dot" aria-hidden="true"></span>${sp.free > 0 ? `Noch ${sp.free} von ${sp.n} Teilnehmerplätzen frei` : "Erste Runde ausgebucht, Warteliste offen"}</p>
+        <p class="hero-spots"><span class="dot" aria-hidden="true"></span><span>${sp.free > 0 ? `<b>Noch ${sp.free} von ${sp.n}</b> Plätzen frei${sp.taken ? ` · ${sp.taken} schon vergeben` : ""}` : "Erste Runde ausgebucht, Warteliste offen"}</span></p>
         <div class="wl-box" id="warteliste">${box}</div>
       </div>
       ${video ? `<div class="hero-side">${video}</div>` : ""}
