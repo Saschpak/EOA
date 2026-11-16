@@ -33,13 +33,15 @@ window.CONFIG = {
   // false = Preis wird auf der Startseite nicht genannt, sondern erst im Kennenlerngespräch (Test seit 12.11.2026)
   showPrice: false,
   priceHiddenText: "Den Preis und alle Details besprechen wir im kostenlosen Kennenlerngespräch. Du kannst einmalig oder in Monatsraten zahlen, und verbindlich wird es erst, wenn du zusagst.",
-  faqPaymentNoPrice: "Den Preis besprechen wir im kostenlosen Kennenlerngespräch, abgestimmt auf das, was du brauchst. Du kannst einmalig oder in Monatsraten zahlen. Gezahlt wird erst, wenn du nach dem Gespräch zusagst.",
+  faqPaymentNoPrice: "Den Preis besprechen wir im kostenlosen Kennenlerngespräch, abgestimmt auf das, was du brauchst. Du kannst einmalig oder in Monatsraten zahlen. Gezahlt wird erst, wenn du nach dem Gespräch zusagst: zuerst eine Anzahlung, die deinen Platz sichert, die weiteren Raten ab Kursstart.",
   priceHeadline: "240\u00a0€",
   priceHeadlineNote: "im Monat · für 4\u00a0Monate",
   priceDetail: "Regulär 240\u00a0€ im Monat. Insgesamt 960\u00a0€, in 4 Monatsraten oder einmalig. Danach keine weiteren Kosten. Alle Preise inkl. 19\u00a0% MwSt.",
   // Persönliches Angebot nach dem Gespräch (#angebot-<token>): Vorgaben fürs Formular im Admin
   offerDefaults: { full: 800, was: 960, label: "Empfehlung · Early-Bird", single: 100, days: 6 },
   offerMonths: 4,
+  // Zahlungsweise, steht auf jedem Angebot unter dem kompletten Coaching
+  offerPaymentNote: "Die erste Rate ist deine Anzahlung und sichert dir deinen Platz. Die weiteren Raten zahlst du erst ab Kursstart Ende Januar.",
   coachingMonths: 4,   // Zeitraum für 1:1s und Kurs, für „im Plan / hinter Plan“ im Admin
   accessMonths: 12,    // Zugang zum Videokurs ab Kursstart bzw. Beitritt (pro Schüler änderbar)
   contactEmail: "info@saschpak.de",
@@ -116,7 +118,7 @@ window.CONFIG = {
     ["Welche Ausstattung brauche ich?", "Einen Laptop mit Ableton Live und ein Audio-Interface. Geräte wie ein SPD-SX, MIDI-Controller oder Lichtsoftware sind optional. Was für dein Setup sinnvoll ist, besprechen wir im Gespräch, bevor du etwas kaufst."],
     ["Geht das auch als Solo-Artist?", "Ja. Ob Band oder Solo, Click, Cues und ein stabiles Setup braucht jeder, der mit Playback spielt."],
     ["Was passiert im Kennenlerngespräch?", "Wir sprechen etwa 20 Minuten über dein Setup, deine nächsten Shows und wo es gerade hakt. Danach weißt du, ob das Coaching zu dir passt. Kostenlos und ohne Verpflichtung."],
-    ["Wie läuft die Bezahlung?", "Insgesamt 960\u00a0€: entweder 4 Monate à 240\u00a0€ oder einmalig. Danach entstehen keine weiteren Kosten, auch nicht für die 12 Monate Kurszugang. Alle Preise inkl. 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst."]
+    ["Wie läuft die Bezahlung?", "Insgesamt 960\u00a0€: entweder 4 Monate à 240\u00a0€ oder einmalig. Danach entstehen keine weiteren Kosten, auch nicht für die 12 Monate Kurszugang. Alle Preise inkl. 19\u00a0% MwSt. Gezahlt wird erst, wenn du nach dem Gespräch zusagst: zuerst eine Anzahlung (die erste Rate), die deinen Platz sichert, die weiteren Raten ab Kursstart."]
   ],
 
   // Kursstart: Bis dahin sehen eingeloggte Teilnehmer statt des Kurses eine Startseite mit Countdown.

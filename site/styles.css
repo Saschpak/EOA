@@ -658,3 +658,4 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 .viewas-bar{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent);color:#fff;border-radius:var(--r);padding:10px 14px;margin:0 0 18px;font-size:14px}
 .viewas-bar .btn{background:#fff;color:#1d1d1f;border-color:#fff}
 .user-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.offer-pay{font-size:15px;margin:-6px 0 18px;max-width:60ch}

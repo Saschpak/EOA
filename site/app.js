@@ -434,8 +434,9 @@ function renderOffer() {
       <div class="offer-opt-head"><div>${d.full_label ? `<span class="offer-tag">${esc(d.full_label)}</span>` : ""}<h2>Das komplette Coaching</h2></div>
       <div class="offer-price">${d.full_was ? `<s>${euro(d.full_was)}</s>` : ""}<b>${euro(d.full_price)}</b><small>${monthly}</small></div></div>
       ${pk.length ? `<ul>${pk.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join("")}</ul>` : ""}
+      ${CONFIG.offerPaymentNote ? `<p class="offer-pay">${esc(CONFIG.offerPaymentNote)}</p>` : ""}
       ${choose("coaching", "Coaching annehmen", "btn-ink")}
-      ${d.expired ? "" : `<p class="offer-small">Danach melde ich mich persönlich, schicke dir die Rechnung und deinen Zugang.</p>`}</section>` : ""}
+      ${d.expired ? "" : `<p class="offer-small">Danach melde ich mich persönlich, schicke dir die Rechnung${CONFIG.offerPaymentNote ? " für die Anzahlung" : ""} und deinen Zugang.</p>`}</section>` : ""}
     ${d.single_price ? `<section class="offer-opt">
       <div class="offer-opt-head"><div><span class="offer-tag">Flexibel</span><h2>Einzelne 1:1-Stunden</h2></div>
       <div class="offer-price"><b>${euro(d.single_price)}</b><small>pro Stunde</small></div></div>
