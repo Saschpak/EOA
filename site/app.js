@@ -283,16 +283,16 @@ async function loadLanding() {
 let stickyObs;
 function setupSticky() {
   if (stickyObs) { stickyObs.disconnect(); stickyObs = null; }
-  const bar = $("#stickyCta"), hero = $("#hero"), wl = $("#warteliste");
+  const bar = $("#stickyCta"), hero = $("#hero"), wl = $("#warteliste"), fin = $(".final-cta");
   if (!bar || !hero || !wl || !("IntersectionObserver" in window)) return;
-  const vis = { hero: true, wl: false };
+  const vis = { hero: true, wl: false, fin: false };
   stickyObs = new IntersectionObserver(es => {
-    es.forEach(e => { vis[e.target === hero ? "hero" : "wl"] = e.isIntersecting; });
-    const show = !vis.hero && !vis.wl;
+    es.forEach(e => { vis[e.target === hero ? "hero" : e.target === fin ? "fin" : "wl"] = e.isIntersecting; });
+    const show = !vis.hero && !vis.wl && !vis.fin;
     bar.classList.toggle("show", show); bar.setAttribute("aria-hidden", String(!show));
     const a = bar.querySelector("a"); if (a) a.tabIndex = show ? 0 : -1;
   }, { threshold: 0 });
-  stickyObs.observe(hero); stickyObs.observe(wl);
+  stickyObs.observe(hero); stickyObs.observe(wl); if (fin) stickyObs.observe(fin);
 }
 
 function spotsInfo() {
@@ -364,10 +364,10 @@ function landingExtras() {
       <h2 class="big">Was andere sagen.</h2>
       <div class="voices">${tst.map(t => `<figure><blockquote>„${esc(t.quote)}“</blockquote><figcaption><b>${esc(t.name)}</b>${t.role ? ` · ${esc(t.role)}` : ""}</figcaption></figure>`).join("")}</div>
     </div></section>` : "",
-    faq: faq.length ? `<section class="l-sec"><div class="l-inner">
-      <h2 class="big">Häufige Fragen</h2>
+    faq: faq.length ? `<section class="l-sec"><div class="l-inner"><div class="pack">
+      <div><h2 class="big">Häufige Fragen</h2></div>
       <div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(!pubPrice() && /Bezahlung/.test(q) && CONFIG.faqPaymentNoPrice ? CONFIG.faqPaymentNoPrice : a)}</p></details>`).join("")}</div>
-    </div></section>` : ""
+    </div></div></section>` : ""
   };
 }
 
@@ -537,7 +537,7 @@ function renderLanding() {
     </div></div></section>`;
   $("#app").innerHTML = `<div class="landing">
     ${S.preview ? `<div class="preview-banner">Vorschau: Platzhalter in eckigen Klammern siehst nur du unter diesem Link.</div>` : ""}
-    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${gh ? "Gratis: " + esc(CONFIG.giftTitle.replace(/^Meine /, "meine ").replace(/ als PDF$/, "")) : sp.free > 0 ? `${sp.n} Teilnehmerplätze ${esc(CONFIG.launchText.replace(/^Die erste Runde startet im /, "ab ").replace(/\.$/, ""))}` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">${gh ? "PDF holen" : "Kostenlos eintragen"}</a></div></div>`}
+    ${signed ? "" : `<div class="sticky-cta" id="stickyCta" aria-hidden="true"><div class="sticky-inner"><span>${gh ? "Gratis: " + esc(CONFIG.giftTitle.replace(/^Meine /, "meine ").replace(/ als PDF$/, "")) : sp.free > 0 ? `Noch <b>${sp.free}</b> ${sp.free === 1 ? "Platz" : "Plätze"} frei` : "Warteliste offen"}</span><a class="btn-ink" href="#warteliste" data-a="toWaitlist" tabindex="-1">${gh ? "PDF holen" : "Kostenlos eintragen"}</a></div></div>`}
     <div class="l-nav"><span class="logo">Playback Masterclass</span><button class="lnk" type="button" data-a="goAuth" data-v="login">Anmelden</button></div>
     ${heroHtml}
     <section class="l-sec alt" id="kurs"><div class="l-inner"><div class="pack">
@@ -554,7 +554,7 @@ function renderLanding() {
         <li><b>Entscheiden</b><span>Erst wenn du zusagst, wird es verbindlich.</span></li>
       </ol></div>
     </div></div></section>` : ""}
-    ${pts.length ? `<section class="l-sec alt"><div class="l-inner"><div class="about no-media"><div><h2 class="big">${esc(CONFIG.aboutTitle || "Über mich")}</h2><ul class="about-pts">${pts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div></div></div></section>` : ""}
+    ${pts.length ? `<section class="l-sec alt"><div class="l-inner"><div class="pack"><div><h2 class="big">${esc(CONFIG.aboutTitle || "Über mich")}</h2></div><ul class="about-pts">${pts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div></div></section>` : ""}
     ${X.voices}
     ${X.faq}
     ${signed ? "" : `<section class="l-sec alt final-cta"><div class="l-inner">${gh ? `<h2 class="big">Fang mit den Shortcuts an.</h2><p class="lead">Gratis als PDF, und du erfährst als Erstes, wenn die Masterclass startet.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">${esc(CONFIG.giftButton || "PDF gratis holen")}</a></div>` : `<h2 class="big">Bereit für deine nächste Show?</h2><p class="lead">Trag dich ein, und wir sprechen kostenlos über dein Setup.</p><div class="cta"><a class="btn-ink" href="#warteliste" data-a="toWaitlist">Kostenlos eintragen</a></div>`}</div></section>`}
