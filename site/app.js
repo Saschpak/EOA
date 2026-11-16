@@ -989,8 +989,8 @@ function offerBox(w) {
   if (!o) return ["gefuehrt", "termin"].includes(w.contact_stage) && w.status === "waiting" ? `<div class="actions"><button class="btn small" type="button" data-a="offerOpen" data-id="${w.id}">Angebot erstellen</button></div>` : "";
   const expired = o.status === "offen" && o.valid_until && o.valid_until < today();
   const payTxt = o.pay_mode === "raten" ? " · in Raten" : o.pay_mode === "einmal" ? " · einmalig" : "";
-  const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${fmt(o.answered_at)}${payTxt}</span>`
-    : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${fmt(o.answered_at)}</span>`
+  const st = o.status === "coaching" ? `<span class="ok-tag">Coaching angenommen ${(o.answered_at ? fmt(o.answered_at) : "")}${payTxt}</span>`
+    : o.status === "einzelstunde" ? `<span class="ok-tag">Einzelstunde angefragt ${(o.answered_at ? fmt(o.answered_at) : "")}</span>`
     : expired ? `<span class="err-tag">Angebot abgelaufen ${fmt(o.valid_until)}</span>`
     : `<span class="muted-tag">Angebot offen${o.valid_until ? " bis " + fmt(o.valid_until) : ""}</span><span class="muted" style="font-size:13px">${esc(viewsText(o))}</span>`;
   return `<div class="offer-line"><span class="muted" style="font-size:13px">Angebot</span>${st}<span class="actions"><button class="btn small" type="button" data-a="offerCopy" data-t="${o.slug || o.token}">Link kopieren</button><a class="btn small quiet" href="#angebot-${o.slug || o.token}" target="_blank" rel="noopener">Ansehen</a>${o.status === "offen" ? `<button class="btn small quiet" type="button" data-a="offerOpen" data-id="${o.id}">Bearbeiten</button>` : ""}${confirmBtn("ofdel:" + o.id, "Angebot löschen", `data-a="offerDelete" data-id="${o.id}"`)}</span></div>`;
@@ -1005,6 +1005,13 @@ function stageControls(w) {
 const DAY = 864e5;
 const daysSince = ts => ts ? Math.floor((Date.now() - new Date(ts).getTime()) / DAY) : null;
 const sinceText = ts => { const n = daysSince(ts); return n == null ? "" : n <= 0 ? "heute" : n === 1 ? "seit gestern" : `seit ${n} Tagen`; };
+// Early-Bird beim „Platz zusagen“: aus dem Angebot übernehmen (durchgestrichener Preis = Early-Bird), sonst nach freien Plätzen
+function ebDefault(w) {
+  const slots = S.D.ebSlots || 3, used = (S.D.waitlist || []).filter(x => x.early_bird && x.id !== w.id).length;
+  const o = offerOf(w);
+  const want = o ? o.full_was > 0 : (w.early_bird || used < slots);
+  return { want: !!CONFIG.earlyBirdPriceHeadline && want && (w.early_bird || used < slots), free: Math.max(0, slots - used), fromOffer: !!o };
+}
 const viewsOf = o => (S.D.offerViews || []).filter(v => v.offer_id === o.id);
 const whenText = ts => { const t = fmtTs(ts), d = Math.round((pd(today()) - pd(t.date)) / 864e5); return (d === 0 ? "heute" : d === 1 ? "gestern" : `${t.wd.slice(0, 2)} ${fmt(t.date)}`) + " " + t.time; };
 const viewsText = o => { const v = viewsOf(o); if (!v.length) return o.viewed_at ? "angesehen" : "noch nicht angesehen"; return `${v.length}× angesehen, zuletzt ${whenText(v[v.length - 1].at)}`; };
@@ -1078,7 +1085,7 @@ function adminWaitlist() {
     const contact = `<div class="wl-contact"><a href="mailto:${esc(w.email)}">${esc(w.email)}</a>${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}</div>`;
     const notes = `${w.note ? `<p class="wl-note"><span class="muted">Nachricht:</span> ${esc(w.note)}</p>` : ""}${w.contact_note ? `<p class="wl-note"><span class="muted">Notizen:</span> ${esc(w.contact_note)}</p>` : ""}`;
     const inviteBtn = S.ui.confirm === "inv:" + w.id
-      ? `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} zugesagt?</span><button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`
+      ? (() => { const e = ebDefault(w); return `<span class="actions" style="align-items:center"><span style="font-size:14px">Hat ${esc(wlName(w))} zugesagt?</span>${CONFIG.earlyBirdPriceHeadline ? `<label class="inline-check" for="inv-eb-${w.id}" style="font-size:14px"><input class="check" id="inv-eb-${w.id}" type="checkbox" ${e.want ? "checked" : ""} ${!e.want && !e.free ? "disabled" : ""} style="margin:0">Early-Bird${ebText() ? ` (${esc(ebText())})` : ""}${e.fromOffer ? " · wie im Angebot" : ""}${!e.free && !w.early_bird ? " · alle vergeben" : ""}</label>` : ""}<button class="btn primary small" type="button" data-a="wlInvite" data-id="${w.id}">Ja, Platz zusagen</button><button class="btn quiet small" type="button" data-a="confirm" data-k="">Abbrechen</button></span>`; })()
       : `<button class="btn ${p.key === "angebot" && /angenommen/.test(p.label) ? "primary " : ""}small" type="button" data-a="confirm" data-k="inv:${w.id}">Platz zusagen</button>`;
     const acts = w.status === "waiting"
       ? `${inviteBtn}${w.contact_stage === "gefuehrt" && !offerOf(w) ? `<button class="btn quiet small" type="button" data-a="wlStage" data-id="${w.id}" data-v="abgesagt">Abgesagt</button>` : ""}${!w.confirmed_at && S.D.mailReady ? `<button class="btn small quiet" type="button" data-a="wlResendOne" data-id="${w.id}">Bestätigung erneut senden</button>` : ""}`
@@ -1395,8 +1402,8 @@ const A = {
   relock: async el => { await run(sb.from("module_unlocks").delete().eq("user_id", S.ui.user).eq("module_id", el.dataset.id)); reload(); },
   wlInvite: async el => {
     const w = S.D.waitlist.find(x => x.id === el.dataset.id);
-    const ebSlots = S.D.ebSlots || 3, ebUsed = S.D.waitlist.filter(x => x.early_bird && x.id !== w.id).length;
-    const giveEb = !!CONFIG.earlyBirdPriceHeadline && (w.early_bird || ebUsed < ebSlots);
+    const ebBox = document.getElementById("inv-eb-" + w.id);
+    const giveEb = ebBox ? ebBox.checked && !ebBox.disabled : ebDefault(w).want;
     const pack = (S.ui.wlPack == null ? 4 : S.ui.wlPack) + (giveEb ? (CONFIG.earlyBirdExtraSessions || 0) : 0);
     if (!S.D.profiles.some(p => p.email.toLowerCase() === w.email)) {
       const r = await run(sb.from("invites").upsert({ email: w.email, full_name: w.full_name, package_total: pack, course_access: true }));
