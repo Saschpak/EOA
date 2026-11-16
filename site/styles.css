@@ -676,3 +676,18 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 .spots i{grid-row:auto;height:14px;border-radius:999px;border:0;background:var(--line)}
 .spots i.taken{background:var(--accent-hi)}
 .hero-spots b{color:var(--fg);font-weight:700}
+
+/* Downloads */
+.dl-group{display:flex;flex-direction:column;margin-top:10px}
+.dl-cat{font-size:20px;font-weight:750;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.dl-group .dl-item{padding:18px 0;border-bottom:1px solid var(--line)}
+.dl-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start}
+.dl-ext{font-size:11px;font-weight:700;text-transform:uppercase;border-radius:6px;background:var(--panel-3);color:var(--muted);padding:6px 0;width:46px;text-align:center;margin-top:2px}
+.dl-main{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dl-main b{font-size:17px}
+.dl-main p{color:var(--muted);font-size:15px;max-width:62ch;white-space:pre-line}
+.dl-meta{font-size:13px;color:var(--muted)}
+.dl-admin .dl-item{grid-template-columns:auto minmax(0,1fr)}
+.muted-tag{font-size:12px;font-weight:600;color:var(--muted);background:var(--panel-3);border-radius:5px;padding:1px 6px;vertical-align:2px}
+.two-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:560px){.dl-item{grid-template-columns:auto minmax(0,1fr)}.dl-btn{grid-column:2;justify-self:start}.two-fields{grid-template-columns:1fr}}
