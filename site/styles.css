@@ -694,3 +694,19 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 @media (max-width:560px){.dl-item{grid-template-columns:auto minmax(0,1fr)}.dl-btn{grid-column:2;justify-self:start}.two-fields{grid-template-columns:1fr}}
 .lnk-back{background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--accent);cursor:pointer;text-align:right}
 .lnk-back:hover{text-decoration:underline}
+
+/* 1:1-Buchung */
+.slot-days{display:flex;flex-direction:column;gap:14px}
+.slot-day{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:baseline}
+.slot-day>b{font-size:15px}
+.slot-times{display:flex;flex-wrap:wrap;gap:8px}
+.slot-btn{font:inherit;font-size:15px;font-weight:600;border:1.5px solid var(--line-2);background:transparent;color:var(--fg);border-radius:var(--r);padding:8px 14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.slot-btn:hover{border-color:var(--accent)}
+.slot-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.slot-confirm{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:16px}
+.slot-admin{gap:0;padding-block:8px}
+.slot-admin-day{display:flex;flex-direction:column;padding:10px 0;border-bottom:1px solid var(--line)}
+.slot-admin-day:last-child{border-bottom:0}
+.slot-admin-day>b{font-size:14px;margin-bottom:4px}
+.slot-admin-row{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px;padding:4px 0}
+@media (max-width:560px){.slot-day{grid-template-columns:1fr;gap:6px}.slot-admin-row{grid-template-columns:48px minmax(0,1fr)}.slot-admin-row>:last-child{grid-column:2}}

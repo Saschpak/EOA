@@ -116,6 +116,8 @@ async function load() {
     const [ml, mr] = await Promise.all([sb.rpc("mail_log_status"), sb.rpc("mail_ready")]);
     D.mailLog = ml.error ? null : ml.data; D.mailReady = mr.error ? null : mr.data;
   }
+  const sl = await q("slots", "*", [["starts_at"]]);
+  D.slots = sl.error ? [] : sl.data;
   const dl = await q("downloads", "*", [["category"], ["position"], ["created_at", false]]);
   D.downloads = dl.error ? [] : dl.data;
   if (S.me.role === "coach") { const lg = await q("download_log", "download_id,user_id,at", [["at"]]); D.dlLog = lg.error ? [] : lg.data; }
@@ -156,6 +158,10 @@ const sessionsOf = uid => S.D.sessions.filter(s => s.user_id === uid);
 const progressOf = uid => new Set(S.D.progress.filter(p => p.user_id === uid).map(p => p.lesson_id));
 const bookingsOf = uid => S.D.bookings.filter(b => b.user_id === uid && b.status === "booked");
 const upcomingOf = uid => bookingsOf(uid).filter(b => new Date(b.starts_at) >= new Date(Date.now() - 2 * 3600e3));
+const BOOK_AHEAD = 48 * 3600e3, CANCEL_AHEAD = 24 * 3600e3;
+const freeSlots = () => (S.D.slots || []).filter(x => !x.booking_id && new Date(x.starts_at).getTime() > Date.now() + BOOK_AHEAD);
+const dayKey = ts => iso(new Date(ts));
+const dayLabel = ts => { const d = new Date(ts); return WD[d.getDay()].slice(0, 2) + ", " + d.getDate() + "." + (d.getMonth() + 1) + "."; };
 const leftFor = p => p.package_total - sessionsOf(p.id).length - upcomingOf(p.id).length;
 const profileName = id => { const p = S.D.profiles.find(x => x.id === id); return p ? (p.full_name || p.email) : (id === S.me.id ? (S.me.full_name || S.me.email) : "Gelöschter Schüler"); };
 
@@ -696,9 +702,18 @@ function viewPrelaunch() {
       ${steps.length ? `<div class="card"><h2>So geht's weiter</h2><ol class="lsteps">${steps.map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join("")}</ol></div>` : ""}
       ${prep.length ? `<div class="card"><h2>Bis dahin vorbereiten</h2><div class="prep">${prep.map((t, i) => `<label class="inline-check"><input class="check" type="checkbox" data-prep="${i}" ${done.includes(i) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div></div>` : ""}
     </div>
+    ${oneOnOneTeaser(me)}
     ${nw ? `<a class="card" href="#news" style="text-decoration:none;color:inherit"><span class="label">Neu · ${fmt(nw.published_at)}</span><b>${esc(nw.title)}</b></a>` : ""}
     <p class="muted" style="font-size:14px">Fragen bis dahin? Schreib mir einfach an <a href="mailto:info@saschpak.de">info@saschpak.de</a>.</p>
   </section>`;
+}
+
+function oneOnOneTeaser(me) {
+  const up = upcomingOf(me.id)[0], left = leftFor(me), free = freeSlots().length;
+  if (up) { const t = fmtTs(up.starts_at); return `<div class="card"><h2>Dein nächstes 1:1</h2><p><b>${t.wd}, ${fmt(t.date)} um ${t.time} Uhr</b>${up.topic ? ` · ${esc(up.topic)}` : ""}</p><div><a class="btn" href="#sessions">Zu deinen 1:1s</a></div></div>`; }
+  if (left <= 0) return "";
+  return `<div class="card"><h2>Starte schon vorher mit einem 1:1</h2><p class="muted">Du musst nicht bis zum Kursstart warten: Buch dir jetzt schon dein erstes 1:1 und wir schauen uns dein Setup an. Noch ${left} von ${me.package_total} Sessions in deinem Paket.</p>
+    <div>${free ? `<a class="btn primary" href="#sessions">1:1 buchen</a>` : `<span class="muted" style="font-size:14px">Gerade sind keine freien Zeiten eingestellt. Schreib mir einfach, dann finden wir einen Termin.</span>`}</div></div>`;
 }
 
 /* ---------- Schüler: Übersicht ---------- */
@@ -724,7 +739,7 @@ function viewStart() {
   }
   const up = upcomingOf(me.id)[0];
   const next = up ? (() => { const t = fmtTs(up.starts_at), d = pd(t.date); return `<div class="date-row"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div><div><b>${esc(up.topic || "1:1")}</b><p class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr</p></div></div>`; })()
-    : `<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${Math.max(0, leftFor(me))} von ${me.package_total} Sessions offen.</p>${CONFIG.calendlyUrl && leftFor(me) > 0 ? `<a class="btn primary" href="${esc(CONFIG.calendlyUrl)}" target="_blank" rel="noopener" style="margin-top:14px">1:1 buchen</a>` : ""}`;
+    : `<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${Math.max(0, leftFor(me))} von ${me.package_total} Sessions offen.</p>${leftFor(me) > 0 && freeSlots().length ? `<a class="btn primary" href="#sessions" style="margin-top:14px">1:1 buchen</a>` : ""}`;
   const last = sessionsOf(me.id)[0];
   const tasks = last ? last.session_tasks.filter(t => !t.done) : [];
   const nw = S.D.news[0];
@@ -803,15 +818,27 @@ function viewSessions() {
     <div class="intro"><h1>1:1s</h1><p class="muted">Nach jeder Session findest du hier Notizen und Aufgaben.</p></div>
     <div class="card"><div class="book-head"><h2>1:1 buchen</h2><span class="muted">Noch <b>${Math.max(0, l)}</b> von ${me.package_total} Sessions in deinem Paket</span></div>
       ${l <= 0 ? `<p class="muted">Dein Paket ist aufgebraucht. Sprich deinen Coach an, wenn du weitere Sessions möchtest.</p>`
-        : CONFIG.calendlyUrl ? `<div><a class="btn primary" href="${esc(CONFIG.calendlyUrl)}" target="_blank" rel="noopener">Termin auswählen</a></div>`
-        : `<p class="muted">Termine machst du direkt mit deinem Coach aus. Die Online-Buchung kommt bald.</p>`}
+        : slotPicker()}
     </div>
-    ${up.length ? `<span class="label group-label">Geplant</span>${up.map(b => { const t = fmtTs(b.starts_at); return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(b.topic || "1:1")}</h3></article>`; }).join("")}` : ""}
+    ${up.length ? `<span class="label group-label">Geplant</span>${up.map(b => { const t = fmtTs(b.starts_at), canCancel = new Date(b.starts_at).getTime() - Date.now() > CANCEL_AHEAD; return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr · ${b.minutes || 60} Min.</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(b.topic || "1:1")}</h3>
+      <div class="actions" style="align-items:center"><a class="btn small" href="/termin?t=${t.date.replace(/-/g, "")}T${t.time.replace(":", "")}&d=${b.minutes || 60}&k=s" target="_blank" rel="noopener">In den Kalender</a>${canCancel ? confirmBtn("bk:" + b.id, "Absagen", `data-a="bookingCancel" data-id="${b.id}"`) : `<span class="muted" style="font-size:13px">Absagen ist nur bis 24 Stunden vorher möglich. Schreib mir bitte direkt.</span>`}</div></article>`; }).join("")}` : ""}
     <span class="label group-label">Vergangene Sessions</span>
     ${past.length ? past.map(s => `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.held_on)}</b><span class="muted" style="font-size:13px">${WD[pd(s.held_on).getDay()]}</span></div>
       <h3>${esc(s.topic)}</h3>${s.notes ? `<p class="note" style="white-space:pre-line">${esc(s.notes)}</p>` : ""}
       ${s.session_tasks.length ? `<div class="tasks">${s.session_tasks.map(taskHTML).join("")}</div>` : ""}</article>`).join("") : `<p class="empty">Noch keine Sessions.</p>`}
   </section>`;
+}
+
+function slotPicker() {
+  const free = freeSlots();
+  if (!free.length) return `<p class="muted">Gerade sind keine freien Zeiten eingestellt. Schreib mir an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, dann finden wir einen Termin.</p>`;
+  const pick = S.ui.pickSlot && free.find(x => x.id === S.ui.pickSlot);
+  const days = new Map(); free.forEach(x => { const k = dayKey(x.starts_at); if (!days.has(k)) days.set(k, []); days.get(k).push(x); });
+  return `<p class="muted" style="font-size:14px">Such dir eine Zeit aus. Buchen geht bis 48 Stunden vorher, absagen bis 24 Stunden vorher.</p>
+    <div class="slot-days">${[...days.values()].map(list => `<div class="slot-day"><b>${dayLabel(list[0].starts_at)}</b><div class="slot-times">${list.map(x => `<button type="button" class="slot-btn" data-a="slotPick" data-id="${x.id}" aria-pressed="${pick && pick.id === x.id}">${fmtTs(x.starts_at).time}</button>`).join("")}</div></div>`).join("")}</div>
+    ${pick ? `<form class="slot-confirm" data-f="slotBook" novalidate><p><b>${fmtTs(pick.starts_at).wd}, ${fmt(dayKey(pick.starts_at))} um ${fmtTs(pick.starts_at).time} Uhr</b> · ${pick.minutes} Minuten</p>
+      <div class="field"><label class="label" for="slotTopic">Worum soll es gehen? (optional)</label><textarea id="slotTopic" name="topic" maxlength="500" placeholder="z. B. Click und Guide fürs neue Set"></textarea></div>
+      <div class="actions"><button class="btn primary" type="submit">Verbindlich buchen</button><button class="btn quiet" type="button" data-a="slotPick" data-id="">Abbrechen</button></div></form>` : ""}`;
 }
 
 /* ---------- Schüler: News ---------- */
@@ -863,8 +890,8 @@ const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
-  const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["slots", "1:1-Zeiten"], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, slots: adminSlots, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
   if (!AV[S.ui.tab]) S.ui.tab = "home";
   const body = AV[S.ui.tab]();
   return `<section class="view">
@@ -1359,6 +1386,28 @@ function adminFragen() {
     : `<p class="empty">Noch keine Fragen.</p>`;
 }
 
+function adminSlots() {
+  const now = Date.now(), list = (S.D.slots || []).filter(x => new Date(x.starts_at).getTime() > now - 3600e3);
+  const days = new Map(); list.forEach(x => { const k = dayKey(x.starts_at); if (!days.has(k)) days.set(k, []); days.get(k).push(x); });
+  const booked = list.filter(x => x.booking_id).length;
+  return `<form class="card" data-f="slotAdd" novalidate>
+      <h2>Freie 1:1-Zeiten einstellen</h2>
+      <p class="muted" style="font-size:14px">Schüler sehen nur Zeiten, die mehr als 48 Stunden entfernt sind, und können bis 24 Stunden vorher selbst absagen. Jede Buchung zählt gegen ihr 1:1-Paket.</p>
+      <div class="two-fields">
+        <div class="field"><label class="label" for="slWhen">Beginn</label><input id="slWhen" name="when" type="datetime-local"></div>
+        <div class="field"><label class="label" for="slMin">Dauer (Minuten)</label><input id="slMin" name="minutes" type="number" min="15" max="240" step="15" value="60"></div>
+      </div>
+      <div class="field"><label class="label" for="slRep">Wöchentlich wiederholen</label><select id="slRep" name="repeat">${[1, 2, 3, 4, 6, 8].map(n => `<option value="${n}">${n === 1 ? "Nur einmal" : n + " Wochen"}</option>`).join("")}</select></div>
+      <div class="actions"><button class="btn primary" type="submit">Zeit einstellen</button></div>
+    </form>
+    <span class="label group-label">Kommende Zeiten · ${list.length - booked} frei, ${booked} gebucht</span>
+    ${list.length ? `<div class="card slot-admin">${[...days.values()].map(ls => `<div class="slot-admin-day"><b>${dayLabel(ls[0].starts_at)}</b>${ls.map(x => {
+      const b = x.booking_id && S.D.bookings.find(y => y.id === x.booking_id), t = fmtTs(x.starts_at);
+      return `<div class="slot-admin-row"><span class="mono">${t.time}</span><span>${b ? `<b>${esc(profileName(b.user_id))}</b>${b.topic ? ` <span class="muted">· ${esc(b.topic)}</span>` : ""}` : `<span class="muted">frei · ${x.minutes} Min.</span>`}</span>
+        ${b ? confirmBtn("sb:" + x.id, "Termin absagen", `data-a="slotCancelBooking" data-id="${x.id}"`) : confirmBtn("sd:" + x.id, "Löschen", `data-a="slotDel" data-id="${x.id}"`)}</div>`;
+    }).join("")}</div>`).join("")}</div>` : `<p class="empty">Noch keine Zeiten eingestellt.</p>`}`;
+}
+
 function adminDownloads() {
   const e = S.ui.editDl && S.D.downloads.find(d => d.id === S.ui.editDl);
   const cats = [...new Set(["Max for Live", "Templates", "Clips & Presets", "Anleitungen", ...S.D.downloads.map(d => d.category)])];
@@ -1564,6 +1613,18 @@ const A = {
     await run(sb.storage.from("lesson-files").remove([f.storage_path]));
     await run(sb.from("lesson_files").delete().eq("id", f.id), "Datei entfernt."); S.ui.confirm = null; reload();
   },
+  slotPick: el => { S.ui.pickSlot = el.dataset.id || null; render(); const t = $("#slotTopic"); if (t) t.focus(); },
+  bookingCancel: async el => {
+    const r = await run(sb.rpc("booking_cancel", { p_booking: el.dataset.id }), "Abgesagt. Die Session ist wieder in deinem Paket.");
+    S.ui.confirm = null; if (r) reload(); else render();
+  },
+  slotDel: async el => { await run(sb.from("slots").delete().eq("id", el.dataset.id), "Zeit gelöscht."); S.ui.confirm = null; reload(); },
+  slotCancelBooking: async el => {
+    const x = S.D.slots.find(y => y.id === el.dataset.id); if (!x) return;
+    await run(sb.from("bookings").update({ status: "canceled" }).eq("id", x.booking_id));
+    await run(sb.from("slots").update({ booking_id: null }).eq("id", x.id), "Termin abgesagt, die Zeit ist wieder frei. Sag der Person bitte selbst Bescheid.");
+    S.ui.confirm = null; reload();
+  },
   dl: async el => {
     const d = S.D.downloads.find(x => x.id === el.dataset.id); if (!d) return;
     const r = await run(sb.storage.from("downloads").createSignedUrl(d.storage_path, 300, { download: d.file_name }));
@@ -1740,6 +1801,20 @@ const F = {
     const answer = f.answer.value.trim();
     if (!answer) return f.answer.focus();
     await run(sb.from("questions").update({ answer, answered_at: new Date().toISOString() }).eq("id", f.dataset.id), "Antwort gesendet."); reload();
+  },
+  slotBook: async f => {
+    if (!S.ui.pickSlot) return;
+    const r = await run(sb.rpc("slot_book", { p_slot: S.ui.pickSlot, p_topic: f.topic.value.trim() }), "Gebucht! Die Bestätigung kommt per Mail.");
+    S.ui.pickSlot = null; reload(); if (r) window.scrollTo(0, 0);
+  },
+  slotAdd: async f => {
+    if (!f.when.value) return toast("Bitte Datum und Uhrzeit wählen.", true);
+    const minutes = parseInt(f.minutes.value, 10) || 60, n = parseInt(f.repeat.value, 10) || 1, base = new Date(f.when.value);
+    if (base.getTime() < Date.now()) return toast("Die Zeit liegt in der Vergangenheit.", true);
+    const rows = Array.from({ length: n }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + 7 * i); return { starts_at: d.toISOString(), minutes }; })
+      .filter(r => !(S.D.slots || []).some(x => new Date(x.starts_at).getTime() === new Date(r.starts_at).getTime()));
+    if (!rows.length) return toast("Diese Zeit ist schon eingestellt.", true);
+    await run(sb.from("slots").insert(rows), rows.length === 1 ? "Zeit eingestellt." : rows.length + " Zeiten eingestellt."); reload();
   },
   dlSave: async f => {
     const e = S.ui.editDl && S.D.downloads.find(d => d.id === S.ui.editDl);
