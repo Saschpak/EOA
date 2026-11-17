@@ -734,3 +734,8 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 .pl-left{font-size:15px;color:var(--muted)}
 .pl-left b{font-size:22px;color:var(--accent);font-weight:800}
 .pl-slots{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Admin-Reiter: auf dem Handy umbrechen statt seitlich scrollen */
+@media (max-width:640px){.tabs{display:flex;flex-wrap:wrap;overflow:visible;align-self:stretch}.tabs button{flex:1 1 auto;padding:7px 10px}}
+.lesson-head-top{margin-bottom:4px}
+.nav.scrolled{-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 28px),transparent)}
