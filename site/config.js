@@ -126,7 +126,7 @@ window.CONFIG = {
   courseStart: "2027-01-30T18:00:00+01:00",
   prelaunchSteps: [
     ["Rechnung", "Die Rechnung bekommst du von mir per Mail."],
-    ["Erstes 1:1", "Wir machen zusammen den Termin für dein erstes 1:1 aus."],
+    ["Erstes 1:1", "Buch dir dein erstes 1:1 direkt hier unter 1:1s, gern schon vor dem Kursstart."],
     ["Kursstart", "Zum Start schalte ich hier den Videokurs und meine Templates für dich frei."]
   ],
   prelaunchPrep: [
