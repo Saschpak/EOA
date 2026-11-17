@@ -788,7 +788,7 @@ function viewKurs() {
     const act = sel && l.id === sel.id;
     return `<button type="button" class="step ${done.has(l.id) ? "done" : ""} ${act ? "active" : ""}" data-a="openLesson" data-id="${l.id}" ${act ? 'aria-current="step"' : ""}><span class="st">${done.has(l.id) ? "" : li + 1}</span><span class="tx"><b>${esc(l.title)}</b><span class="mono">${act ? "Aktuell · " : ""}${mmss(l.duration_seconds)} min</span></span></button>`;
   }).join("") : `<p class="empty">In diesem Modul gibt es noch keine Lektionen.</p>`;
-  let lessonHTML = "";
+  let lessonHTML = "", qaHTML = "";
   if (sel && sel.module_id === vm.id) {
     const isDone = done.has(sel.id), order = allLessons(), nx = order[order.indexOf(sel) + 1];
     const nxt = nx && openFor(me, modOf(nx)) ? nx : null;
@@ -801,22 +801,23 @@ function viewKurs() {
         ${sel.points.length ? `<ul class="points">${sel.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
         <div class="actions"><button class="btn ${isDone ? "" : "primary"}" type="button" data-a="toggleDone" data-id="${sel.id}">${isDone ? "✓ Erledigt" : "Als erledigt markieren"}</button>${nxt ? `<button class="btn" type="button" data-a="openLesson" data-id="${nxt.id}">Nächste Lektion</button>` : ""}</div>
         ${files.length ? `<div class="files"><span class="label">Material zur Lektion</span>${files.map(f => `<div class="file"><span class="ext">${esc((f.file_name.split(".").pop() || "").slice(0, 4))}</span><button type="button" data-a="download" data-path="${esc(f.storage_path)}">${esc(f.file_name)}</button></div>`).join("")}</div>` : ""}
-        <div class="qa"><span class="label">Fragen zu dieser Lektion</span>
+      </div></div>`;
+    qaHTML = `<div class="qa"><span class="label">Fragen zu dieser Lektion</span>
           ${qs.map(q => `<div class="q"><span class="meta">Du am ${fmt(q.created_at)}</span><span>${esc(q.body)}</span>${q.answer ? `<span class="a">${esc(q.answer)}</span>` : `<span class="meta">Wartet auf Antwort von deinem Coach.</span>`}</div>`).join("")}
           <form data-f="question" data-lesson="${sel.id}" novalidate style="display:flex;flex-direction:column;gap:10px">
             <div class="field"><label class="label" for="qText">Frage an deinen Coach</label><textarea id="qText" name="body" placeholder="Was ist dir bei dieser Lektion unklar?"></textarea></div>
             <div class="actions"><button class="btn" type="submit">Frage senden</button></div>
           </form>
-        </div>
-      </div></div>`;
+        </div>`;
   }
   return `<section class="view">
     <div class="intro"><h1>${esc(CONFIG.courseTitle)}</h1><div style="max-width:420px">${progressHTML(me)}</div></div>
     <div class="course">
       <div class="mods" role="group" aria-label="Module">${modsHTML}</div>
-      <div class="where"><h2>Modul ${modIndex(vm) + 1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${where}</span></div>
-      <div class="steps">${steps}</div>
-      ${lessonHTML}
+      ${lessonHTML ? `<div class="course-body"><div class="course-main">${lessonHTML}</div>
+        <aside class="course-side"><div class="where"><h2>Modul ${modIndex(vm) + 1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${where}</span></div><div class="steps">${steps}</div></aside><div class="course-qa">${qaHTML}</div></div>`
+      : `<div class="where"><h2>Modul ${modIndex(vm) + 1}: ${esc(vm.title)}</h2><span class="muted" style="font-size:13px">${where}</span></div>
+      <div class="steps">${steps}</div>`}
     </div></section>`;
 }
 
@@ -915,7 +916,7 @@ function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
   const pendingReq = S.D.bookings.filter(b => b.status === "requested" && new Date(b.starts_at) > new Date()).length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["users", "Schüler"], ["slots", "1:1-Zeiten" + (pendingReq ? `<span class="count">${pendingReq}</span>` : "")], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["kurs", "Kurs"], ["downloads", "Downloads"], ["news", "News"], ["stats", "Statistik"]];
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["users", "Schüler"], ["slots", "1:1-Zeiten" + (pendingReq ? `<span class="count">${pendingReq}</span>` : "")], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["stats", "Statistik"], ["kurs", "Kurs"], ["downloads", "Downloads"], ["news", "News"]];
   const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, slots: adminSlots, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
   if (!AV[S.ui.tab]) S.ui.tab = "home";
   const body = AV[S.ui.tab]();
@@ -1288,14 +1289,14 @@ function adminUsers() {
       <div class="actions"><button class="btn primary" type="submit">Einladen</button><button class="btn quiet" type="button" data-a="toggleInvite">Abbrechen</button></div>
     </form>
     ${S.D.invites.length ? `<div class="card"><h2>Offene Einladungen</h2><p class="muted" style="font-size:14px">Diese Personen haben sich noch nicht registriert.</p>${S.D.invites.map(i => `<div class="todo"><div class="what"><span><b>${esc(i.full_name || i.email)}</b> · ${esc(i.email)} · ${i.package_total} 1:1s${i.course_access ? " · mit Kurs" : ""}${i.early_access ? " · Kurs schon vor dem Start" : ""}</span></div><span class="actions">${S.D.mailReady ? `<button class="btn small" type="button" data-a="inviteResend" data-id="${esc(i.email)}">Mail erneut senden</button>` : ""}${confirmBtn("inv:" + i.email, "Zurückziehen", `data-a="delInvite" data-id="${esc(i.email)}"`)}</span></div>`).join("")}</div>` : ""}
-    <div class="table-wrap"><table><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Zugang</th><th>Nächster Termin</th></tr></thead><tbody>
+    <div class="table-wrap"><table class="utable"><thead><tr><th>Schüler</th><th>1:1s</th><th>Videokurs</th><th>Zugang</th><th>Nächster Termin</th></tr></thead><tbody>
       ${st.length ? st.map(p => { const l = leftFor(p), pc = pctFor(p), nb = upcomingOf(p.id)[0];
         const pa = paceOf(p), exp = accessExpired(p);
         return `<tr data-a="openUser" data-id="${p.id}" tabindex="0"><td><b>${esc(p.full_name || "–")}</b><span class="sub">${esc(p.email)}${p.invited ? "" : " · nicht eingeladen"}</span><span class="sub">dabei seit ${fmtY(p.started_at)}${pa.pre ? "" : pa.done ? " · Coaching-Zeit vorbei" : ` · Woche ${pa.week} von ${pa.weeks}`}</span></td>
-          <td><span class="pill ${l <= 0 ? "zero" : ""}">${Math.max(0, l)} offen</span><span class="sub">${sessionsOf(p.id).length} von ${p.package_total} genutzt</span>${pa.pre ? "" : pa.sTag ? `<span class="sub">${pa.sTag}</span>` : ""}</td>
-          <td>${p.course_access ? `<div class="pct-cell"><div class="track"><i style="width:${pc}%"></i></div><span class="mono" style="font-size:12.5px">${pc}%</span></div>${pa.pre ? "" : pa.cTag ? `<span class="sub">${pa.cTag}</span>` : ""}` : `<span class="muted">Kein Zugang</span>`}</td>
-          <td>${p.course_access ? `${exp ? `<span class="err-tag">abgelaufen</span>` : `bis ${fmtY(accessUntil(p))}`}<span class="sub">${exp ? fmtY(accessUntil(p)) : monthsLeftText(p)}</span>` : `<span class="muted">–</span>`}</td>
-          <td>${nb ? (() => { const t = fmtTs(nb.starts_at); return `${fmt(t.date)}, ${t.time} Uhr`; })() : `<span class="muted">Kein Termin</span>`}</td></tr>`; }).join("")
+          <td data-l="1:1s"><span class="pill ${l <= 0 ? "zero" : ""}">${Math.max(0, l)} offen</span><span class="sub">${sessionsOf(p.id).length} von ${p.package_total} genutzt</span>${pa.pre ? "" : pa.sTag ? `<span class="sub">${pa.sTag}</span>` : ""}</td>
+          <td data-l="Videokurs">${p.course_access ? `<div class="pct-cell"><div class="track"><i style="width:${pc}%"></i></div><span class="mono" style="font-size:12.5px">${pc}%</span></div>${pa.pre ? "" : pa.cTag ? `<span class="sub">${pa.cTag}</span>` : ""}` : `<span class="muted">Kein Zugang</span>`}</td>
+          <td data-l="Zugang">${p.course_access ? `${exp ? `<span class="err-tag">abgelaufen</span>` : `bis ${fmtY(accessUntil(p))}`}<span class="sub">${exp ? fmtY(accessUntil(p)) : monthsLeftText(p)}</span>` : `<span class="muted">–</span>`}</td>
+          <td data-l="Nächster Termin">${nb ? (() => { const t = fmtTs(nb.starts_at); return `${fmt(t.date)}, ${t.time} Uhr`; })() : `<span class="muted">Kein Termin</span>`}</td></tr>`; }).join("")
         : `<tr><td colspan="5" class="muted">Noch keine Schüler. Lade den ersten über „Schüler einladen“ ein.</td></tr>`}
     </tbody></table></div>`;
 }

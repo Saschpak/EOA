@@ -739,3 +739,39 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 @media (max-width:640px){.tabs{display:flex;flex-wrap:wrap;overflow:visible;align-self:stretch}.tabs button{flex:1 1 auto;padding:7px 10px}}
 .lesson-head-top{margin-bottom:4px}
 .nav.scrolled{-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 28px),transparent)}
+
+/* Lektion: Video links, Lektionsliste rechts */
+.course-body{display:flex;flex-direction:column;gap:22px}
+.course-side{display:flex;flex-direction:column;gap:12px}
+.course-side .where h2{font-size:17px}
+@media (min-width:1000px){
+  .course-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"main side" "qa side";gap:24px 28px;align-items:start}
+  .course-main{grid-area:main}.course-side{grid-area:side;grid-row:1 / span 2}.course-qa{grid-area:qa}
+  .course-side{position:sticky;top:76px}
+  .course-side .where{flex-direction:column;align-items:flex-start;gap:2px}
+  .course-side .step{padding:11px 14px}
+  .course-side .step .mono{font-size:11.5px}
+}
+/* Zu erledigen auf dem Handy kompakter */
+@media (max-width:640px){
+  .todo{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+  .todo .what{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .todo .what .kind{font-size:12px}
+  .todo>.btn{grid-column:2;grid-row:1}
+}
+
+
+
+/* Schüler-Tabelle auf dem Handy als Karten */
+@media (max-width:640px){
+  .utable{min-width:0}
+  .utable thead{display:none}
+  .utable tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px;padding:14px 16px;border-top:1px solid var(--line)}
+  .utable tr:first-child{border-top:0}
+  .utable td{display:block;padding:0;border:0}
+  .utable td:first-child{grid-column:1 / -1}
+  .utable td[data-l]::before{content:attr(data-l);display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .utable td[colspan]{grid-column:1 / -1}
+  .todo>.actions{grid-column:1 / -1;grid-row:auto;justify-content:flex-start}
+  .slot-admin-row>:last-child{justify-self:start}
+}
