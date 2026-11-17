@@ -38,6 +38,8 @@ window.CONFIG = {
   priceHeadlineNote: "im Monat · für 4\u00a0Monate",
   priceDetail: "Regulär 240\u00a0€ im Monat. Insgesamt 960\u00a0€, in 4 Monatsraten oder einmalig. Danach keine weiteren Kosten. Alle Preise inkl. 19\u00a0% MwSt.",
   // Persönliches Angebot nach dem Gespräch (#angebot-<token>): Vorgaben fürs Formular im Admin
+  // Preis pro zusätzlicher 1:1-Session (brutto), angezeigt unter 1:1s bei „Mehr 1:1s“. 0 = ohne Preisangabe
+  extraSessionPrice: 100,
   offerDefaults: { full: 800, was: 960, label: "Empfehlung · Early-Bird", single: 100, days: 6 },
   offerMonths: 4,
   // Zahlungsweise, steht auf jedem Angebot unter dem kompletten Coaching

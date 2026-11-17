@@ -816,12 +816,16 @@ function viewSessions() {
   const me = S.me, l = leftFor(me), up = upcomingOf(me.id), past = sessionsOf(me.id);
   return `<section class="view">
     <div class="intro"><h1>1:1s</h1><p class="muted">Nach jeder Session findest du hier Notizen und Aufgaben.</p></div>
-    <div class="card"><div class="book-head"><h2>1:1 buchen</h2><span class="muted">Noch <b>${Math.max(0, l)}</b> von ${me.package_total} Sessions in deinem Paket</span></div>
-      ${l <= 0 ? `<p class="muted">Dein Paket ist aufgebraucht. Sprich deinen Coach an, wenn du weitere Sessions möchtest.</p>`
+    <div class="card"><div class="left-box"><div class="left-num"><b>${Math.max(0, l)}</b><span>von ${me.package_total} 1:1s übrig</span></div>
+        ${me.package_total ? `<div class="left-bar" aria-hidden="true">${Array.from({ length: Math.min(me.package_total, 20) }, (_, i) => `<i class="${i < past.length ? "used" : i < past.length + up.length ? "planned" : ""}"></i>`).join("")}</div>
+        <p class="left-cap muted">${past.length} gemacht · ${up.length} geplant · ${Math.max(0, l)} frei</p>` : ""}</div>
+      <h2>1:1 buchen</h2>
+      ${l <= 0 ? `<p class="muted">Alle Sessions aus deinem Paket sind verplant. Unten kannst du weitere dazubuchen.</p>`
         : slotPicker()}
     </div>
     ${up.length ? `<span class="label group-label">Geplant</span>${up.map(b => { const t = fmtTs(b.starts_at), canCancel = new Date(b.starts_at).getTime() - Date.now() > CANCEL_AHEAD; return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr · ${b.minutes || 60} Min.</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(b.topic || "1:1")}</h3>
       <div class="actions" style="align-items:center"><a class="btn small" href="/termin?t=${t.date.replace(/-/g, "")}T${t.time.replace(":", "")}&d=${b.minutes || 60}&k=s" target="_blank" rel="noopener">In den Kalender</a>${canCancel ? confirmBtn("bk:" + b.id, "Absagen", `data-a="bookingCancel" data-id="${b.id}"`) : `<span class="muted" style="font-size:13px">Absagen ist nur bis 24 Stunden vorher möglich. Schreib mir bitte direkt.</span>`}</div></article>`; }).join("")}` : ""}
+    ${extraBox(me, l)}
     <span class="label group-label">Vergangene Sessions</span>
     ${past.length ? past.map(s => `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.held_on)}</b><span class="muted" style="font-size:13px">${WD[pd(s.held_on).getDay()]}</span></div>
       <h3>${esc(s.topic)}</h3>${s.notes ? `<p class="note" style="white-space:pre-line">${esc(s.notes)}</p>` : ""}
@@ -829,6 +833,16 @@ function viewSessions() {
   </section>`;
 }
 
+function extraBox(me, left) {
+  if (me.role === "coach" && !S.viewAs) return "";
+  const pr = CONFIG.extraSessionPrice || 0, open = S.ui.extraOpen || left <= 0;
+  if (!open) return `<div class="extra-line"><span class="muted">Mehr 1:1s gewünscht?</span><button class="btn small" type="button" data-a="extraOpen">Weitere dazubuchen</button></div>`;
+  return `<form class="card" data-f="extraReq" novalidate><h2>Weitere 1:1s dazubuchen</h2>
+    <p class="muted" style="font-size:15px">Du bekommst die Rechnung von mir per Mail, danach schalte ich die Sessions in deinem Paket frei.${pr ? ` Eine Session kostet ${pr} €.` : ""}</p>
+    <div class="extra-pick" role="radiogroup" aria-label="Anzahl">${[1, 2, 4].map((n, i) => `<label class="extra-opt"><input type="radio" name="count" value="${n}" ${i === 0 ? "checked" : ""}><span><b>${n} ${n === 1 ? "Session" : "Sessions"}</b>${pr ? `<small>${n * pr} €</small>` : ""}</span></label>`).join("")}</div>
+    <div class="field"><label class="label" for="extraNote">Nachricht (optional)</label><textarea id="extraNote" name="note" maxlength="500" placeholder="z. B. Ich möchte vor der Tour noch zwei Sessions"></textarea></div>
+    <div class="actions"><button class="btn primary" type="submit">Anfragen</button>${left > 0 ? `<button class="btn quiet" type="button" data-a="extraOpen">Abbrechen</button>` : ""}</div></form>`;
+}
 function slotPicker() {
   const free = freeSlots();
   if (!free.length) return `<p class="muted">Gerade sind keine freien Zeiten eingestellt. Schreib mir an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, dann finden wir einen Termin.</p>`;
@@ -1613,6 +1627,7 @@ const A = {
     await run(sb.storage.from("lesson-files").remove([f.storage_path]));
     await run(sb.from("lesson_files").delete().eq("id", f.id), "Datei entfernt."); S.ui.confirm = null; reload();
   },
+  extraOpen: () => { S.ui.extraOpen = !S.ui.extraOpen; render(); },
   slotPick: el => { S.ui.pickSlot = el.dataset.id || null; render(); const t = $("#slotTopic"); if (t) t.focus(); },
   bookingCancel: async el => {
     const r = await run(sb.rpc("booking_cancel", { p_booking: el.dataset.id }), "Abgesagt. Die Session ist wieder in deinem Paket.");
@@ -1801,6 +1816,11 @@ const F = {
     const answer = f.answer.value.trim();
     if (!answer) return f.answer.focus();
     await run(sb.from("questions").update({ answer, answered_at: new Date().toISOString() }).eq("id", f.dataset.id), "Antwort gesendet."); reload();
+  },
+  extraReq: async f => {
+    const n = parseInt((f.querySelector("input[name=count]:checked") || {}).value, 10) || 1;
+    const r = await run(sb.rpc("request_extra_sessions", { p_count: n, p_note: f.note.value.trim() }), "Angefragt! Ich melde mich mit der Rechnung bei dir.");
+    if (r) { S.ui.extraOpen = false; render(); }
   },
   slotBook: async f => {
     if (!S.ui.pickSlot) return;
