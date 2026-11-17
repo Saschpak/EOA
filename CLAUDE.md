@@ -53,6 +53,31 @@ Kursinhalte selbst (Module, Lektionen, Drip-Regeln) pflegt der Coach im Admin-Be
 - Verknappung nur echt: keine erfundenen Zahlen, keine Fake-Countdowns.
 - Sprache der Oberfläche: Deutsch, Du-Form.
 
+## Zusammenarbeit mit Sascha (für jeden neuen Chat)
+
+Das Repository ist **öffentlich**. Hier nie Namen, Mailadressen, Telefonnummern, Kalender-IDs, Feed-Links oder Schlüssel ablegen. Den aktuellen Stand holt sich jeder Chat selbst: Warteliste und Kontakt per `rpc/claude_waitlist`, Angebote per `rpc/claude_offers`, Kurs per `rpc/claude_course`, Downloads per `rpc/claude_downloads`, Mails und angebotene Termine aus Gmail (gesendete Mails an die Person), Termine aus dem iCloud-Kalender.
+
+**Feste Regeln (Wunsch des Coachs):**
+- **Nichts verschicken ohne sein ausdrückliches OK im Chat.** Mails an Interessenten, Schüler oder Kontakte immer erst als Text zeigen, dann auf „OK“ warten. Gilt auch, wenn ein geplanter Auftrag (Scheduled Task) etwas anderes nahelegt.
+- Mails ohne Emojis und ohne Linktexte wie „Dein Angebot ansehen“: nur der nackte Link. Ton: locker, Du-Form, „Liebe Grüße / Sascha“. Vorname im Betreff, wenn bekannt.
+- Termine immer mit dem Kalender-Link `/termin?...` bestätigen, keine Anhänge (kommen über Gmail nicht an).
+- Nach jeder verschickten Mail: `rpc/claude_contact_log` (mail_raus) und den Status per `rpc/claude_contact_update` setzen; Antworten ebenfalls loggen.
+- Push aufs Handy über den ntfy-Kanal (Adresse steht im Vault als `ntfy_topic`, nicht hier): nur Anzahl und Uhrzeit, nie Namen oder Adressen.
+- Schlüssel nur über das sichere Formular bzw. die Umgebungs-Einstellungen (Network Secrets), nie im Chat. Bunny und sevDesk brauchen Header ohne „Bearer“ (`AccessKey` bzw. `Authorization` mit nacktem Token), das geht nur in den Umgebungs-Einstellungen.
+- Steuernummer nie veröffentlichen. Kontra K, Oliver Tree und den Woodwalkers-2-Soundtrack nicht nennen. Keine erfundene Verknappung.
+- Website-PRs nach dem Testen selbst zusammenführen; vor Datenbank-Migrationen kurz Bescheid geben.
+
+**Termine für Kennenlerngespräche (20 Minuten, 30-Minuten-Raster):**
+- Belegt prüfen mit `python3 claude-werkzeuge/kalender_belegt.py <start> <ende>` (UTC, z. B. `20261118T000000Z`). Findet alle iCloud-Kalender selbst. Den Unterricht (My Music Staff) prüft es nur, wenn der geheime Feed-Link als `MMS_ICS_URL` gesetzt ist; sonst Sascha danach fragen.
+- Termine ohne andere Leute (Studio allein, Ableton-Sets bauen, als „frei“ markierte Einträge) dürfen unterbrochen werden. Termine mit anderen Menschen und echte Freizeit sind tabu. Im Zweifel fragen. Zwischen Unterrichtsstunden (meist Mittwoch) ist ok.
+- Pro Person drei Vorschläge, keinen Slot doppelt anbieten (vorher in Gmail nachsehen, was schon angeboten ist), dazu „Kein Termin passt? …“ und eine Frage zum Setup.
+- Neue Interessenten in der Reihenfolge der Warteliste und nur bestätigte Adressen anschreiben. Nach 2 Tagen ohne Antwort einmal nachhaken mit Frist, danach `keine_antwort`.
+
+**Werkzeuge im Ordner `claude-werkzeuge/`:**
+- `kalender_belegt.py`: siehe oben.
+- `test/pgsetup.sh`: lokaler Postgres mit allen Migrationen (nachgebaute auth/storage/net/vault), danach `psql -h /tmp -p 54329 -U postgres -d t`.
+- `test/harness.js`: Oberfläche gegen eine simulierte Supabase-API (Port 8765, Testdaten mit Coach, Schülern, Warteliste). Beispiel: `const H=require('./claude-werkzeuge/test/harness.js'); const p=await H.page(browser,H.COACH,'info@saschpak.de',{width:390,height:844}); await p.goto('http://localhost:8765/#admin')`, Umgebungsvariable `DARK=1` für den Dunkelmodus.
+
 ## Offene Punkte (Stand November 2026)
 
 - Impressum und Datenschutz sind online (Stand November 2026). AV-Verträge: Resend unterschrieben, Supabase und Netlify gelten automatisch über die Nutzungsbedingungen (PDFs beim Coach abgelegt, Stand November 2026).
