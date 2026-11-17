@@ -156,7 +156,7 @@ const modOf = l => S.D.modules.find(m => m.id === l.module_id);
 const modIndex = m => modsSorted().indexOf(m);
 const sessionsOf = uid => S.D.sessions.filter(s => s.user_id === uid);
 const progressOf = uid => new Set(S.D.progress.filter(p => p.user_id === uid).map(p => p.lesson_id));
-const bookingsOf = uid => S.D.bookings.filter(b => b.user_id === uid && b.status === "booked");
+const bookingsOf = uid => S.D.bookings.filter(b => b.user_id === uid && (b.status === "booked" || b.status === "requested"));
 const upcomingOf = uid => bookingsOf(uid).filter(b => new Date(b.starts_at) >= new Date(Date.now() - 2 * 3600e3));
 const BOOK_AHEAD = 48 * 3600e3, CANCEL_AHEAD = 24 * 3600e3;
 const freeSlots = () => (S.D.slots || []).filter(x => !x.booking_id && new Date(x.starts_at).getTime() > Date.now() + BOOK_AHEAD);
@@ -711,12 +711,12 @@ function viewPrelaunch() {
 function oneOnOneTeaser(me) {
   const preview = me.role === "coach";
   const up = upcomingOf(me.id)[0], total = preview ? (me.package_total || 4) : me.package_total, left = preview ? total : leftFor(me), free = freeSlots();
-  if (up) { const t = fmtTs(up.starts_at); return `<div class="card pl-1on1"><div class="pl-1on1-head"><h2>Dein nächstes 1:1</h2><span class="pl-left"><b>${Math.max(0, left)}</b> von ${total} übrig</span></div><p><b>${t.wd}, ${fmt(t.date)} um ${t.time} Uhr</b>${up.topic ? ` · ${esc(up.topic)}` : ""}</p><div class="actions"><a class="btn" href="#sessions">Zu deinen 1:1s</a>${left > 0 ? `<a class="btn quiet" href="#sessions">Noch eins buchen</a>` : ""}</div></div>`; }
+  if (up) { const t = fmtTs(up.starts_at); return `<div class="card pl-1on1"><div class="pl-1on1-head"><h2>${up.status === "requested" ? "Dein 1:1 ist angefragt" : "Dein nächstes 1:1"}</h2><span class="pl-left"><b>${Math.max(0, left)}</b> von ${total} übrig</span></div><p><b>${t.wd}, ${fmt(t.date)} um ${t.time} Uhr</b>${up.topic ? ` · ${esc(up.topic)}` : ""}</p>${up.status === "requested" ? `<p class="muted" style="font-size:14px">Ich bestätige dir den Termin per Mail.</p>` : ""}<div class="actions"><a class="btn" href="#sessions">Zu deinen 1:1s</a>${left > 0 ? `<a class="btn quiet" href="#sessions">Noch eins anfragen</a>` : ""}</div></div>`; }
   if (left <= 0) return "";
   const next = free.slice(0, 4);
   return `<div class="card pl-1on1">${preview ? `<p class="notice" style="margin:0">Vorschau: So sehen Schüler mit einem 1:1-Paket diese Karte.</p>` : ""}
     <div class="pl-1on1-head"><h2>Starte schon vorher mit einem 1:1</h2><span class="pl-left"><b>${left}</b> von ${total} übrig</span></div>
-    <p class="muted">Du musst nicht bis zum Kursstart warten. Buch dir dein erstes 1:1 und wir schauen uns dein Setup an.</p>
+    <p class="muted">Du musst nicht bis zum Kursstart warten. Such dir eine Zeit aus und frag dein erstes 1:1 an, ich bestätige dir den Termin. Dann schauen wir uns dein Setup an.</p>
     ${next.length ? `<div class="pl-slots">${next.map(x => `<button type="button" class="slot-btn" data-a="slotGo" data-id="${x.id}">${dayLabel(x.starts_at)} · ${fmtTs(x.starts_at).time}</button>`).join("")}</div>
       <div><a class="btn primary" href="#sessions">Alle freien Zeiten ansehen</a></div>`
       : `<p class="muted" style="font-size:14px">Gerade sind keine freien Zeiten eingestellt. Schreib mir einfach an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, dann finden wir einen Termin.</p>`}
@@ -746,7 +746,7 @@ function viewStart() {
   }
   const up = upcomingOf(me.id)[0];
   const next = up ? (() => { const t = fmtTs(up.starts_at), d = pd(t.date); return `<div class="date-row"><div class="cal"><span>${MON[d.getMonth()]}</span><b>${d.getDate()}</b></div><div><b>${esc(up.topic || "1:1")}</b><p class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr</p></div></div>`; })()
-    : `<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${Math.max(0, leftFor(me))} von ${me.package_total} Sessions offen.</p>${leftFor(me) > 0 && freeSlots().length ? `<a class="btn primary" href="#sessions" style="margin-top:14px">1:1 buchen</a>` : ""}`;
+    : `<p class="muted">Du hast gerade kein 1:1 gebucht. Noch ${Math.max(0, leftFor(me))} von ${me.package_total} Sessions offen.</p>${leftFor(me) > 0 && freeSlots().length ? `<a class="btn primary" href="#sessions" style="margin-top:14px">1:1 anfragen</a>` : ""}`;
   const last = sessionsOf(me.id)[0];
   const tasks = last ? last.session_tasks.filter(t => !t.done) : [];
   const nw = S.D.news[0];
@@ -826,12 +826,13 @@ function viewSessions() {
     <div class="card"><div class="left-box"><div class="left-num"><b>${Math.max(0, l)}</b><span>von ${me.package_total} 1:1s übrig</span></div>
         ${me.package_total ? `<div class="left-bar" aria-hidden="true">${Array.from({ length: Math.min(me.package_total, 20) }, (_, i) => `<i class="${i < past.length ? "used" : i < past.length + up.length ? "planned" : ""}"></i>`).join("")}</div>
         <p class="left-cap muted">${past.length} gemacht · ${up.length} geplant · ${Math.max(0, l)} frei</p>` : ""}</div>
-      <h2>1:1 buchen</h2>
+      <h2>1:1 anfragen</h2>
       ${l <= 0 ? `<p class="muted">Alle Sessions aus deinem Paket sind verplant. Unten kannst du weitere dazubuchen.</p>`
         : slotPicker()}
     </div>
-    ${up.length ? `<span class="label group-label">Geplant</span>${up.map(b => { const t = fmtTs(b.starts_at), canCancel = new Date(b.starts_at).getTime() - Date.now() > CANCEL_AHEAD; return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr · ${b.minutes || 60} Min.</span><span class="label" style="color:var(--accent-hi)">Gebucht</span></div><h3>${esc(b.topic || "1:1")}</h3>
-      <div class="actions" style="align-items:center"><a class="btn small" href="/termin?t=${t.date.replace(/-/g, "")}T${t.time.replace(":", "")}&d=${b.minutes || 60}&k=s" target="_blank" rel="noopener">In den Kalender</a>${canCancel ? confirmBtn("bk:" + b.id, "Absagen", `data-a="bookingCancel" data-id="${b.id}"`) : `<span class="muted" style="font-size:13px">Absagen ist nur bis 24 Stunden vorher möglich. Schreib mir bitte direkt.</span>`}</div></article>`; }).join("")}` : ""}
+    ${up.length ? `<span class="label group-label">Geplant</span>${up.map(b => { const t = fmtTs(b.starts_at), canCancel = new Date(b.starts_at).getTime() - Date.now() > CANCEL_AHEAD; return `<article class="card session"><div class="session-meta"><b class="mono">${fmt(t.date)}</b><span class="muted" style="font-size:13px">${t.wd}, ${t.time} Uhr · ${b.minutes || 60} Min.</span>${b.status === "requested" ? `<span class="label muted-tag">Angefragt</span>` : `<span class="label" style="color:var(--accent-hi)">Bestätigt</span>`}</div><h3>${esc(b.topic || "1:1")}</h3>
+      ${b.status === "requested" ? `<p class="muted" style="font-size:14px">Wartet auf meine Bestätigung. Du bekommst eine Mail, sobald der Termin fix ist.</p><div class="actions" style="align-items:center">${confirmBtn("bk:" + b.id, "Anfrage zurückziehen", `data-a="bookingCancel" data-id="${b.id}"`)}</div>`
+      : `<div class="actions" style="align-items:center"><a class="btn small" href="/termin?t=${t.date.replace(/-/g, "")}T${t.time.replace(":", "")}&d=${b.minutes || 60}&k=s" target="_blank" rel="noopener">In den Kalender</a>${canCancel ? confirmBtn("bk:" + b.id, "Absagen", `data-a="bookingCancel" data-id="${b.id}"`) : `<span class="muted" style="font-size:13px">Absagen ist nur bis 24 Stunden vorher möglich. Schreib mir bitte direkt.</span>`}</div>`}</article>`; }).join("")}` : ""}
     ${extraBox(me, l)}
     <span class="label group-label">Vergangene Sessions</span>
     ${past.length ? past.map(s => `<article class="card session"><div class="session-meta"><b class="mono">${fmt(s.held_on)}</b><span class="muted" style="font-size:13px">${WD[pd(s.held_on).getDay()]}</span></div>
@@ -855,11 +856,11 @@ function slotPicker() {
   if (!free.length) return `<p class="muted">Gerade sind keine freien Zeiten eingestellt. Schreib mir an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, dann finden wir einen Termin.</p>`;
   const pick = S.ui.pickSlot && free.find(x => x.id === S.ui.pickSlot);
   const days = new Map(); free.forEach(x => { const k = dayKey(x.starts_at); if (!days.has(k)) days.set(k, []); days.get(k).push(x); });
-  return `<p class="muted" style="font-size:14px">Such dir eine Zeit aus. Buchen geht bis 48 Stunden vorher, absagen bis 24 Stunden vorher.</p>
+  return `<p class="muted" style="font-size:14px">Such dir eine Zeit aus und frag sie an, ich bestätige dir den Termin per Mail. Anfragen geht bis 48 Stunden vorher, absagen bis 24 Stunden vorher.</p>
     <div class="slot-days">${[...days.values()].map(list => `<div class="slot-day"><b>${dayLabel(list[0].starts_at)}</b><div class="slot-times">${list.map(x => `<button type="button" class="slot-btn" data-a="slotPick" data-id="${x.id}" aria-pressed="${pick && pick.id === x.id}">${fmtTs(x.starts_at).time}</button>`).join("")}</div></div>`).join("")}</div>
     ${pick ? `<form class="slot-confirm" data-f="slotBook" novalidate><p><b>${fmtTs(pick.starts_at).wd}, ${fmt(dayKey(pick.starts_at))} um ${fmtTs(pick.starts_at).time} Uhr</b> · ${pick.minutes} Minuten</p>
       <div class="field"><label class="label" for="slotTopic">Worum soll es gehen? (optional)</label><textarea id="slotTopic" name="topic" maxlength="500" placeholder="z. B. Click und Guide fürs neue Set"></textarea></div>
-      <div class="actions"><button class="btn primary" type="submit">Verbindlich buchen</button><button class="btn quiet" type="button" data-a="slotPick" data-id="">Abbrechen</button></div></form>` : ""}`;
+      <div class="actions"><button class="btn primary" type="submit">Anfrage senden</button><button class="btn quiet" type="button" data-a="slotPick" data-id="">Abbrechen</button></div></form>` : ""}`;
 }
 
 /* ---------- Schüler: News ---------- */
@@ -911,7 +912,8 @@ const students = () => S.D.profiles.filter(p => p.role === "student");
 function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["slots", "1:1-Zeiten"], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const pendingReq = S.D.bookings.filter(b => b.status === "requested" && new Date(b.starts_at) > new Date()).length;
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["slots", "1:1-Zeiten" + (pendingReq ? `<span class="count">${pendingReq}</span>` : "")], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
   const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, slots: adminSlots, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
   if (!AV[S.ui.tab]) S.ui.tab = "home";
   const body = AV[S.ui.tab]();
@@ -928,6 +930,8 @@ function adminHome() {
   const todos = [];
   const wlW = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
   if (preLaunch()) todos.push({ kind: "Vor dem Start", text: `Teilnehmer sehen bis zum Kursstart eine Startseite mit Countdown.`, a: `href="#bald"`, btn: "Ansehen", link: true });
+  const reqN = S.D.bookings.filter(b => b.status === "requested" && new Date(b.starts_at) > new Date()).length;
+  if (reqN) todos.push({ kind: "1:1", text: `${reqN} ${reqN === 1 ? "1:1-Anfrage wartet" : "1:1-Anfragen warten"} auf deine Bestätigung.`, a: `data-a="tab" data-v="slots"`, btn: "Ansehen" });
   if (wlW) todos.push({ kind: "Warteliste", text: `${wlW} ${wlW === 1 ? "Person wartet" : "Personen warten"} auf ein Kennenlerngespräch.`, a: `data-a="tab" data-v="warteliste"`, btn: "Ansehen" });
   openQ.forEach(q => todos.push({ kind: "Frage", text: `${esc(profileName(q.user_id))}: ${q.lesson_id && getLesson(q.lesson_id) ? "Lektion „" + esc(getLesson(q.lesson_id).title) + "“" : "Allgemeine Frage"}`, a: `data-a="tab" data-v="fragen"`, btn: "Beantworten" }));
   st.forEach(p => {
@@ -1410,10 +1414,10 @@ function adminFragen() {
 function adminSlots() {
   const now = Date.now(), list = (S.D.slots || []).filter(x => new Date(x.starts_at).getTime() > now - 3600e3);
   const days = new Map(); list.forEach(x => { const k = dayKey(x.starts_at); if (!days.has(k)) days.set(k, []); days.get(k).push(x); });
-  const booked = list.filter(x => x.booking_id).length;
+  const booked = list.filter(x => x.booking_id).length, reqs = list.filter(x => { const b = x.booking_id && S.D.bookings.find(y => y.id === x.booking_id); return b && b.status === "requested"; }).length;
   return `<form class="card" data-f="slotAdd" novalidate>
       <h2>Freie 1:1-Zeiten einstellen</h2>
-      <p class="muted" style="font-size:14px">Schüler sehen nur Zeiten, die mehr als 48 Stunden entfernt sind, und können bis 24 Stunden vorher selbst absagen. Jede Buchung zählt gegen ihr 1:1-Paket.</p>
+      <p class="muted" style="font-size:14px">Schüler sehen nur Zeiten, die mehr als 48 Stunden entfernt sind, und fragen sie an. Du bestätigst oder lehnst ab, der Schüler bekommt jeweils eine Mail. Absagen können Schüler bis 24 Stunden vorher. Jede Anfrage zählt gegen ihr 1:1-Paket.</p>
       <div class="two-fields">
         <div class="field"><label class="label" for="slWhen">Beginn</label><input id="slWhen" name="when" type="datetime-local"></div>
         <div class="field"><label class="label" for="slMin">Dauer (Minuten)</label><input id="slMin" name="minutes" type="number" min="15" max="240" step="15" value="60"></div>
@@ -1421,11 +1425,12 @@ function adminSlots() {
       <div class="field"><label class="label" for="slRep">Wöchentlich wiederholen</label><select id="slRep" name="repeat">${[1, 2, 3, 4, 6, 8].map(n => `<option value="${n}">${n === 1 ? "Nur einmal" : n + " Wochen"}</option>`).join("")}</select></div>
       <div class="actions"><button class="btn primary" type="submit">Zeit einstellen</button></div>
     </form>
-    <span class="label group-label">Kommende Zeiten · ${list.length - booked} frei, ${booked} gebucht</span>
+    <span class="label group-label">Kommende Zeiten · ${list.length - booked} frei, ${reqs} angefragt, ${booked - reqs} bestätigt</span>
     ${list.length ? `<div class="card slot-admin">${[...days.values()].map(ls => `<div class="slot-admin-day"><b>${dayLabel(ls[0].starts_at)}</b>${ls.map(x => {
       const b = x.booking_id && S.D.bookings.find(y => y.id === x.booking_id), t = fmtTs(x.starts_at);
       return `<div class="slot-admin-row"><span class="mono">${t.time}</span><span>${b ? `<b>${esc(profileName(b.user_id))}</b>${b.topic ? ` <span class="muted">· ${esc(b.topic)}</span>` : ""}` : `<span class="muted">frei · ${x.minutes} Min.</span>`}</span>
-        ${b ? confirmBtn("sb:" + x.id, "Termin absagen", `data-a="slotCancelBooking" data-id="${x.id}"`) : confirmBtn("sd:" + x.id, "Löschen", `data-a="slotDel" data-id="${x.id}"`)}</div>`;
+        ${b && b.status === "requested" ? `<span class="actions" style="align-items:center"><span class="muted-tag">Angefragt</span><button class="btn small primary" type="button" data-a="bookingDecide" data-id="${b.id}" data-v="1">Bestätigen</button>${confirmBtn("bd:" + b.id, "Ablehnen", `data-a="bookingDecide" data-id="${b.id}" data-v="0"`)}</span>`
+          : b ? `<span class="actions" style="align-items:center"><span class="ok-tag">Bestätigt</span>${confirmBtn("sb:" + x.id, "Termin absagen", `data-a="slotCancelBooking" data-id="${x.id}"`)}</span>` : confirmBtn("sd:" + x.id, "Löschen", `data-a="slotDel" data-id="${x.id}"`)}</div>`;
     }).join("")}</div>`).join("")}</div>` : `<p class="empty">Noch keine Zeiten eingestellt.</p>`}`;
 }
 
@@ -1638,8 +1643,13 @@ const A = {
   slotGo: el => { S.ui.pickSlot = el.dataset.id; location.hash = "sessions"; window.scrollTo(0, 0); },
   slotPick: el => { S.ui.pickSlot = el.dataset.id || null; render(); const t = $("#slotTopic"); if (t) t.focus(); },
   bookingCancel: async el => {
-    const r = await run(sb.rpc("booking_cancel", { p_booking: el.dataset.id }), "Abgesagt. Die Session ist wieder in deinem Paket.");
+    const r = await run(sb.rpc("booking_cancel", { p_booking: el.dataset.id }), "Erledigt. Die Session ist wieder in deinem Paket.");
     S.ui.confirm = null; if (r) reload(); else render();
+  },
+  bookingDecide: async el => {
+    const ok = el.dataset.v === "1";
+    await run(sb.rpc("booking_decide", { p_booking: el.dataset.id, p_ok: ok, p_note: "" }), ok ? "Bestätigt. Die Mail mit Kalender-Link ist raus." : "Abgelehnt. Die Zeit ist wieder frei.");
+    S.ui.confirm = null; reload();
   },
   slotDel: async el => { await run(sb.from("slots").delete().eq("id", el.dataset.id), "Zeit gelöscht."); S.ui.confirm = null; reload(); },
   slotCancelBooking: async el => {
@@ -1832,7 +1842,7 @@ const F = {
   },
   slotBook: async f => {
     if (!S.ui.pickSlot) return;
-    const r = await run(sb.rpc("slot_book", { p_slot: S.ui.pickSlot, p_topic: f.topic.value.trim() }), "Gebucht! Die Bestätigung kommt per Mail.");
+    const r = await run(sb.rpc("slot_book", { p_slot: S.ui.pickSlot, p_topic: f.topic.value.trim() }), "Angefragt! Ich bestätige dir den Termin per Mail.");
     S.ui.pickSlot = null; reload(); if (r) window.scrollTo(0, 0);
   },
   slotAdd: async f => {
