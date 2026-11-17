@@ -728,3 +728,9 @@ td .sub .ok-tag,td .sub .muted-tag,td .sub .err-tag{font-size:12px}
 .extra-opt small{color:var(--muted);font-size:13px}
 .extra-opt input:checked+span{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .extra-opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+.pl-1on1{gap:12px}
+.pl-1on1-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.pl-left{font-size:15px;color:var(--muted)}
+.pl-left b{font-size:22px;color:var(--accent);font-weight:800}
+.pl-slots{display:flex;flex-wrap:wrap;gap:8px}

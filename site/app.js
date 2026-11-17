@@ -698,22 +698,29 @@ function viewPrelaunch() {
     <div class="countdown" data-cd="${esc(CONFIG.courseStart || "")}" role="timer" aria-label="Zeit bis zum Kursstart">
       ${[["d", "Tage"], ["h", "Stunden"], ["m", "Minuten"], ["s", "Sekunden"]].map(([u, t]) => `<div><b data-u="${u}">00</b><span>${t}</span></div>`).join("")}
     </div>
+    ${oneOnOneTeaser(me)}
     <div class="two">
       ${steps.length ? `<div class="card"><h2>So geht's weiter</h2><ol class="lsteps">${steps.map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join("")}</ol></div>` : ""}
       ${prep.length ? `<div class="card"><h2>Bis dahin vorbereiten</h2><div class="prep">${prep.map((t, i) => `<label class="inline-check"><input class="check" type="checkbox" data-prep="${i}" ${done.includes(i) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div></div>` : ""}
     </div>
-    ${oneOnOneTeaser(me)}
     ${nw ? `<a class="card" href="#news" style="text-decoration:none;color:inherit"><span class="label">Neu · ${fmt(nw.published_at)}</span><b>${esc(nw.title)}</b></a>` : ""}
     <p class="muted" style="font-size:14px">Fragen bis dahin? Schreib mir einfach an <a href="mailto:info@saschpak.de">info@saschpak.de</a>.</p>
   </section>`;
 }
 
 function oneOnOneTeaser(me) {
-  const up = upcomingOf(me.id)[0], left = leftFor(me), free = freeSlots().length;
-  if (up) { const t = fmtTs(up.starts_at); return `<div class="card"><h2>Dein nächstes 1:1</h2><p><b>${t.wd}, ${fmt(t.date)} um ${t.time} Uhr</b>${up.topic ? ` · ${esc(up.topic)}` : ""}</p><div><a class="btn" href="#sessions">Zu deinen 1:1s</a></div></div>`; }
+  const preview = me.role === "coach";
+  const up = upcomingOf(me.id)[0], total = preview ? (me.package_total || 4) : me.package_total, left = preview ? total : leftFor(me), free = freeSlots();
+  if (up) { const t = fmtTs(up.starts_at); return `<div class="card pl-1on1"><div class="pl-1on1-head"><h2>Dein nächstes 1:1</h2><span class="pl-left"><b>${Math.max(0, left)}</b> von ${total} übrig</span></div><p><b>${t.wd}, ${fmt(t.date)} um ${t.time} Uhr</b>${up.topic ? ` · ${esc(up.topic)}` : ""}</p><div class="actions"><a class="btn" href="#sessions">Zu deinen 1:1s</a>${left > 0 ? `<a class="btn quiet" href="#sessions">Noch eins buchen</a>` : ""}</div></div>`; }
   if (left <= 0) return "";
-  return `<div class="card"><h2>Starte schon vorher mit einem 1:1</h2><p class="muted">Du musst nicht bis zum Kursstart warten: Buch dir jetzt schon dein erstes 1:1 und wir schauen uns dein Setup an. Noch ${left} von ${me.package_total} Sessions in deinem Paket.</p>
-    <div>${free ? `<a class="btn primary" href="#sessions">1:1 buchen</a>` : `<span class="muted" style="font-size:14px">Gerade sind keine freien Zeiten eingestellt. Schreib mir einfach, dann finden wir einen Termin.</span>`}</div></div>`;
+  const next = free.slice(0, 4);
+  return `<div class="card pl-1on1">${preview ? `<p class="notice" style="margin:0">Vorschau: So sehen Schüler mit einem 1:1-Paket diese Karte.</p>` : ""}
+    <div class="pl-1on1-head"><h2>Starte schon vorher mit einem 1:1</h2><span class="pl-left"><b>${left}</b> von ${total} übrig</span></div>
+    <p class="muted">Du musst nicht bis zum Kursstart warten. Buch dir dein erstes 1:1 und wir schauen uns dein Setup an.</p>
+    ${next.length ? `<div class="pl-slots">${next.map(x => `<button type="button" class="slot-btn" data-a="slotGo" data-id="${x.id}">${dayLabel(x.starts_at)} · ${fmtTs(x.starts_at).time}</button>`).join("")}</div>
+      <div><a class="btn primary" href="#sessions">Alle freien Zeiten ansehen</a></div>`
+      : `<p class="muted" style="font-size:14px">Gerade sind keine freien Zeiten eingestellt. Schreib mir einfach an <a href="mailto:${esc(CONFIG.contactEmail || "info@saschpak.de")}">${esc(CONFIG.contactEmail || "info@saschpak.de")}</a>, dann finden wir einen Termin.</p>`}
+  </div>`;
 }
 
 /* ---------- Schüler: Übersicht ---------- */
@@ -1628,6 +1635,7 @@ const A = {
     await run(sb.from("lesson_files").delete().eq("id", f.id), "Datei entfernt."); S.ui.confirm = null; reload();
   },
   extraOpen: () => { S.ui.extraOpen = !S.ui.extraOpen; render(); },
+  slotGo: el => { S.ui.pickSlot = el.dataset.id; location.hash = "sessions"; window.scrollTo(0, 0); },
   slotPick: el => { S.ui.pickSlot = el.dataset.id || null; render(); const t = $("#slotTopic"); if (t) t.focus(); },
   bookingCancel: async el => {
     const r = await run(sb.rpc("booking_cancel", { p_booking: el.dataset.id }), "Abgesagt. Die Session ist wieder in deinem Paket.");
@@ -1866,7 +1874,7 @@ const F = {
 
 /* ---------- Ereignisse ---------- */
 // In der Schüleransicht nur Navigation erlauben, nichts speichern
-const VIEWAS_OK = new Set(["viewMod", "openLesson", "download", "dl", "copyText", "viewAsExit", "reloadPage"]);
+const VIEWAS_OK = new Set(["viewMod", "openLesson", "download", "dl", "slotGo", "copyText", "viewAsExit", "reloadPage"]);
 const viewAsBlocked = () => { toast("Das ist nur die Schüleransicht. Hier wird nichts gespeichert.", true); };
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]");
