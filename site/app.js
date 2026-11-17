@@ -621,6 +621,8 @@ function renderChrome() {
   });
   const cur = $("#nav a[aria-current]"), nav = $("#nav");
   if (cur && nav && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, cur.offsetLeft - nav.offsetLeft - nav.clientWidth / 2 + cur.offsetWidth / 2);
+  if (nav && !nav.dataset.sc) { nav.dataset.sc = "1"; nav.addEventListener("scroll", () => nav.classList.toggle("scrolled", nav.scrollLeft > 4), { passive: true }); }
+  if (nav) nav.classList.toggle("scrolled", nav.scrollLeft > 4);
 }
 
 function render() {
@@ -793,9 +795,9 @@ function viewKurs() {
     const files = S.D.files.filter(f => f.lesson_id === sel.id);
     const qs = S.D.questions.filter(q => q.user_id === me.id && q.lesson_id === sel.id);
     lessonHTML = `<div class="player">
+      <div class="lesson-head lesson-head-top"><span class="muted" style="font-size:13px">Modul ${modIndex(modOf(sel)) + 1} · ${esc(modOf(sel).title)} · Lektion ${vls.indexOf(sel) + 1} von ${vls.length}</span><h2>${esc(sel.title)}</h2></div>
       <div class="screen"${sel.video_id ? ` data-video="${sel.id}"` : ""}>${sel.video_id ? `<p class="soon">Video lädt …</p>` : `<p class="soon">Für diese Lektion gibt es noch kein Video.</p>`}</div>
       <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="lesson-head"><span class="muted" style="font-size:13px">Modul ${modIndex(modOf(sel)) + 1} · ${esc(modOf(sel).title)}</span><h2>${esc(sel.title)}</h2></div>
         ${sel.points.length ? `<ul class="points">${sel.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
         <div class="actions"><button class="btn ${isDone ? "" : "primary"}" type="button" data-a="toggleDone" data-id="${sel.id}">${isDone ? "✓ Erledigt" : "Als erledigt markieren"}</button>${nxt ? `<button class="btn" type="button" data-a="openLesson" data-id="${nxt.id}">Nächste Lektion</button>` : ""}</div>
         ${files.length ? `<div class="files"><span class="label">Material zur Lektion</span>${files.map(f => `<div class="file"><span class="ext">${esc((f.file_name.split(".").pop() || "").slice(0, 4))}</span><button type="button" data-a="download" data-path="${esc(f.storage_path)}">${esc(f.file_name)}</button></div>`).join("")}</div>` : ""}
@@ -913,7 +915,7 @@ function viewAdmin() {
   const openQ = S.D.questions.filter(q => !q.answer).length;
   const wlN = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
   const pendingReq = S.D.bookings.filter(b => b.status === "requested" && new Date(b.starts_at) > new Date()).length;
-  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["stats", "Statistik"], ["users", "Schüler"], ["kurs", "Kurs"], ["slots", "1:1-Zeiten" + (pendingReq ? `<span class="count">${pendingReq}</span>` : "")], ["downloads", "Downloads"], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["news", "News"]];
+  const tabs = [["home", "Übersicht"], ["warteliste", "Warteliste" + (wlN ? `<span class="count">${wlN}</span>` : "")], ["users", "Schüler"], ["slots", "1:1-Zeiten" + (pendingReq ? `<span class="count">${pendingReq}</span>` : "")], ["fragen", "Fragen" + (openQ ? `<span class="count">${openQ}</span>` : "")], ["kurs", "Kurs"], ["downloads", "Downloads"], ["news", "News"], ["stats", "Statistik"]];
   const AV = { home: adminHome, warteliste: adminWaitlist, stats: adminStats, users: adminUsers, kurs: adminKurs, slots: adminSlots, downloads: adminDownloads, fragen: adminFragen, news: adminNews };
   if (!AV[S.ui.tab]) S.ui.tab = "home";
   const body = AV[S.ui.tab]();
@@ -929,7 +931,6 @@ function adminHome() {
   const week = up.filter(b => new Date(b.starts_at) <= new Date(Date.now() + 7 * 864e5));
   const todos = [];
   const wlW = (S.D.waitlist || []).filter(w => w.status === "waiting").length;
-  if (preLaunch()) todos.push({ kind: "Vor dem Start", text: `Teilnehmer sehen bis zum Kursstart eine Startseite mit Countdown.`, a: `href="#bald"`, btn: "Ansehen", link: true });
   const reqN = S.D.bookings.filter(b => b.status === "requested" && new Date(b.starts_at) > new Date()).length;
   if (reqN) todos.push({ kind: "1:1", text: `${reqN} ${reqN === 1 ? "1:1-Anfrage wartet" : "1:1-Anfragen warten"} auf deine Bestätigung.`, a: `data-a="tab" data-v="slots"`, btn: "Ansehen" });
   if (wlW) todos.push({ kind: "Warteliste", text: `${wlW} ${wlW === 1 ? "Person wartet" : "Personen warten"} auf ein Kennenlerngespräch.`, a: `data-a="tab" data-v="warteliste"`, btn: "Ansehen" });
@@ -953,7 +954,7 @@ function adminHome() {
       if (!calls.length) return "";
       return `<div class="card"><div class="book-head"><h2>Nächste Kennenlerngespräche</h2><button class="btn small quiet" type="button" data-a="tab" data-v="warteliste">Warteliste</button></div>${calls.map(w => { const t = fmtTs(w.call_at); return `<div class="call-row"><div class="call-when"><b>${t.wd.slice(0, 2)} ${fmt(t.date)}</b><span>${t.time} Uhr</span></div><div class="call-who"><b>${esc(wlName(w))}</b>${w.full_name ? `<span class="muted">${esc(w.email)}</span>` : ""}${w.reach ? `<span class="reach-tag">${reachLink(w.reach)}</span>` : ""}${w.contact_note ? `<p>${esc(w.contact_note)}</p>` : ""}</div></div>`; }).join("")}</div>`;
     })()}
-    <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div>${t.link ? `<a class="btn small" ${t.a}>${t.btn}</a>` : `<button class="btn small" type="button" ${t.a}>${t.btn}</button>`}</div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div></div>
+    <div class="card"><h2>Zu erledigen</h2><div>${todos.length ? todos.map(t => `<div class="todo"><div class="what"><span class="kind">${t.kind}</span><span>${t.text}</span></div>${t.link ? `<a class="btn small" ${t.a}>${t.btn}</a>` : `<button class="btn small" type="button" ${t.a}>${t.btn}</button>`}</div>`).join("") : `<p class="empty">Alles erledigt.</p>`}</div>${preLaunch() ? `<p class="muted" style="font-size:13px">Bis zum Kursstart sehen Teilnehmer eine Startseite mit Countdown. <a href="#bald">Ansehen</a></p>` : ""}</div>
     <div class="card"><h2>Nächste Termine</h2><div>${up.length ? up.map(b => { const t = fmtTs(b.starts_at); return `<div class="todo"><div class="what"><span class="kind mono" style="color:var(--fg)">${fmt(t.date)} ${t.time}</span><span><b>${esc(profileName(b.user_id))}</b>${b.topic ? " · " + esc(b.topic) : ""}</span></div><button class="btn small quiet" type="button" data-a="openUser" data-id="${b.user_id}">Schüler öffnen</button></div>`; }).join("") : `<p class="empty">Keine Termine gebucht.</p>`}</div></div>`;
 }
 
